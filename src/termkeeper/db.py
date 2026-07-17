@@ -352,3 +352,40 @@ def list_history():
         )
 
         return cur.fetchall()
+
+
+def get_meaning(meaning_id: int):
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT
+                meaning_id,
+                full_name,
+                description
+            FROM meaning
+            WHERE meaning_id = ?
+            """,
+            (meaning_id,),
+        )
+
+        return cur.fetchone()
+
+
+def get_terms_by_meaning(meaning_id: int):
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT
+                keyword
+            FROM term
+            WHERE meaning_id = ?
+            ORDER BY keyword
+            """,
+            (meaning_id,),
+        )
+
+        return cur.fetchall()

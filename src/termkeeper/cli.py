@@ -13,6 +13,8 @@ from termkeeper.db import (
     find_open_inbox,
     discard_inbox,
     list_history,
+    get_meaning,
+    get_terms_by_meaning,
 )
 
 
@@ -81,6 +83,17 @@ def main():
     # tk history
     sub.add_parser(
         "history",
+    )
+
+    # tk show
+    p_show = sub.add_parser(
+        "show",
+        help="Show meaning details",
+    )
+
+    p_show.add_argument(
+        "meaning_id",
+        type=int,
     )
 
     args = parser.parse_args()
@@ -225,6 +238,47 @@ def main():
                 f"{keyword:<20}  "
                 f"{status:<12}  "
                 f"{created_at}"
+            )
+
+        return
+    
+    if args.command == "show":
+
+        meaning = get_meaning(
+            args.meaning_id
+        )
+
+        if not meaning:
+            print("Meaning not found.")
+            return
+
+        terms = get_terms_by_meaning(
+            args.meaning_id
+        )
+
+        print()
+        print(
+            f"MeaningID: {meaning['meaning_id']}"
+        )
+        print()
+
+        print(
+            meaning["full_name"]
+        )
+
+        if meaning["description"]:
+            print()
+            print(
+                meaning["description"]
+            )
+
+        print()
+        print("Terms")
+        print("-----")
+
+        for term in terms:
+            print(
+                f"- {term['keyword']}"
             )
 
         return
