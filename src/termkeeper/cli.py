@@ -15,6 +15,7 @@ from termkeeper.db import (
     list_history,
     get_meaning,
     get_terms_by_meaning,
+    meaning_exists,
 )
 
 
@@ -94,6 +95,21 @@ def main():
     p_show.add_argument(
         "meaning_id",
         type=int,
+    )
+
+    # tk alias
+    p_alias = sub.add_parser(
+        "alias",
+        help="Add alias to meaning",
+    )
+
+    p_alias.add_argument(
+        "meaning_id",
+        type=int,
+    )
+
+    p_alias.add_argument(
+        "keyword",
     )
 
     args = parser.parse_args()
@@ -221,9 +237,8 @@ def main():
         print(f"Discarded: InboxID={args.inbox_id}")
 
         return
-    
-    if args.command == "history":
 
+    if args.command == "history":
         rows = list_history()
 
         if not rows:
@@ -233,53 +248,62 @@ def main():
         print()
 
         for inbox_id, keyword, status, created_at in rows:
-            print(
-                f"{inbox_id:>4}  "
-                f"{keyword:<20}  "
-                f"{status:<12}  "
-                f"{created_at}"
-            )
+            print(f"{inbox_id:>4}  {keyword:<20}  {status:<12}  {created_at}")
 
         return
-    
-    if args.command == "show":
 
-        meaning = get_meaning(
-            args.meaning_id
-        )
+    if args.command == "show":
+        meaning = get_meaning(args.meaning_id)
 
         if not meaning:
             print("Meaning not found.")
             return
 
-        terms = get_terms_by_meaning(
-            args.meaning_id
-        )
+        terms = get_terms_by_meaning(args.meaning_id)
 
         print()
-        print(
-            f"MeaningID: {meaning['meaning_id']}"
-        )
+        print(f"MeaningID: {meaning['meaning_id']}")
         print()
 
-        print(
-            meaning["full_name"]
-        )
+        print(meaning["full_name"])
 
         if meaning["description"]:
             print()
-            print(
-                meaning["description"]
-            )
+            print(meaning["description"])
 
         print()
         print("Terms")
         print("-----")
 
         for term in terms:
+            print(f"- {term['keyword']}")
+
+        return
+    
+    if args.command == "alias":
+
+        if not meaning_exists(
+            args.meaning_id
+        ):
             print(
-                f"- {term['keyword']}"
+                "Meaning not found."
             )
+            return
+
+        add_term(
+            args.meaning_id,
+            args.keyword,
+        )
+
+        print()
+
+        print(
+            f"Added alias '{args.keyword}'"
+        )
+
+        print(
+            f"to MeaningID={args.meaning_id}"
+        )
 
         return
 

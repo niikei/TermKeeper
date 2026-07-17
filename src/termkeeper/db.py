@@ -389,3 +389,19 @@ def get_terms_by_meaning(meaning_id: int):
         )
 
         return cur.fetchall()
+
+
+def meaning_exists(meaning_id: int) -> bool:
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT 1
+            FROM meaning
+            WHERE meaning_id = ?
+            """,
+            (meaning_id,),
+        )
+
+        return cur.fetchone() is not None
