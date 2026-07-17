@@ -19,6 +19,7 @@ from termkeeper.db import (
     meaning_exists,
     list_meanings_for_export,
     update_meaning,
+    list_meanings,
 )
 
 
@@ -161,6 +162,12 @@ def main():
     p_edit.add_argument(
         "meaning_id",
         type=int,
+    )
+
+    # tk meanings
+    sub.add_parser(
+        "meanings",
+        help="Show meanings list",
     )
 
     args = parser.parse_args()
@@ -491,6 +498,34 @@ def main():
 
         print()
         print(f"Updated MeaningID={args.meaning_id}")
+
+        return
+
+    if args.command == "meanings":
+        rows = list_meanings()
+
+        if not rows:
+            print("No meanings.")
+            return
+
+        print()
+
+        print(f"{'ID':<4}  {'Alias':<5}  {'Full Name':<35}  Description")
+
+        print("-" * 120)
+
+        for row in rows:
+            description = row["description"] or ""
+
+            if len(description) > 40:
+                description = description[:40] + "..."
+
+            print(
+                f"{row['meaning_id']:<4}  "
+                f"{row['term_count']:<5}  "
+                f"{row['full_name']:<35}  "
+                f"{description}"
+            )
 
         return
 

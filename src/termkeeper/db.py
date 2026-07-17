@@ -460,3 +460,29 @@ def update_meaning(
         conn.commit()
 
         return cur.rowcount
+
+
+def list_meanings():
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT
+                m.meaning_id,
+                m.full_name,
+                m.description,
+                COUNT(t.term_id) AS term_count
+            FROM meaning m
+            LEFT JOIN term t
+                ON m.meaning_id = t.meaning_id
+            GROUP BY
+                m.meaning_id,
+                m.full_name,
+                m.description
+            ORDER BY
+                m.meaning_id
+            """
+        )
+
+        return cur.fetchall()
