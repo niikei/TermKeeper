@@ -1,4 +1,5 @@
 import argparse
+import csv
 
 from termkeeper.db import (
     add_inbox,
@@ -16,7 +17,24 @@ from termkeeper.db import (
     get_meaning,
     get_terms_by_meaning,
     meaning_exists,
+    list_meanings_for_export,
+    update_meaning,
 )
+
+
+def split_terms(value: str) -> list:
+    if not value:
+        return []
+
+    terms = []
+
+    for item in value.split(";"):
+        item = item.strip()
+
+        if item:
+            terms.append(item)
+
+    return terms
 
 
 def main():
@@ -110,6 +128,39 @@ def main():
 
     p_alias.add_argument(
         "keyword",
+    )
+
+    # tk export
+    p_export = sub.add_parser(
+        "export",
+        help="Export meanings to CSV",
+    )
+
+    p_export.add_argument(
+        "path",
+        nargs="?",
+        default="termkeeper_export.csv",
+    )
+
+    # tk import
+    p_import = sub.add_parser(
+        "import",
+        help="Import meanings from CSV",
+    )
+
+    p_import.add_argument(
+        "path",
+    )
+
+    # tk edit
+    p_edit = sub.add_parser(
+        "edit",
+        help="Edit meaning",
+    )
+
+    p_edit.add_argument(
+        "meaning_id",
+        type=int,
     )
 
     args = parser.parse_args()
@@ -279,15 +330,10 @@ def main():
             print(f"- {term['keyword']}")
 
         return
-    
-    if args.command == "alias":
 
-        if not meaning_exists(
-            args.meaning_id
-        ):
-            print(
-                "Meaning not found."
-            )
+    if args.command == "alias":
+        if not meaning_exists(args.meaning_id):
+            print("Meaning not found.")
             return
 
         add_term(
@@ -297,13 +343,154 @@ def main():
 
         print()
 
-        print(
-            f"Added alias '{args.keyword}'"
+        print(f"Added alias '{args.keyword}'")
+
+        print(f"to MeaningID={args.meaning_id}")
+
+        return
+
+    if args.command == "export":
+        rows = list_meanings_for_export()
+
+        with open(
+            args.path,
+            "w",
+            newline="",
+            encoding="utf-8-sig",
+        ) as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=[
+                    "meaning_id",
+                    "full_name",
+                    "description",
+                    "terms",
+                ],
+            )
+
+            writer.writeheader()
+
+            for row in rows:
+                writer.writerow(
+                    {
+                        "meaning_id": row["meaning_id"],
+                        "full_name": row["full_name"],
+                        "description": row["description"] or "",
+                        "terms": row["terms"] or "",
+                    }
+                )
+
+        print(f"Exported: {args.path}")
+
+        return
+
+    if args.command == "import":
+        imported_count = 0
+        updated_count = 0
+
+        with open(
+            args.path,
+            "r",
+            newline="",
+            encoding="utf-8-sig",
+        ) as f:
+            reader = csv.DictReader(f)
+
+            for row in reader:
+                meaning_id_text = (row.get("meaning_id") or "").strip()
+
+                full_name = (row.get("full_name") or "").strip()
+
+                description = (row.get("description") or "").strip()
+
+                terms = split_terms(row.get("terms") or "")
+
+                if not full_name:
+                    continue
+
+                if meaning_id_text:
+                    meaning_id = int(meaning_id_text)
+
+                    if meaning_exists(meaning_id):
+                        update_meaning(
+                            meaning_id,
+                            full_name,
+                            description,
+                        )
+
+                        updated_count += 1
+
+                    else:
+                        meaning_id = create_meaning(
+                            full_name,
+                            description,
+                        )
+
+                        imported_count += 1
+
+                else:
+                    meaning_id = create_meaning(
+                        full_name,
+                        description,
+                    )
+
+                    imported_count += 1
+
+                add_term(
+                    meaning_id,
+                    full_name,
+                )
+
+                for term in terms:
+                    add_term(
+                        meaning_id,
+                        term,
+                    )
+
+        print(f"Imported: {imported_count}")
+
+        print(f"Updated : {updated_count}")
+
+        return
+
+    if args.command == "edit":
+        meaning = get_meaning(args.meaning_id)
+
+        if not meaning:
+            print("Meaning not found.")
+            return
+
+        print()
+        print(f"MeaningID: {meaning['meaning_id']}")
+        print()
+
+        print(f"Current Full Name: {meaning['full_name']}")
+
+        new_full_name = input("New Full Name (blank to keep): ").strip()
+
+        print()
+        print("Current Description:")
+        print(meaning["description"] or "")
+
+        new_description = input("New Description (blank to keep): ").strip()
+
+        full_name = new_full_name if new_full_name else meaning["full_name"]
+
+        description = new_description if new_description else meaning["description"]
+
+        update_meaning(
+            args.meaning_id,
+            full_name,
+            description,
         )
 
-        print(
-            f"to MeaningID={args.meaning_id}"
+        add_term(
+            args.meaning_id,
+            full_name,
         )
+
+        print()
+        print(f"Updated MeaningID={args.meaning_id}")
 
         return
 

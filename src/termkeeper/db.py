@@ -405,3 +405,58 @@ def meaning_exists(meaning_id: int) -> bool:
         )
 
         return cur.fetchone() is not None
+
+
+def list_meanings_for_export():
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT
+                m.meaning_id,
+                m.full_name,
+                m.description,
+                GROUP_CONCAT(t.keyword, ';') AS terms
+            FROM meaning m
+            LEFT JOIN term t
+                ON m.meaning_id = t.meaning_id
+            GROUP BY
+                m.meaning_id,
+                m.full_name,
+                m.description
+            ORDER BY m.meaning_id
+            """
+        )
+
+        return cur.fetchall()
+
+
+def update_meaning(
+    meaning_id: int,
+    full_name: str,
+    description: str,
+):
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            UPDATE meaning
+            SET
+                full_name = ?,
+                description = ?,
+                updated_at = ?
+            WHERE meaning_id = ?
+            """,
+            (
+                full_name,
+                description,
+                now(),
+                meaning_id,
+            ),
+        )
+
+        conn.commit()
+
+        return cur.rowcount
