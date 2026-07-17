@@ -233,3 +233,27 @@ def close_inbox(
         )
 
         conn.commit()
+
+
+def search_term(keyword: str):
+    keyword_norm = normalize_keyword(keyword)
+
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT
+                m.meaning_id,
+                m.full_name,
+                m.description
+            FROM term t
+            JOIN meaning m
+                ON t.meaning_id = m.meaning_id
+            WHERE t.keyword_norm = ?
+            ORDER BY m.meaning_id
+            """,
+            (keyword_norm,),
+        )
+
+        return cur.fetchall()

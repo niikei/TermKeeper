@@ -8,6 +8,7 @@ from termkeeper.db import (
     create_meaning,
     add_term,
     close_inbox,
+    search_term,
 )
 
 
@@ -50,6 +51,16 @@ def main():
     sub.add_parser(
         "inbox",
         help="Show inbox items",
+    )
+
+    # tk search
+    p_search = sub.add_parser(
+        "search",
+        help="Search term",
+    )
+
+    p_search.add_argument(
+        "keyword",
     )
 
     args = parser.parse_args()
@@ -118,7 +129,29 @@ def main():
 
         return
 
+
+    if args.command == "search":
+        rows = search_term(args.keyword)
+
+        if not rows:
+            print("No results.")
+            return
+
+        print()
+
+        for row in rows:
+            print(f"[MeaningID={row['meaning_id']}]")
+            print(row["full_name"])
+
+            if row["description"]:
+                print(row["description"])
+
+            print()
+
+        return
+    
     parser.print_help()
+
 
 
 if __name__ == "__main__":
