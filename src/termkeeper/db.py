@@ -59,15 +59,18 @@ def list_inbox():
     with get_connection() as conn:
         cur = conn.cursor()
 
-        cur.execute("""
+        cur.execute(
+            """
             SELECT
                 inbox_id,
                 keyword,
                 status,
                 created_at
             FROM inbox
+            WHERE status IN ('New', 'Pending')
             ORDER BY inbox_id
-        """)
+            """
+        )
 
         return cur.fetchall()
 
@@ -304,3 +307,48 @@ def find_open_inbox(keyword: str):
         )
 
         return cur.fetchone()
+
+
+def discard_inbox(inbox_id: int):
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            UPDATE inbox
+            SET
+                status = 'Discarded',
+                updated_at = ?,
+                closed_at = ?
+            WHERE inbox_id = ?
+              AND status IN ('New', 'Pending')
+            """,
+            (
+                now(),
+                now(),
+                inbox_id,
+            ),
+        )
+
+        conn.commit()
+
+        return cur.rowcount
+
+
+def list_history():
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT
+                inbox_id,
+                keyword,
+                status,
+                created_at
+            FROM inbox
+            ORDER BY inbox_id
+            """
+        )
+
+        return cur.fetchall()

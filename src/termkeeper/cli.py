@@ -10,7 +10,9 @@ from termkeeper.db import (
     close_inbox,
     search_term,
     find_registered_term,
-    find_open_inbox
+    find_open_inbox,
+    discard_inbox,
+    list_history,
 )
 
 
@@ -65,6 +67,22 @@ def main():
         "keyword",
     )
 
+    # tk discard
+    p_discard = sub.add_parser(
+        "discard",
+        help="Discard inbox item",
+    )
+
+    p_discard.add_argument(
+        "inbox_id",
+        type=int,
+    )
+
+    # tk history
+    sub.add_parser(
+        "history",
+    )
+
     args = parser.parse_args()
 
     if args.command == "init":
@@ -73,59 +91,37 @@ def main():
         return
 
     if args.command == "add":
-
-        registered = find_registered_term(
-            args.keyword
-        )
+        registered = find_registered_term(args.keyword)
 
         if registered:
             print()
             print("Already registered")
             print()
 
-            print(
-                f"[MeaningID={registered['meaning_id']}]"
-            )
-            print(
-                registered["full_name"]
-            )
+            print(f"[MeaningID={registered['meaning_id']}]")
+            print(registered["full_name"])
 
             if registered["description"]:
-                print(
-                    registered["description"]
-                )
+                print(registered["description"])
 
             return
 
-        inbox = find_open_inbox(
-            args.keyword
-        )
+        inbox = find_open_inbox(args.keyword)
 
         if inbox:
             print()
             print("Already exists in inbox")
             print()
 
-            print(
-                f"InboxID={inbox['inbox_id']}"
-            )
-            print(
-                f"Keyword={inbox['keyword']}"
-            )
-            print(
-                f"Status={inbox['status']}"
-            )
+            print(f"InboxID={inbox['inbox_id']}")
+            print(f"Keyword={inbox['keyword']}")
+            print(f"Status={inbox['status']}")
 
             return
 
-        inbox_id = add_inbox(
-            args.keyword
-        )
+        inbox_id = add_inbox(args.keyword)
 
-        print(
-            f"Added: InboxID={inbox_id} "
-            f"Keyword={args.keyword}"
-        )
+        print(f"Added: InboxID={inbox_id} Keyword={args.keyword}")
 
         return
 
@@ -182,7 +178,6 @@ def main():
 
         return
 
-
     if args.command == "search":
         rows = search_term(args.keyword)
 
@@ -202,9 +197,39 @@ def main():
             print()
 
         return
-    
-    parser.print_help()
 
+    if args.command == "discard":
+        count = discard_inbox(args.inbox_id)
+
+        if count == 0:
+            print("Inbox not found or already closed.")
+            return
+
+        print(f"Discarded: InboxID={args.inbox_id}")
+
+        return
+    
+    if args.command == "history":
+
+        rows = list_history()
+
+        if not rows:
+            print("History is empty.")
+            return
+
+        print()
+
+        for inbox_id, keyword, status, created_at in rows:
+            print(
+                f"{inbox_id:>4}  "
+                f"{keyword:<20}  "
+                f"{status:<12}  "
+                f"{created_at}"
+            )
+
+        return
+
+    parser.print_help()
 
 
 if __name__ == "__main__":
