@@ -239,7 +239,10 @@ def close_inbox(
 
 
 def search_term(keyword: str):
+
     keyword_norm = normalize_keyword(keyword)
+
+    pattern = f"%{keyword_norm}%"
 
     with get_connection() as conn:
         cur = conn.cursor()
@@ -249,14 +252,35 @@ def search_term(keyword: str):
             SELECT
                 m.meaning_id,
                 m.full_name,
+                m.description,
+                COUNT(DISTINCT t2.term_id) AS term_count
+
+            FROM meaning m
+
+            LEFT JOIN term t
+                ON m.meaning_id = t.meaning_id
+
+            LEFT JOIN term t2
+                ON m.meaning_id = t2.meaning_id
+
+            WHERE
+                LOWER(t.keyword_norm) LIKE ?
+                OR LOWER(m.full_name) LIKE ?
+                OR LOWER(COALESCE(m.description, '')) LIKE ?
+
+            GROUP BY
+                m.meaning_id,
+                m.full_name,
                 m.description
-            FROM term t
-            JOIN meaning m
-                ON t.meaning_id = m.meaning_id
-            WHERE t.keyword_norm = ?
-            ORDER BY m.meaning_id
+
+            ORDER BY
+                m.full_name
             """,
-            (keyword_norm,),
+            (
+                pattern,
+                pattern,
+                pattern,
+            ),
         )
 
         return cur.fetchall()

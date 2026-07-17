@@ -273,9 +273,15 @@ def main():
             return
 
         print()
+        print(f"{len(rows)} matches")
+        print()
 
         for row in rows:
-            print(f"[MeaningID={row['meaning_id']}]")
+            print(
+                f"[MeaningID={row['meaning_id']}] "
+                f"(Aliases: {row['term_count']})"
+            )
+
             print(row["full_name"])
 
             if row["description"]:
