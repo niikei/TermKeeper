@@ -257,3 +257,50 @@ def search_term(keyword: str):
         )
 
         return cur.fetchall()
+
+
+def find_registered_term(keyword: str):
+    keyword_norm = normalize_keyword(keyword)
+
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT
+                m.meaning_id,
+                m.full_name,
+                m.description
+            FROM term t
+            JOIN meaning m
+                ON t.meaning_id = m.meaning_id
+            WHERE t.keyword_norm = ?
+            """,
+            (keyword_norm,),
+        )
+
+        return cur.fetchone()
+
+
+def find_open_inbox(keyword: str):
+    keyword_norm = normalize_keyword(keyword)
+
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT
+                inbox_id,
+                keyword,
+                status
+            FROM inbox
+            WHERE keyword_norm = ?
+              AND status IN ('New', 'Pending')
+            ORDER BY inbox_id
+            LIMIT 1
+            """,
+            (keyword_norm,),
+        )
+
+        return cur.fetchone()

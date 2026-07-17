@@ -9,6 +9,8 @@ from termkeeper.db import (
     add_term,
     close_inbox,
     search_term,
+    find_registered_term,
+    find_open_inbox
 )
 
 
@@ -71,9 +73,60 @@ def main():
         return
 
     if args.command == "add":
-        inbox_id = add_inbox(args.keyword)
 
-        print(f"Added: InboxID={inbox_id} Keyword={args.keyword}")
+        registered = find_registered_term(
+            args.keyword
+        )
+
+        if registered:
+            print()
+            print("Already registered")
+            print()
+
+            print(
+                f"[MeaningID={registered['meaning_id']}]"
+            )
+            print(
+                registered["full_name"]
+            )
+
+            if registered["description"]:
+                print(
+                    registered["description"]
+                )
+
+            return
+
+        inbox = find_open_inbox(
+            args.keyword
+        )
+
+        if inbox:
+            print()
+            print("Already exists in inbox")
+            print()
+
+            print(
+                f"InboxID={inbox['inbox_id']}"
+            )
+            print(
+                f"Keyword={inbox['keyword']}"
+            )
+            print(
+                f"Status={inbox['status']}"
+            )
+
+            return
+
+        inbox_id = add_inbox(
+            args.keyword
+        )
+
+        print(
+            f"Added: InboxID={inbox_id} "
+            f"Keyword={args.keyword}"
+        )
+
         return
 
     if args.command == "inbox":
