@@ -10,7 +10,10 @@ DB_PATH = Path("data") / "termkeeper.db"
 def get_connection():
     DB_PATH.parent.mkdir(exist_ok=True)
 
-    return sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+
+    return conn
 
 
 def normalize_keyword(keyword: str) -> str:
@@ -122,5 +125,111 @@ def init_db():
                 REFERENCES meaning(meaning_id)
         )
         """)
+
+        conn.commit()
+
+
+def get_inbox(inbox_id: int):
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT *
+            FROM inbox
+            WHERE inbox_id = ?
+            """,
+            (inbox_id,),
+        )
+
+        return cur.fetchone()
+
+
+def create_meaning(
+    full_name: str,
+    description: str,
+) -> int:
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            INSERT INTO meaning (
+                full_name,
+                description,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                full_name,
+                description,
+                now(),
+                now(),
+            ),
+        )
+
+        conn.commit()
+
+        return cur.lastrowid
+
+
+def add_term(
+    meaning_id: int,
+    keyword: str,
+):
+    keyword_norm = normalize_keyword(keyword)
+
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            INSERT OR IGNORE INTO term (
+                meaning_id,
+                keyword,
+                keyword_norm,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                meaning_id,
+                keyword,
+                keyword_norm,
+                now(),
+                now(),
+            ),
+        )
+
+        conn.commit()
+
+
+def close_inbox(
+    inbox_id: int,
+    meaning_id: int,
+):
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            UPDATE inbox
+            SET
+                status = 'Closed',
+                resolved_meaning_id = ?,
+                updated_at = ?,
+                closed_at = ?
+            WHERE inbox_id = ?
+            """,
+            (
+                meaning_id,
+                now(),
+                now(),
+                inbox_id,
+            ),
+        )
 
         conn.commit()

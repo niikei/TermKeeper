@@ -2,8 +2,12 @@ import argparse
 
 from termkeeper.db import (
     add_inbox,
-    init_db,
     list_inbox,
+    init_db,
+    get_inbox,
+    create_meaning,
+    add_term,
+    close_inbox,
 )
 
 
@@ -31,6 +35,17 @@ def main():
         help="Keyword to add",
     )
 
+    # tk resolve
+    p_resolve = sub.add_parser(
+        "resolve",
+        help="Resolve inbox item",
+    )
+
+    p_resolve.add_argument(
+        "inbox_id",
+        type=int,
+    )
+
     # tk inbox
     sub.add_parser(
         "inbox",
@@ -47,10 +62,7 @@ def main():
     if args.command == "add":
         inbox_id = add_inbox(args.keyword)
 
-        print(
-            f"Added: InboxID={inbox_id} "
-            f"Keyword={args.keyword}"
-        )
+        print(f"Added: InboxID={inbox_id} Keyword={args.keyword}")
         return
 
     if args.command == "inbox":
@@ -63,12 +75,46 @@ def main():
         print()
 
         for inbox_id, keyword, status, created_at in rows:
-            print(
-                f"{inbox_id:>4}  "
-                f"{keyword:<20}  "
-                f"{status:<10}  "
-                f"{created_at}"
-            )
+            print(f"{inbox_id:>4}  {keyword:<20}  {status:<10}  {created_at}")
+
+        return
+
+    if args.command == "resolve":
+        inbox = get_inbox(args.inbox_id)
+
+        if not inbox:
+            print("Inbox not found.")
+            return
+
+        print()
+        print(f"Keyword: {inbox['keyword']}")
+        print()
+
+        full_name = input("Full Name: ").strip()
+        description = input("Description: ").strip()
+
+        meaning_id = create_meaning(
+            full_name,
+            description,
+        )
+
+        add_term(
+            meaning_id,
+            inbox["keyword"],
+        )
+
+        add_term(
+            meaning_id,
+            full_name,
+        )
+
+        close_inbox(
+            args.inbox_id,
+            meaning_id,
+        )
+
+        print()
+        print(f"Created MeaningID={meaning_id}")
 
         return
 
