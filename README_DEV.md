@@ -31,8 +31,8 @@ export TERMKEEPER_DB="$PWD/data/development.db"
 uv run tk init
 ```
 
-`tk init`はAlembicでDBを最新Revisionへ更新します。破壊的な意味変更を含むRevisionでは、
-実行前にDBをバックアップしてください。
+`tk init`はAlembicでDBを最新Revisionへ更新します。初期化に失敗した場合は
+`uv run tk --debug init`で原因トレースを確認できます。
 
 ## ディレクトリ構成
 
@@ -158,6 +158,8 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 - `service.py`を肥大化させず、機能別の`use_cases/`へ実装する
 - 互換レイヤーは追加せず、必要になった時点で明示的なマイグレーションを設計する
 - スキーマ変更はAlembic Revisionとして追加し、`tk init`で最新状態へupgradeする
+- 適用済みRevisionは書き換えず、次のRevisionにforward migrationを追加する
+- SQLModelを変更したら、初期Revisionとの一致テストまたは新しいRevisionの移行テストを追加する
 
 ## テスト方針
 
@@ -185,6 +187,8 @@ CSVの構文解析はPresentation、行検証・Dry Run・一括更新はApplica
 
 DBスキーマを変更した場合は、少なくとも
 [ドメインモデル](docs/003_domain_model.md)のER図も更新してください。
+既存データがあるRevisionを変更するときはDBを事前にバックアップし、実データを模したfixtureで
+upgradeを検証してください。
 
 ## 関連ドキュメント
 

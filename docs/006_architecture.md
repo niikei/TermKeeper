@@ -89,5 +89,11 @@ RouteとMCP Toolは機能単位のモジュールへ分割し、アプリケー�
 ## スキーマ管理
 
 `tk init` および各CLI起動時にAlembicを実行し、最新Revisionまでupgradeする。
-各Revisionは固定DDLとして保持し、以後の変更は新しいRevisionを追加して順番に適用する。
-旧Revisionからの意味変更が完全には推測できない場合、安全側へ倒して再確認可能な状態へ移す。
+現行モデルを`0001_initial`の初期ベースラインとする。各Revisionは固定DDLとして保持し、
+スキーマ変更時は適用済みRevisionを書き換えず、新しいRevisionを追加して順番に適用する。
+SQLModel metadataと初期Revisionの差分をテストし、モデルだけを変更してMigrationを追加し忘れる
+schema driftを防ぐ。既存データを移行するRevisionは、実際の旧スキーマとデータを模したfixtureで
+upgradeを検証する。
+
+Service初期化時のDBエラーは`InitializationError`へ変換する。CLIは通常、パスと復旧導線だけを
+表示して終了コード`1`を返し、内部トレースバックは`--debug`指定時だけ表示する。

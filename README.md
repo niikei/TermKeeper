@@ -31,11 +31,11 @@ tk init
 TERMKEEPER_DB=~/Documents/terms.db tk inbox
 ```
 
-### 0.3へのDB移行
+### DBの初期化
 
-`tk init`は旧InboxスキーマをOccurrence分類モデルへ移行します。旧版が文字列一致だけでMeaningへ
-直接紐付けたOccurrenceは、誤分類を引き継がないようPendingへ戻します。利用者がInboxを明示的に
-解決した履歴はResolvedとして保持します。移行前にDBファイルをバックアップしてください。
+`tk init`は現行スキーマの新しいDBを作成します。各コマンドも起動時に同じ初期化を行うため、
+通常は最初のコマンド実行時に自動作成されます。初期化に失敗した場合、技術的な原因は
+`tk --debug init`で確認できます。
 
 ## 基本的な使い方
 
