@@ -14,6 +14,7 @@ from termkeeper.domain import (
     Meaning,
     OccurrenceItem,
     OccurrenceQuery,
+    OccurrenceUpdate,
     ReferenceLink,
     SearchField,
     SearchQuery,
@@ -113,6 +114,14 @@ class TermKeeperMcpTools:
         """Get occurrence totals and top term and source rankings."""
         return self._service.stats(limit)
 
+    def edit_occurrence(
+        self,
+        occurrence_id: UUID,
+        update: OccurrenceUpdate,
+    ) -> OccurrenceItem:
+        """Edit occurrence context using its stable UUID."""
+        return self._service.edit_occurrence_by_public_id(occurrence_id, update)
+
     def add_tag(self, meaning_id: UUID, name: str) -> Meaning:
         """Add a tag to a meaning."""
         return self._service.add_tag(self._local_meaning_id(meaning_id), name)
@@ -196,6 +205,7 @@ def create_server(service: TermKeeperService | None = None) -> FastMCP:
         tools.search_meanings,
         tools.get_meaning,
         tools.list_occurrences,
+        tools.edit_occurrence,
         tools.get_stats,
         tools.add_tag,
         tools.remove_tag,

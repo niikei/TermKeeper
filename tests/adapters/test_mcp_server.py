@@ -6,6 +6,7 @@ from termkeeper.adapters.mcp_server import (
     create_server,
 )
 from termkeeper.application import TermKeeperService
+from termkeeper.domain import OccurrenceUpdate
 
 
 def test_mcp_server_registers_expected_tools() -> None:
@@ -17,6 +18,7 @@ def test_mcp_server_registers_expected_tools() -> None:
         "add_reference",
         "add_tag",
         "capture_term",
+        "edit_occurrence",
         "favorite_meaning",
         "get_meaning",
         "get_stats",
@@ -57,6 +59,7 @@ def test_mcp_server_registers_expected_tools() -> None:
     assert occurrence_query["properties"]["meaning_id"]["anyOf"][0]["format"] == "uuid"
     assert occurrence_query["properties"]["inbox_id"]["anyOf"][0]["format"] == "uuid"
     assert definitions["resolve_inbox"]["properties"]["inbox_id"]["format"] == "uuid"
+    assert definitions["edit_occurrence"]["properties"]["occurrence_id"]["format"] == "uuid"
 
 
 def test_mcp_tools_delegate_complete_workflow() -> None:
@@ -73,7 +76,13 @@ def test_mcp_tools_delegate_complete_workflow() -> None:
 
     assert tools.search_meanings("ERP").hits
     assert tools.get_meaning(public_id).full_name == "Enterprise Resource Planning"
-    assert tools.list_occurrences(OccurrenceFilters(meaning_id=public_id))[0].source == "Teams"
+    occurrence = tools.list_occurrences(OccurrenceFilters(meaning_id=public_id))[0]
+    assert occurrence.source == "Teams"
+    edited = tools.edit_occurrence(
+        occurrence.public_id,
+        OccurrenceUpdate(memo="updated by MCP"),
+    )
+    assert edited.memo == "updated by MCP"
     assert tools.get_stats().total_occurrences == 1
 
     assert tools.add_tag(public_id, "SAP").tags == ("SAP",)

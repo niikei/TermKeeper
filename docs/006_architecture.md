@@ -56,7 +56,7 @@ Repositoryへ閉じ込め、Applicationからは`StatsSummary`として返す。
 APIやMCPを追加するときは `TermKeeperService` を再利用し、SQLやCLIの標準出力を直接
 呼ばない。MCPは`capture_term`, `list_inbox`, `resolve_inbox`, `search_meanings`,
 `get_meaning`, `list_occurrences`, `get_stats`, Tag・Favorite・Related Meaning・Reference
-操作の計17ツールを公開する。
+操作とOccurrence編集の計18ツールを公開する。
 
 MCPアダプターは公式Python SDKのFastMCPを使用し、標準入出力transportで提供する。
 `TermKeeperMcpTools`は具体的なDomain DTOを返し、FastMCPが型注釈から構造化出力スキーマを
@@ -65,6 +65,7 @@ MCPアダプターは公式Python SDKのFastMCPを使用し、標準入出力tra
 HTTP APIとMCPがMeaningを入力として受け取る場合は`public_id`（UUID）だけを使用する。
 Inboxの解決やOccurrence絞り込みもInboxの`public_id`を使用する。整数の`meaning_id`と
 `inbox_id`はローカルDBとCLI向けの識別子とし、外部クライアントの参照には使用しない。
+Occurrenceの個別編集にはOccurrence自身の`public_id`を使用する。
 
 HTTPアダプターはFastAPIで`/api/v1`以下へ公開し、PydanticはHTTPリクエストの構文検証だけを
 担当する。業務検証はApplicationへ委譲し、`ValidationError`を422、`NotFoundError`を404の

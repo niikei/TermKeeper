@@ -135,6 +135,7 @@ class MeaningReference(SQLModel, table=True):
 
 class Occurrence(SQLModel, table=True):
     occurrence_id: int | None = Field(default=None, primary_key=True)
+    public_id: UUID = Field(default_factory=uuid4, unique=True, index=True)
     keyword: str
     keyword_norm: str = Field(index=True)
     inbox_id: int | None = Field(default=None, foreign_key="inbox.inbox_id")

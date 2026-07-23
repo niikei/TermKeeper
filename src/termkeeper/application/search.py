@@ -1,6 +1,7 @@
 """Relevance scoring for Meaning search results."""
 
 from difflib import SequenceMatcher
+from typing import cast
 
 from termkeeper.domain import (
     Meaning,
@@ -12,6 +13,7 @@ from termkeeper.domain import (
 from termkeeper.infrastructure.sqlite_utils import normalize_keyword
 
 _MIN_SUGGESTION_RATIO = 0.6
+type _Match = tuple[int, SearchField, str]
 
 
 def rank_search(meanings: list[Meaning], query: SearchQuery) -> list[SearchHit]:
@@ -64,27 +66,32 @@ def _score_meaning(
     match_all: bool,
 ) -> SearchHit | None:
     token_matches = [_best_match(meaning, token, field) for token in tokens]
-    matched: list[tuple[int, SearchField, str]] = []
-    for candidate in token_matches:
-        if candidate is not None:
-            matched.append(candidate)
+    matched: list[_Match] = [
+        cast("_Match", candidate) for candidate in token_matches if candidate is not None
+    ]
     if not matched or (match_all and len(matched) != len(tokens)):
         return None
-    best = max(matched, key=lambda candidate: candidate[0])
+    best = max(matched, key=_match_score)
+    _, matched_field, matched_text = best
     return SearchHit(
         meaning=meaning,
-        score=sum(candidate[0] for candidate in matched),
-        matched_field=best[1],
-        matched_text=best[2],
+        score=sum(score for score, _, _ in matched),
+        matched_field=matched_field,
+        matched_text=matched_text,
     )
+
+
+def _match_score(candidate: _Match) -> int:
+    score, _, _ = candidate
+    return score
 
 
 def _best_match(
     meaning: Meaning,
     token: str,
     field: SearchField,
-) -> tuple[int, SearchField, str] | None:
-    candidates: list[tuple[int, SearchField, str]] = []
+) -> _Match | None:
+    candidates: list[_Match] = []
     if field in {SearchField.ALL, SearchField.TERM}:
         candidates.extend(
             _match_text(term, token, SearchField.TERM, (100, 80, 60)) for term in meaning.terms
@@ -97,8 +104,10 @@ def _best_match(
         candidates.append(
             _match_text(meaning.description, token, SearchField.DESCRIPTION, (40, 30, 20)),
         )
-    matches = [candidate for candidate in candidates if candidate[0] > 0]
-    return max(matches, default=None, key=lambda candidate: candidate[0])
+    matches = [candidate for candidate in candidates if _match_score(candidate) > 0]
+    if not matches:
+        return None
+    return max(matches, key=_match_score)
 
 
 def _match_text(

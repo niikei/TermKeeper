@@ -213,7 +213,7 @@ tk-mcp
 
 `TERMKEEPER_DB`でCLIと同じデータベースを指定できます。MCPクライアントには、サーバー起動
 コマンドとして`tk-mcp`を登録してください。Capture、Inbox、Resolve、Search、Occurrence、
-Stats、Tag、Favorite、Related Meaning、Referenceの17ツールを公開します。各ツールは具体的な
+Stats、Tag、Favorite、Related Meaning、Referenceの18ツールを公開します。各ツールは具体的な
 Domain DTOに基づく構造化出力スキーマを持ちます。
 
 ### HTTP API

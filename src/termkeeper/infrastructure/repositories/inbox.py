@@ -55,6 +55,13 @@ def get_occurrence(session: Session, occurrence_id: int) -> Occurrence | None:
     return session.get(Occurrence, occurrence_id)
 
 
+def get_occurrence_by_public_id(
+    session: Session,
+    public_id: UUID,
+) -> Occurrence | None:
+    return session.exec(select(Occurrence).where(Occurrence.public_id == public_id)).first()
+
+
 def update_occurrence(
     session: Session,
     record: Occurrence,

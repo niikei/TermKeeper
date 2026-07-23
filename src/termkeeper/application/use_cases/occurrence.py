@@ -1,12 +1,14 @@
 """Occurrence history use cases."""
 
 from datetime import UTC, datetime
+from uuid import UUID
 
 from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_occurrence
 from termkeeper.application.support import user_id
 from termkeeper.domain import OccurrenceItem, OccurrenceQuery, OccurrenceUpdate
 from termkeeper.infrastructure.repositories import inbox_repository, settings_repository
+from termkeeper.infrastructure.tables import Occurrence
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
 
@@ -44,12 +46,36 @@ class OccurrenceUseCases:
             if occurrence is None:
                 message = f"Occurrence {occurrence_id} was not found."
                 raise NotFoundError(message)
-            actor_id = user_id(settings_repository.get_profile(uow.session))
-            inbox_repository.update_occurrence(uow.session, occurrence, update, actor_id)
-            uow.session.flush()
-            result = to_occurrence(occurrence)
-            uow.commit()
-            return result
+            return _update_occurrence(uow, occurrence, update)
+
+    def edit_occurrence_by_public_id(
+        self,
+        public_id: UUID,
+        update: OccurrenceUpdate,
+    ) -> OccurrenceItem:
+        _validate_update(update)
+        with UnitOfWork() as uow:
+            occurrence = inbox_repository.get_occurrence_by_public_id(
+                uow.session,
+                public_id,
+            )
+            if occurrence is None:
+                message = f"Occurrence {public_id} was not found."
+                raise NotFoundError(message)
+            return _update_occurrence(uow, occurrence, update)
+
+
+def _update_occurrence(
+    uow: UnitOfWork,
+    occurrence: Occurrence,
+    update: OccurrenceUpdate,
+) -> OccurrenceItem:
+    actor_id = user_id(settings_repository.get_profile(uow.session))
+    inbox_repository.update_occurrence(uow.session, occurrence, update, actor_id)
+    uow.session.flush()
+    result = to_occurrence(occurrence)
+    uow.commit()
+    return result
 
 
 def _to_utc(value: datetime | None) -> datetime | None:

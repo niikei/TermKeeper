@@ -3,6 +3,7 @@
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Any
+from uuid import UUID
 
 
 @dataclass(frozen=True)
@@ -27,6 +28,7 @@ class OccurrenceUpdate:
 @dataclass(frozen=True)
 class OccurrenceItem:
     occurrence_id: int
+    public_id: UUID
     keyword: str
     memo: str | None
     source: str | None

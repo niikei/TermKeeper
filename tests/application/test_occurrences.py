@@ -1,4 +1,5 @@
 from datetime import UTC, timedelta
+from uuid import uuid4
 
 import pytest
 from sqlmodel import select
@@ -83,6 +84,12 @@ def test_edit_occurrence_updates_context_audit_and_normalized_search() -> None:
     assert cleared.memo is None
     assert cleared.source is None
 
+    public_update = service.edit_occurrence_by_public_id(
+        occurrence.public_id,
+        OccurrenceUpdate(source="API"),
+    )
+    assert public_update.source == "API"
+
 
 def test_edit_occurrence_validation_and_missing_record() -> None:
     service = TermKeeperService()
@@ -102,3 +109,8 @@ def test_edit_occurrence_validation_and_missing_record() -> None:
             service.edit_occurrence(occurrence_id, update)
     with pytest.raises(NotFoundError):
         service.edit_occurrence(999, OccurrenceUpdate(memo="missing"))
+    with pytest.raises(NotFoundError):
+        service.edit_occurrence_by_public_id(
+            uuid4(),
+            OccurrenceUpdate(memo="missing"),
+        )

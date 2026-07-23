@@ -61,6 +61,7 @@ def to_meaning(session: Session, record: Meaning) -> MeaningDto:
 def to_occurrence(record: Occurrence) -> OccurrenceItem:
     return OccurrenceItem(
         occurrence_id=required_id(record.occurrence_id),
+        public_id=record.public_id,
         keyword=record.keyword,
         memo=record.memo,
         source=record.source,
