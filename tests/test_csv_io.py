@@ -21,12 +21,12 @@ def test_csv_round_trip_and_update(tmp_path: Path) -> None:
 
     assert export_meanings(str(path)) == 1
     rows = list(csv.DictReader(path.open(encoding="utf-8-sig")))
-    assert rows[0]["meaning_id"] == str(meaning.meaning_id)
+    assert rows[0]["public_id"] == str(meaning.public_id)
     assert set(rows[0]["terms"].split(";")) == {"BOM", "Bill of Materials"}
 
     rows[0]["full_name"] = "Bill of Material"
     rows[0]["description"] = "updated"
-    rows.append({"meaning_id": "", "full_name": "", "description": "", "terms": ""})
+    rows.append(dict.fromkeys(rows[0], ""))
     with path.open("w", newline="", encoding="utf-8-sig") as handle:
         writer = csv.DictWriter(handle, fieldnames=rows[0].keys())
         writer.writeheader()
@@ -40,7 +40,7 @@ def test_csv_round_trip_and_update(tmp_path: Path) -> None:
 def test_import_creates_meaning_and_aliases(tmp_path: Path) -> None:
     path = tmp_path / "new.csv"
     path.write_text(
-        "meaning_id,full_name,description,terms\n"
+        "public_id,full_name,description,terms\n"
         ",Master Data Management,governance,MDM;master data\n",
         encoding="utf-8",
     )

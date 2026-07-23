@@ -42,6 +42,8 @@ def test_human_readable_management_commands(
     assert main(["show", "1"]) == 0
     assert main(["meanings"]) == 0
     assert main(["history"]) == 0
+    assert main(["unalias", "1", "enterprise planning"]) == 0
+    assert main(["delete", "1"]) == 0
     output = capsys.readouterr().out
     assert "Enterprise Resource Planning" in output
 
@@ -76,3 +78,4 @@ def test_config_set_get_list_and_json(capsys: pytest.CaptureFixture[str]) -> Non
     assert main(["--json", "config", "--list"]) == 0
     settings = json.loads(capsys.readouterr().out)
     assert settings == {"user.email": "taro@example.com", "user.name": "Taro Yamada"}
+    assert main(["config", "--unset", "user.email"]) == 0

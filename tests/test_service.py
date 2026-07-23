@@ -1,6 +1,11 @@
 import pytest
+from sqlalchemy.exc import IntegrityError
+from sqlmodel import func, select
 
 from termkeeper.application import NotFoundError, TermKeeperService, ValidationError
+from termkeeper.infrastructure.connection import get_session
+from termkeeper.infrastructure.tables import Inbox, Occurrence
+from termkeeper.infrastructure.tables import Meaning as MeaningRecord
 
 
 def test_capture_duplicate_increments_occurrence_count() -> None:
@@ -117,3 +122,79 @@ def test_user_configuration_round_trip_and_validation() -> None:
         service.set_config("user.email", "invalid")
     with pytest.raises(ValidationError):
         service.set_config("user.name", " ")
+
+
+def test_occurrences_are_preserved_and_linked_after_resolve() -> None:
+    service = TermKeeperService()
+    first = service.add("SLA", memo="meeting", source="Teams")
+    service.add("sla", memo="follow-up", source="Slack")
+    assert first.inbox is not None
+
+    meaning = service.resolve(first.inbox.inbox_id, "Service Level Agreement")
+
+    with get_session() as session:
+        occurrences = session.exec(
+            select(Occurrence).where(Occurrence.inbox_id == first.inbox.inbox_id),
+        ).all()
+    assert len(occurrences) == 2
+    assert {item.source for item in occurrences} == {"Teams", "Slack"}
+    assert all(item.meaning_id == meaning.meaning_id for item in occurrences)
+
+
+def test_user_profile_is_recorded_in_audit_columns() -> None:
+    service = TermKeeperService()
+    service.set_config("user.name", "Taro")
+    captured = service.add("CRM")
+    assert captured.inbox is not None
+    meaning = service.resolve(captured.inbox.inbox_id, "Customer Relationship Management")
+
+    assert captured.inbox.created_by_id is not None
+    assert meaning.created_by_id == captured.inbox.created_by_id
+    assert meaning.updated_by_id == captured.inbox.created_by_id
+
+
+def test_alias_removal_meaning_deletion_and_config_unset() -> None:
+    service = TermKeeperService()
+    service.set_config("user.email", "taro@example.com")
+    captured = service.add("ERP")
+    assert captured.inbox is not None
+    meaning = service.resolve(captured.inbox.inbox_id, "Enterprise Resource Planning")
+    service.add_alias(meaning.meaning_id, "enterprise planning")
+
+    updated = service.remove_alias(meaning.meaning_id, "enterprise planning")
+    assert "enterprise planning" not in updated.terms
+    with pytest.raises(NotFoundError):
+        service.remove_alias(meaning.meaning_id, "missing")
+
+    assert service.unset_config("user.email") == {}
+    service.delete_meaning(meaning.meaning_id)
+    with pytest.raises(NotFoundError):
+        service.get_meaning(meaning.meaning_id)
+
+
+def test_resolve_rolls_back_all_changes_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    service = TermKeeperService()
+    captured = service.add("TX")
+    assert captured.inbox is not None
+
+    def fail_add_term(*_args: object, **_kwargs: object) -> bool:
+        raise RuntimeError("simulated failure")
+
+    monkeypatch.setattr("termkeeper.application.service.meaning_repository.add_term", fail_add_term)
+    with pytest.raises(RuntimeError):
+        service.resolve(captured.inbox.inbox_id, "Transaction")
+
+    assert service.get_inbox(captured.inbox.inbox_id).status == "New"
+    with get_session() as session:
+        meaning_count = session.exec(select(func.count()).select_from(MeaningRecord)).one()
+    assert meaning_count == 0
+
+
+def test_database_rejects_duplicate_open_inbox() -> None:
+    with get_session() as session:
+        session.add(Inbox(keyword="CRM", keyword_norm="crm"))
+        session.add(Inbox(keyword="crm", keyword_norm="crm"))
+
+        with pytest.raises(IntegrityError):
+            session.commit()
+        session.rollback()

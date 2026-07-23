@@ -6,6 +6,7 @@
 - Inboxの捕捉、一覧、履歴、破棄
 - memoとsourceによる遭遇コンテキスト
 - 同一未解決語の出現回数と最終確認日時
+- 遭遇ごとのsource・memo・時刻を保持するOccurrence履歴
 - Meaningの作成、編集、一覧、詳細表示
 - Termと別名の管理
 - Term・正式名称・説明の検索
@@ -14,6 +15,8 @@
 - JSON出力
 - `user.name` と `user.email` の設定管理
 - UTCの作成・更新・最終確認・終了日時
+- Meaning外部識別用UUIDとユーザー監査列
+- Unit of Workによるユースケース単位のトランザクション
 - Applicationサービスを介した外部アダプター向け境界
 
 ## 未実装

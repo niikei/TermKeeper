@@ -1,36 +1,35 @@
-"""CSV import and export operations."""
+"""CSV import and export using stable Meaning UUIDs."""
 
 import csv
 from pathlib import Path
+from uuid import UUID
 
-from termkeeper.application import TermKeeperService
-from termkeeper.infrastructure import repository
+from termkeeper.application import NotFoundError, TermKeeperService
+from termkeeper.domain import Meaning
+
+FIELDS = ["public_id", "full_name", "description", "terms", "created_at", "updated_at"]
 
 
 def split_terms(value: str) -> list[str]:
     return [item.strip() for item in value.split(";") if item.strip()]
 
 
-def export_meanings(path: str) -> int:
-    rows = repository.list_meanings_for_export()
+def export_meanings(path: str, service: TermKeeperService | None = None) -> int:
+    service = service or TermKeeperService()
+    rows = service.meanings()
     with Path(path).open("w", newline="", encoding="utf-8-sig") as handle:
-        fields = ["meaning_id", "full_name", "description", "terms", "created_at", "updated_at"]
-        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer = csv.DictWriter(handle, fieldnames=FIELDS)
         writer.writeheader()
         for row in rows:
-            meaning_id = row.meaning_id
-            if meaning_id is None:
-                continue
-            terms = ";".join(term.keyword for term in repository.get_terms_by_meaning(meaning_id))
             writer.writerow(
                 {
-                    "meaning_id": meaning_id,
+                    "public_id": row.public_id,
                     "full_name": row.full_name,
                     "description": row.description or "",
-                    "terms": terms,
-                    "created_at": row.created_at,
-                    "updated_at": row.updated_at,
-                }
+                    "terms": ";".join(row.terms),
+                    "created_at": row.created_at.isoformat(),
+                    "updated_at": row.updated_at.isoformat(),
+                },
             )
     return len(rows)
 
@@ -44,15 +43,25 @@ def import_meanings(path: str, service: TermKeeperService) -> dict[str, int]:
                 skipped += 1
                 continue
             description = (row.get("description") or "").strip() or None
-            id_text = (row.get("meaning_id") or "").strip()
-            if id_text and repository.meaning_exists(int(id_text)):
-                meaning = service.edit(int(id_text), name, description)
-                updated += 1
-            else:
-                meaning_id = repository.create_meaning(name, description)
-                repository.add_term(meaning_id, name)
-                meaning = service.get_meaning(meaning_id)
+            terms = tuple(split_terms(row.get("terms") or ""))
+            public_id_text = (row.get("public_id") or "").strip()
+            existing = _find_existing(service, public_id_text)
+            if existing is None:
+                public_id = UUID(public_id_text) if public_id_text else None
+                service.create_meaning(name, description, terms, public_id)
                 created += 1
-            for term in split_terms(row.get("terms") or ""):
-                service.add_alias(meaning.meaning_id, term)
+            else:
+                service.edit(existing.meaning_id, name, description)
+                for term in terms:
+                    service.add_alias(existing.meaning_id, term)
+                updated += 1
     return {"created": created, "updated": updated, "skipped": skipped}
+
+
+def _find_existing(service: TermKeeperService, public_id: str) -> Meaning | None:
+    if not public_id:
+        return None
+    try:
+        return service.get_meaning_by_public_id(UUID(public_id))
+    except NotFoundError:
+        return None

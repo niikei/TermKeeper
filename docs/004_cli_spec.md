@@ -23,9 +23,11 @@ tk [--json] <command> [options]
 | `show` | Meaning詳細 | `meaning_id` |
 | `meanings` | Meaning一覧 | なし |
 | `alias` | Meaningへ別名を追加 | `meaning_id`, `keyword` |
+| `unalias` | Meaningから別名を削除 | `meaning_id`, `keyword` |
+| `delete` | Meaningを削除 | `meaning_id` |
 | `edit` | Meaningを編集 | `meaning_id`, `--name`, `--description` |
 | `discard` | 未解決Inboxを破棄 | `inbox_id` |
-| `config` | ユーザー設定を取得・更新 | `[key]`, `[value]`, `--list` |
+| `config` | ユーザー設定を取得・更新 | `[key]`, `[value]`, `--list`, `--unset` |
 | `export` | MeaningをCSV出力 | `[path]` |
 | `import` | MeaningをCSV取込 | `path` |
 
@@ -53,12 +55,13 @@ Termにも追加する。
 CSV列は以下の通り。
 
 ```text
-meaning_id,full_name,description,terms,created_at,updated_at
+public_id,full_name,description,terms,created_at,updated_at
 ```
 
-`terms` はセミコロン区切り。Import時、存在する `meaning_id` は更新し、それ以外は新規作成する。
+`terms` はセミコロン区切り。Import時、存在するUUID `public_id` は更新し、それ以外は新規作成する。
 
 ### `tk config`
 
 対応キーは `user.name` と `user.email`。値を指定すると更新、値を省略すると取得、
-`--list` または引数なしでは全設定を表示する。設定はデータベース単位で保存する。
+`--list` または引数なしでは全設定を表示する。`--unset` で値を解除する。設定は
+データベース単位で型付きUserProfileとして保存する。

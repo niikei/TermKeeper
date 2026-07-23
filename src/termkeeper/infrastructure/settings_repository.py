@@ -1,32 +1,45 @@
-"""SQLModel persistence operations for application settings."""
+"""Persistence operations for the single local user profile."""
 
-from sqlmodel import col, select
+from sqlmodel import Session, select
 
-from termkeeper.infrastructure.connection import get_session
-from termkeeper.infrastructure.sqlite_utils import now
-from termkeeper.infrastructure.tables import AppSetting
+from termkeeper.infrastructure.tables import UserProfile, utc_now
 
 
-def get_setting(key: str) -> AppSetting | None:
-    with get_session() as session:
-        return session.get(AppSetting, key)
+def get_profile(session: Session) -> UserProfile | None:
+    return session.exec(select(UserProfile).limit(1)).first()
 
 
-def set_setting(key: str, value: str) -> AppSetting:
-    with get_session() as session:
-        setting = session.get(AppSetting, key)
-        if setting is None:
-            setting = AppSetting(key=key, value=value, updated_at=now())
-        else:
-            setting.value = value
-            setting.updated_at = now()
-        session.add(setting)
-        session.commit()
-        session.refresh(setting)
-        return setting
+def get_or_create_profile(session: Session) -> UserProfile:
+    profile = get_profile(session)
+    if profile is None:
+        profile = UserProfile()
+        session.add(profile)
+        session.flush()
+    return profile
 
 
-def list_settings() -> list[AppSetting]:
-    statement = select(AppSetting).order_by(col(AppSetting.key))
-    with get_session() as session:
-        return list(session.exec(statement).all())
+def set_value(session: Session, key: str, value: str) -> UserProfile:
+    profile = get_or_create_profile(session)
+    setattr(profile, _field(key), value)
+    profile.updated_at = utc_now()
+    session.add(profile)
+    return profile
+
+
+def unset_value(session: Session, key: str) -> UserProfile:
+    profile = get_or_create_profile(session)
+    setattr(profile, _field(key), None)
+    profile.updated_at = utc_now()
+    session.add(profile)
+    return profile
+
+
+def as_config(profile: UserProfile | None) -> dict[str, str]:
+    if profile is None:
+        return {}
+    values = {"user.name": profile.name, "user.email": profile.email}
+    return {key: value for key, value in values.items() if value is not None}
+
+
+def _field(key: str) -> str:
+    return {"user.name": "name", "user.email": "email"}[key]

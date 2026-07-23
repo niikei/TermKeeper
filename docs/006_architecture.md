@@ -9,15 +9,18 @@
 - `presentation/`: CLI引数、コマンド処理、表示、CSV入出力
 
 各アダプターはレイヤーの公開モジュールを直接使用し、旧構成向けの互換モジュールは持たない。
-CRUD、検索、スキーマ作成はSQLModelを使用する。旧SQLiteスキーマとの自動互換性は持たない。
+CRUD、検索、スキーマ作成はSQLModelを使用する。旧SQLiteスキーマとの自動互換性や移行処理は
+持たないため、本版は新規データベースを前提とする。
+Applicationの各更新ユースケースはUnit of Workを使用し、1つのSessionとトランザクションで
+完結する。Repositoryはcommitせず、トランザクション境界をApplicationへ集約する。
 
 APIやMCPを追加するときは `TermKeeperService` を再利用し、SQLやCLIの標準出力を直接
 呼ばない。MCPツールはまず `add`, `inbox`, `resolve`, `search`, `show` を1対1で公開する。
 
 ## 時刻
 
-保存値はタイムゾーン付きUTCのISO 8601形式とする。表示側が必要に応じてローカル時刻へ
-変換する。`created_at` は生成時刻、`updated_at` は内容または状態の更新時刻、
+保存値は型付きUTC `datetime` とし、JSON／CSV境界でISO 8601へ変換する。表示側が必要に
+応じてローカル時刻へ変換する。`created_at` は生成時刻、`updated_at` は内容または状態の更新時刻、
 `last_seen_at` は同じ未解決語を最後に目にした時刻を表す。
 
 ## スキーマ管理

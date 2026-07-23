@@ -1,123 +1,127 @@
-"""SQLModel persistence operations for meanings and terms."""
+"""Persistence operations for meanings and aliases."""
+
+from uuid import UUID
 
 from sqlalchemy import func, or_
-from sqlalchemy.exc import IntegrityError
-from sqlmodel import col, select
+from sqlmodel import Session, col, select
 
-from termkeeper.infrastructure.connection import get_session
-from termkeeper.infrastructure.sqlite_utils import normalize_keyword, now
-from termkeeper.infrastructure.tables import Meaning as MeaningRecord
-from termkeeper.infrastructure.tables import Term as TermRecord
+from termkeeper.infrastructure.sqlite_utils import normalize_keyword
+from termkeeper.infrastructure.tables import Meaning, Term, utc_now
 
 
-def create_meaning(full_name: str, description: str | None) -> int:
-    stamp = now()
-    record = MeaningRecord(
+def create(
+    session: Session,
+    full_name: str,
+    description: str | None,
+    user_id: int | None,
+    *,
+    public_id: UUID | None = None,
+) -> Meaning:
+    record = Meaning(
         full_name=full_name.strip(),
         description=description or None,
-        created_at=stamp,
-        updated_at=stamp,
+        created_by_id=user_id,
+        updated_by_id=user_id,
     )
-    with get_session() as session:
-        session.add(record)
-        session.commit()
-        session.refresh(record)
-        if record.meaning_id is None:
-            message = "SQLite did not return an ID for the inserted meaning."
-            raise RuntimeError(message)
-        return record.meaning_id
+    if public_id is not None:
+        record.public_id = public_id
+    session.add(record)
+    session.flush()
+    return record
 
 
-def add_term(meaning_id: int, keyword: str) -> bool:
+def add_term(session: Session, meaning_id: int, keyword: str, user_id: int | None) -> bool:
     if not keyword.strip():
         return False
-    stamp = now()
-    record = TermRecord(
+    existing = session.exec(
+        select(Term).where(
+            Term.meaning_id == meaning_id,
+            Term.keyword_norm == normalize_keyword(keyword),
+        ),
+    ).first()
+    if existing is not None:
+        return False
+    record = Term(
         meaning_id=meaning_id,
         keyword=keyword.strip(),
         keyword_norm=normalize_keyword(keyword),
-        created_at=stamp,
-        updated_at=stamp,
+        created_by_id=user_id,
     )
-    with get_session() as session:
-        session.add(record)
-        try:
-            session.commit()
-        except IntegrityError:
-            session.rollback()
-            return False
-        return True
+    session.add(record)
+    return True
 
 
-def get_meaning(meaning_id: int) -> MeaningRecord | None:
-    with get_session() as session:
-        return session.get(MeaningRecord, meaning_id)
+def remove_term(session: Session, meaning_id: int, keyword: str) -> bool:
+    record = session.exec(
+        select(Term).where(
+            Term.meaning_id == meaning_id,
+            Term.keyword_norm == normalize_keyword(keyword),
+        ),
+    ).first()
+    if record is None:
+        return False
+    session.delete(record)
+    return True
 
 
-def get_terms_by_meaning(meaning_id: int) -> list[TermRecord]:
+def get(session: Session, meaning_id: int) -> Meaning | None:
+    return session.get(Meaning, meaning_id)
+
+
+def get_by_public_id(session: Session, public_id: UUID) -> Meaning | None:
+    return session.exec(select(Meaning).where(Meaning.public_id == public_id)).first()
+
+
+def get_terms(session: Session, meaning_id: int) -> list[Term]:
+    statement = select(Term).where(Term.meaning_id == meaning_id).order_by(Term.keyword_norm)
+    return list(session.exec(statement).all())
+
+
+def find_registered(session: Session, keyword: str) -> Meaning | None:
     statement = (
-        select(TermRecord)
-        .where(TermRecord.meaning_id == meaning_id)
-        .order_by(TermRecord.keyword_norm)
+        select(Meaning)
+        .join(Term)
+        .where(Term.keyword_norm == normalize_keyword(keyword))
+        .order_by(col(Meaning.meaning_id))
     )
-    with get_session() as session:
-        return list(session.exec(statement).all())
+    return session.exec(statement).first()
 
 
-def meaning_exists(meaning_id: int) -> bool:
-    return get_meaning(meaning_id) is not None
-
-
-def find_registered_term(keyword: str) -> MeaningRecord | None:
-    statement = (
-        select(MeaningRecord)
-        .join(TermRecord)
-        .where(TermRecord.keyword_norm == normalize_keyword(keyword))
-        .order_by(col(MeaningRecord.meaning_id))
-    )
-    with get_session() as session:
-        return session.exec(statement).first()
-
-
-def search_term(keyword: str) -> list[MeaningRecord]:
+def search(session: Session, keyword: str) -> list[Meaning]:
     pattern = f"%{normalize_keyword(keyword)}%"
     statement = (
-        select(MeaningRecord)
-        .outerjoin(TermRecord)
+        select(Meaning)
+        .outerjoin(Term)
         .where(
             or_(
-                col(TermRecord.keyword_norm).like(pattern),
-                func.lower(MeaningRecord.full_name).like(pattern),
-                func.lower(func.coalesce(MeaningRecord.description, "")).like(pattern),
+                col(Term.keyword_norm).like(pattern),
+                func.lower(Meaning.full_name).like(pattern),
+                func.lower(func.coalesce(Meaning.description, "")).like(pattern),
             ),
         )
         .distinct()
-        .order_by(MeaningRecord.full_name)
+        .order_by(Meaning.full_name)
     )
-    with get_session() as session:
-        return list(session.exec(statement).all())
+    return list(session.exec(statement).all())
 
 
-def update_meaning(meaning_id: int, full_name: str, description: str | None) -> int:
-    with get_session() as session:
-        record = session.get(MeaningRecord, meaning_id)
-        if record is None:
-            return 0
-        record.full_name = full_name.strip()
-        record.description = description or None
-        record.updated_at = now()
-        session.add(record)
-        session.commit()
-        return 1
+def update(
+    session: Session,
+    record: Meaning,
+    full_name: str,
+    description: str | None,
+    user_id: int | None,
+) -> None:
+    record.full_name = full_name.strip()
+    record.description = description or None
+    record.updated_at = utc_now()
+    record.updated_by_id = user_id
+    session.add(record)
 
 
-def list_meanings() -> list[MeaningRecord]:
-    statement = select(MeaningRecord).order_by(col(MeaningRecord.updated_at).desc())
-    with get_session() as session:
-        return list(session.exec(statement).all())
+def list_all(session: Session) -> list[Meaning]:
+    return list(session.exec(select(Meaning).order_by(col(Meaning.updated_at).desc())).all())
 
 
-def list_meanings_for_export() -> list[MeaningRecord]:
-    statement = select(MeaningRecord).order_by(col(MeaningRecord.meaning_id))
-    with get_session() as session:
-        return list(session.exec(statement).all())
+def delete(session: Session, record: Meaning) -> None:
+    session.delete(record)

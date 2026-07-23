@@ -73,7 +73,9 @@ tk meanings
 
 ```bash
 tk alias 1 ICMR
+tk unalias 1 ICMR
 tk edit 1 --name "Intercompany Matching and Reconciliation"
+tk delete 1
 tk discard 2
 tk history
 ```
@@ -92,6 +94,7 @@ tk config user.name "Taro Yamada"
 tk config user.email taro@example.com
 tk config user.name
 tk config --list
+tk config --unset user.email
 ```
 
 設定はTermKeeperのデータベース単位で保存されます。
@@ -127,7 +130,8 @@ result = service.add("BTP", source="Slack")
 INBOX ── resolves to ──> MEANING <── belongs to ── TERM
 ```
 
-- Inbox: まだ整理していない用語と遭遇時の情報
+- Inbox: まだ整理していない用語と状態
+- Occurrence: 用語へ遭遇した時刻、出典、メモの履歴
 - Meaning: 利用者が理解したい意味
 - Term: 略語、正式名称、別名などMeaningを検索するための語
 

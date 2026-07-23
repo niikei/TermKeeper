@@ -94,6 +94,20 @@ def handle_alias(args: argparse.Namespace, service: TermKeeperService) -> Meanin
     return result
 
 
+def handle_unalias(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
+    result = service.remove_alias(args.meaning_id, args.keyword)
+    if not args.json:
+        print(f"Removed alias '{args.keyword}' from meaning #{args.meaning_id}.")
+    return result
+
+
+def handle_delete(args: argparse.Namespace, service: TermKeeperService) -> dict[str, int]:
+    service.delete_meaning(args.meaning_id)
+    if not args.json:
+        print(f"Deleted meaning #{args.meaning_id}.")
+    return {"deleted": args.meaning_id}
+
+
 def handle_edit(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
     current = service.get_meaning(args.meaning_id)
     name = args.name
@@ -118,6 +132,14 @@ def handle_meanings(args: argparse.Namespace, service: TermKeeperService) -> lis
 
 
 def handle_config(args: argparse.Namespace, service: TermKeeperService) -> dict[str, str]:
+    if args.unset:
+        if args.key is None:
+            message = "config --unset requires a key"
+            raise ValueError(message)
+        result = service.unset_config(args.key)
+        if not args.json:
+            print(f"Unset {args.key}.")
+        return result
     if args.list_config or args.key is None:
         result = service.list_config()
         if not args.json:
@@ -139,7 +161,7 @@ def handle_export(
     args: argparse.Namespace,
     _service: TermKeeperService,
 ) -> dict[str, str | int]:
-    count = export_meanings(args.path)
+    count = export_meanings(args.path, _service)
     if not args.json:
         print(f"Exported {count} meaning(s) to {args.path}.")
     return {"exported": count, "path": args.path}
@@ -165,6 +187,8 @@ HANDLERS: dict[str, CommandHandler] = {
     "discard": handle_discard,
     "show": handle_show,
     "alias": handle_alias,
+    "unalias": handle_unalias,
+    "delete": handle_delete,
     "edit": handle_edit,
     "meanings": handle_meanings,
     "config": handle_config,

@@ -43,4 +43,4 @@ def get_engine() -> Engine:
 
 
 def get_session() -> Session:
-    return Session(get_engine())
+    return Session(get_engine(), expire_on_commit=False)

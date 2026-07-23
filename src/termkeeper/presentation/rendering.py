@@ -17,7 +17,7 @@ def print_json(value: CommandResult) -> None:
 
 
 def _print_json_value(value: object) -> None:
-    print(json.dumps(value, ensure_ascii=False, indent=2))
+    print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
 
 
 def print_inbox(items: list[InboxItem]) -> None:

@@ -1,22 +1,27 @@
-"""Domain objects shared by CLI and future API/MCP adapters."""
+"""Domain DTOs returned by application use cases."""
 
 from dataclasses import asdict, dataclass
+from datetime import datetime
 from typing import Any
+from uuid import UUID
+
+from termkeeper.domain.status import InboxStatus
 
 
 @dataclass(frozen=True)
 class InboxItem:
     inbox_id: int
     keyword: str
-    status: str
+    status: InboxStatus
     memo: str | None
     source: str | None
     occurrence_count: int
-    created_at: str
-    updated_at: str
-    last_seen_at: str
-    closed_at: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    last_seen_at: datetime
+    closed_at: datetime | None = None
     resolved_meaning_id: int | None = None
+    created_by_id: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -25,11 +30,14 @@ class InboxItem:
 @dataclass(frozen=True)
 class Meaning:
     meaning_id: int
+    public_id: UUID
     full_name: str
     description: str | None
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: datetime
     terms: tuple[str, ...] = ()
+    created_by_id: int | None = None
+    updated_by_id: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
