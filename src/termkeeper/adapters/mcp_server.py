@@ -1,6 +1,5 @@
 """Model Context Protocol adapter backed by TermKeeperService."""
 
-from datetime import datetime
 from typing import Literal
 
 from mcp.server.fastmcp import FastMCP
@@ -64,22 +63,10 @@ class TermKeeperMcpTools:
 
     def list_occurrences(
         self,
-        meaning_id: int | None = None,
-        inbox_id: int | None = None,
-        keyword: str | None = None,
-        source: str | None = None,
-        since: datetime | None = None,
-        limit: int = 50,
+        query: OccurrenceQuery | None = None,
     ) -> list[JsonObject]:
         """List encounter history with optional filters."""
-        query = OccurrenceQuery(
-            meaning_id=meaning_id,
-            inbox_id=inbox_id,
-            keyword=keyword,
-            source=source,
-            since=since,
-            limit=limit,
-        )
+        query = query or OccurrenceQuery()
         return [item.to_dict() for item in self._service.occurrences(query)]
 
     def get_stats(self, limit: int = 10) -> JsonObject:

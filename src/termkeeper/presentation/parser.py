@@ -2,20 +2,23 @@
 
 import argparse
 from datetime import datetime
-from typing import Protocol
 
 from termkeeper.domain import SearchField
 
 
-class _Subparsers(Protocol):
-    def add_parser(self, name: str, *, help: str) -> argparse.ArgumentParser: ...
+class _Subparsers:
+    def __init__(self, parser: argparse.ArgumentParser) -> None:
+        self._action = parser.add_subparsers(dest="command", required=True)
+
+    def add(self, name: str, help_text: str) -> argparse.ArgumentParser:
+        return self._action.add_parser(name, help=help_text)
 
 
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tk", description="Capture now, understand later.")
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
-    sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("init", help="Initialize or migrate the database")
+    sub = _Subparsers(parser)
+    sub.add("init", "Initialize or migrate the database")
     _add_capture_commands(sub)
     _add_meaning_commands(sub)
     _add_config_and_transfer_commands(sub)
@@ -23,41 +26,47 @@ def create_parser() -> argparse.ArgumentParser:
 
 
 def _add_capture_commands(sub: _Subparsers) -> None:
-    add = sub.add_parser("add", help="Add a term to the inbox")
+    add = sub.add("add", "Add a term to the inbox")
     add.add_argument("keyword")
     add.add_argument("--memo", help="Context or a short reminder")
     add.add_argument("--source", help="Where the term was encountered")
-    sub.add_parser("inbox", help="Show unresolved items")
-    sub.add_parser("history", help="Show all captured items")
-    inbox_edit = sub.add_parser("inbox-edit", help="Edit an open inbox keyword")
+    sub.add("inbox", "Show unresolved items")
+    sub.add("history", "Show all captured items")
+    inbox_edit = sub.add("inbox-edit", "Edit an open inbox keyword")
     inbox_edit.add_argument("inbox_id", type=int)
     inbox_edit.add_argument("--keyword", required=True)
-    occurrences = sub.add_parser("occurrences", help="Show occurrence history")
+    occurrences = sub.add("occurrences", "Show occurrence history")
     occurrences.add_argument("--meaning", type=int, dest="meaning_id")
     occurrences.add_argument("--inbox", type=int, dest="inbox_id")
     occurrences.add_argument("--keyword")
     occurrences.add_argument("--source")
     occurrences.add_argument("--since", type=_parse_datetime)
     occurrences.add_argument("--limit", type=int, default=50)
-    occurrence_edit = sub.add_parser("occurrence-edit", help="Edit occurrence context")
+    occurrence_edit = sub.add("occurrence-edit", "Edit occurrence context")
     occurrence_edit.add_argument("occurrence_id", type=int)
     occurrence_edit.add_argument("--keyword")
     occurrence_edit.add_argument("--memo")
     occurrence_edit.add_argument("--source")
     occurrence_edit.add_argument("--clear-memo", action="store_true")
     occurrence_edit.add_argument("--clear-source", action="store_true")
-    stats = sub.add_parser("stats", help="Show occurrence analytics and rankings")
+    stats = sub.add("stats", "Show occurrence analytics and rankings")
     stats.add_argument("--limit", type=int, default=10)
-    resolve = sub.add_parser("resolve", help="Turn an inbox item into a meaning")
+    resolve = sub.add("resolve", "Turn an inbox item into a meaning")
     resolve.add_argument("inbox_id", type=int)
     resolve.add_argument("--name", help="Full name (omit for an interactive prompt)")
     resolve.add_argument("--description", help="Description")
-    discard = sub.add_parser("discard", help="Discard an inbox item")
+    discard = sub.add("discard", "Discard an inbox item")
     discard.add_argument("inbox_id", type=int)
 
 
 def _add_meaning_commands(sub: _Subparsers) -> None:
-    search = sub.add_parser("search", help="Search terms and descriptions")
+    _add_search_command(sub)
+    _add_meaning_lifecycle_commands(sub)
+    _add_meaning_metadata_commands(sub)
+
+
+def _add_search_command(sub: _Subparsers) -> None:
+    search = sub.add("search", "Search terms and descriptions")
     search.add_argument("keyword")
     mode = search.add_mutually_exclusive_group()
     mode.add_argument("--all", action="store_true", dest="match_all", default=True)
@@ -80,78 +89,83 @@ def _add_meaning_commands(sub: _Subparsers) -> None:
         const=0,
         dest="suggestion_limit",
     )
-    show = sub.add_parser("show", help="Show a meaning")
+
+
+def _add_meaning_lifecycle_commands(sub: _Subparsers) -> None:
+    show = sub.add("show", "Show a meaning")
     show.add_argument("meaning_id", type=int)
-    alias = sub.add_parser("alias", help="Add an alias to a meaning")
+    alias = sub.add("alias", "Add an alias to a meaning")
     alias.add_argument("meaning_id", type=int)
     alias.add_argument("keyword")
-    unalias = sub.add_parser("unalias", help="Remove an alias from a meaning")
+    unalias = sub.add("unalias", "Remove an alias from a meaning")
     unalias.add_argument("meaning_id", type=int)
     unalias.add_argument("keyword")
-    delete = sub.add_parser("delete", help="Move a meaning to trash")
+    delete = sub.add("delete", "Move a meaning to trash")
     delete.add_argument("meaning_id", type=int)
-    sub.add_parser("trash", help="List deleted meanings")
-    restore = sub.add_parser("restore", help="Restore a deleted meaning")
+    sub.add("trash", "List deleted meanings")
+    restore = sub.add("restore", "Restore a deleted meaning")
     restore.add_argument("meaning_id", type=int)
-    purge = sub.add_parser("purge", help="Permanently delete a trashed meaning")
+    purge = sub.add("purge", "Permanently delete a trashed meaning")
     purge.add_argument("meaning_id", type=int)
-    merge = sub.add_parser("merge", help="Merge one meaning into another")
+    merge = sub.add("merge", "Merge one meaning into another")
     merge.add_argument("source_id", type=int)
     merge.add_argument("target_id", type=int)
     merge.add_argument("--dry-run", action="store_true")
-    tag = sub.add_parser("tag", help="Add a tag to a meaning")
+    edit = sub.add("edit", "Edit a meaning")
+    edit.add_argument("meaning_id", type=int)
+    edit.add_argument("--name", help="New full name")
+    edit.add_argument("--description", help="New description")
+    meanings = sub.add("meanings", "List meanings")
+    meanings.add_argument("--tag")
+    meanings.add_argument("--favorite", action="store_true", dest="favorite_only")
+
+
+def _add_meaning_metadata_commands(sub: _Subparsers) -> None:
+    tag = sub.add("tag", "Add a tag to a meaning")
     tag.add_argument("meaning_id", type=int)
     tag.add_argument("name")
-    untag = sub.add_parser("untag", help="Remove a tag from a meaning")
+    untag = sub.add("untag", "Remove a tag from a meaning")
     untag.add_argument("meaning_id", type=int)
     untag.add_argument("name")
-    sub.add_parser("tags", help="List tags")
-    favorite = sub.add_parser("favorite", help="Mark a meaning as favorite")
+    sub.add("tags", "List tags")
+    favorite = sub.add("favorite", "Mark a meaning as favorite")
     favorite.add_argument("meaning_id", type=int)
-    unfavorite = sub.add_parser("unfavorite", help="Remove a meaning from favorites")
+    unfavorite = sub.add("unfavorite", "Remove a meaning from favorites")
     unfavorite.add_argument("meaning_id", type=int)
-    relate = sub.add_parser("relate", help="Relate two meanings")
+    relate = sub.add("relate", "Relate two meanings")
     relate.add_argument("meaning_id", type=int)
     relate.add_argument("related_id", type=int)
-    unrelate = sub.add_parser("unrelate", help="Remove a meaning relationship")
+    unrelate = sub.add("unrelate", "Remove a meaning relationship")
     unrelate.add_argument("meaning_id", type=int)
     unrelate.add_argument("related_id", type=int)
-    related = sub.add_parser("related", help="List related meanings")
+    related = sub.add("related", "List related meanings")
     related.add_argument("meaning_id", type=int)
-    reference_add = sub.add_parser("reference-add", help="Add a reference URL")
+    reference_add = sub.add("reference-add", "Add a reference URL")
     reference_add.add_argument("meaning_id", type=int)
     reference_add.add_argument("url")
     reference_add.add_argument("--title")
-    reference_edit = sub.add_parser("reference-edit", help="Edit a reference URL")
+    reference_edit = sub.add("reference-edit", "Edit a reference URL")
     reference_edit.add_argument("reference_id", type=int)
     reference_edit.add_argument("--url")
     reference_edit.add_argument("--title")
     reference_edit.add_argument("--clear-title", action="store_true")
-    reference_remove = sub.add_parser("reference-remove", help="Remove a reference URL")
+    reference_remove = sub.add("reference-remove", "Remove a reference URL")
     reference_remove.add_argument("reference_id", type=int)
-    references = sub.add_parser("references", help="List reference URLs")
+    references = sub.add("references", "List reference URLs")
     references.add_argument("meaning_id", type=int)
-
-    edit = sub.add_parser("edit", help="Edit a meaning")
-    edit.add_argument("meaning_id", type=int)
-    edit.add_argument("--name", help="New full name")
-    edit.add_argument("--description", help="New description")
-    meanings = sub.add_parser("meanings", help="List meanings")
-    meanings.add_argument("--tag")
-    meanings.add_argument("--favorite", action="store_true", dest="favorite_only")
 
 
 def _add_config_and_transfer_commands(
     sub: _Subparsers,
 ) -> None:
-    config = sub.add_parser("config", help="Get or set user configuration")
+    config = sub.add("config", "Get or set user configuration")
     config.add_argument("key", nargs="?", choices=("user.name", "user.email"))
     config.add_argument("value", nargs="?")
     config.add_argument("--list", action="store_true", dest="list_config")
     config.add_argument("--unset", action="store_true")
-    export = sub.add_parser("export", help="Export meanings to CSV")
+    export = sub.add("export", "Export meanings to CSV")
     export.add_argument("path", nargs="?", default="termkeeper_export.csv")
-    import_ = sub.add_parser("import", help="Import meanings from CSV")
+    import_ = sub.add("import", "Import meanings from CSV")
     import_.add_argument("path")
     import_.add_argument("--dry-run", action="store_true")
     import_.add_argument("--strict", action="store_true")

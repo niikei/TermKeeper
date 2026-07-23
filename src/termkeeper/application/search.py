@@ -11,6 +11,8 @@ from termkeeper.domain import (
 )
 from termkeeper.infrastructure.sqlite_utils import normalize_keyword
 
+_MIN_SUGGESTION_RATIO = 0.6
+
 
 def rank_search(meanings: list[Meaning], query: SearchQuery) -> list[SearchHit]:
     tokens = _tokens(query.text)
@@ -62,7 +64,10 @@ def _score_meaning(
     match_all: bool,
 ) -> SearchHit | None:
     token_matches = [_best_match(meaning, token, field) for token in tokens]
-    matched = [candidate for candidate in token_matches if candidate is not None]
+    matched: list[tuple[int, SearchField, str]] = []
+    for candidate in token_matches:
+        if candidate is not None:
+            matched.append(candidate)
     if not matched or (match_all and len(matched) != len(tokens)):
         return None
     best = max(matched, key=lambda candidate: candidate[0])
@@ -157,7 +162,7 @@ def _suggestion(
     if not candidates:
         return None
     ratio, matched_field, matched_text = max(candidates, key=lambda candidate: candidate[0])
-    if ratio < 0.6:
+    if ratio < _MIN_SUGGESTION_RATIO:
         return None
     return SearchSuggestion(
         meaning=meaning,

@@ -3,6 +3,7 @@ from typing import cast
 
 from termkeeper.adapters.mcp_server import TermKeeperMcpTools, create_server
 from termkeeper.application import TermKeeperService
+from termkeeper.domain import OccurrenceQuery
 
 
 def test_mcp_server_registers_expected_tools() -> None:
@@ -44,7 +45,7 @@ def test_mcp_tools_delegate_complete_workflow() -> None:
 
     assert tools.search_meanings("ERP")["hits"]
     assert tools.get_meaning(meaning_id)["full_name"] == "Enterprise Resource Planning"
-    assert tools.list_occurrences(meaning_id=meaning_id)[0]["source"] == "Teams"
+    assert tools.list_occurrences(OccurrenceQuery(meaning_id=meaning_id))[0]["source"] == "Teams"
     assert tools.get_stats()["total_occurrences"] == 1
 
     assert tools.add_tag(meaning_id, "SAP")["tags"] == ("SAP",)

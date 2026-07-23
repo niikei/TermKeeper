@@ -19,11 +19,11 @@ from termkeeper.domain.tag import TagSummary
 __all__ = [
     "AddResult",
     "Frequency",
-    "InboxItem",
-    "InboxStatus",
     "ImportIssue",
     "ImportResult",
     "ImportRow",
+    "InboxItem",
+    "InboxStatus",
     "Meaning",
     "MergeResult",
     "OccurrenceItem",
