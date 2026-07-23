@@ -29,12 +29,12 @@
 - Meaning外部識別用UUIDとユーザー監査列
 - Unit of Workによるユースケース単位のトランザクション
 - Applicationサービスを介した外部アダプター向け境界
+- 公式Python SDKによる標準入出力MCPサーバー、17ツール
 
 ## 未実装
 
 - AIによる意味候補生成
 - HTTP API / FastAPI
-- MCPサーバー
 - Web UI
 - Teams、Slack、メールなどからの自動捕捉
 - Power Automate、SharePoint、Dataverse連携
@@ -48,7 +48,7 @@
 ```text
 Application Service
 ├── CLI（実装済み）
-├── MCP adapter
+├── MCP adapter（実装済み）
 ├── HTTP API
 └── Web / collaboration adapters
 ```

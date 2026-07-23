@@ -183,7 +183,7 @@ tk --json add BTP --source Slack
 エラー時もJSON形式でエラー種別とメッセージを返し、終了コードは `2` になります。
 検索JSONは`hits`と`suggestions`を持つオブジェクトです。
 
-## Python APIと将来のMCP連携
+## Python APIとMCP連携
 
 CLIを介さず、Application層のサービスを利用できます。
 
@@ -195,7 +195,25 @@ service.initialize()
 result = service.add("BTP", source="Slack")
 ```
 
-将来のHTTP APIやMCPサーバーも、このサービスをアダプターから呼び出します。
+HTTP APIなどの外部アダプターも、このサービスを直接呼び出します。
+
+### MCPサーバー
+
+MCP用依存を追加してインストールします。
+
+```bash
+pip install -e ".[mcp]"
+```
+
+ローカルの標準入出力サーバーを起動するコマンドは次のとおりです。
+
+```bash
+tk-mcp
+```
+
+`TERMKEEPER_DB`でCLIと同じデータベースを指定できます。MCPクライアントには、サーバー起動
+コマンドとして`tk-mcp`を登録してください。Capture、Inbox、Resolve、Search、Occurrence、
+Stats、Tag、Favorite、Related Meaning、Referenceの17ツールを公開します。
 
 ## データモデル
 
@@ -219,6 +237,7 @@ TermKeeper/
 │   ├── domain/          # DTOとドメインモデル
 │   ├── application/     # ユースケース
 │   ├── infrastructure/  # SQLModel tables・Session・repository
+│   ├── adapters/        # MCPなどの外部プロトコル
 │   ├── presentation/    # CLI・表示・CSV
 │   └── config.py        # 実行時設定
 ├── tests/

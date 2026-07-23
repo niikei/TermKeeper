@@ -19,7 +19,8 @@ uv sync --extra dev
 uv run tk init
 ```
 
-`--extra dev`は実行時依存に加え、pytest、Ruff、Mypy、Pyrightをインストールします。
+`--extra dev`は実行時依存に加え、pytest、Ruff、Mypy、Pyright、MCP SDKをインストールします。
+MCPサーバーだけを利用する場合は`uv sync --extra mcp`を使用できます。
 TermKeeperを利用するだけなら`uv sync`で十分です。
 
 作業用DBを明示すると、通常利用するDBとの混在を避けられます。

@@ -28,7 +28,7 @@ def rank_search(meanings: list[Meaning], query: SearchQuery) -> list[SearchHit]:
         is not None
     ]
     hits.sort(
-        key=lambda hit: (-hit.score, hit.meaning.full_name.casefold(), hit.meaning.meaning_id)
+        key=lambda hit: (-hit.score, hit.meaning.full_name.casefold(), hit.meaning.meaning_id),
     )
     return hits[: query.limit]
 

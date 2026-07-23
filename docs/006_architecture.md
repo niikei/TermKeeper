@@ -7,6 +7,7 @@
 - `application/`: 公開Serviceファサード、機能別ユースケース、DTO変換、アプリケーション例外
 - `infrastructure/`: SQLModelテーブル、Engine／Session、スキーマ作成、リポジトリ
 - `presentation/`: CLI引数、コマンド処理、表示、CSV入出力
+- `adapters/`: MCPなど外部プロトコルからApplication Serviceへの変換
 
 各アダプターはレイヤーの公開モジュールを直接使用し、旧構成向けの互換モジュールは持たない。
 CRUD、検索、スキーマ作成はSQLModelを使用する。旧SQLiteスキーマとの自動互換性や移行処理は
@@ -43,10 +44,14 @@ InboxとOccurrenceの編集はApplicationで状態・重複・入力競合を検
 Repositoryへ閉じ込め、Applicationからは`StatsSummary`として返す。
 
 APIやMCPを追加するときは `TermKeeperService` を再利用し、SQLやCLIの標準出力を直接
-呼ばない。MCPツールはまず `add`, `inbox`, `occurrences`, `resolve`, `search`, `show`,
-`merge`, `tag`, `untag`, `tags`, `favorite`, `unfavorite`, `relate`, `unrelate`,
-`related`, `reference-add`, `reference-edit`, `reference-remove`, `references`, `stats`
-を1対1で公開する。
+呼ばない。MCPは`capture_term`, `list_inbox`, `resolve_inbox`, `search_meanings`,
+`get_meaning`, `list_occurrences`, `get_stats`, Tag・Favorite・Related Meaning・Reference
+操作の計17ツールを公開する。
+
+MCPアダプターは公式Python SDKのFastMCPを使用し、標準入出力transportで提供する。
+`TermKeeperMcpTools`はDTOをJSON互換値へ変換するだけとし、検証・トランザクション・検索などの
+業務ロジックは`TermKeeperService`へ委譲する。SDKは安定版v1系へ上限を設け、v2の破壊的変更を
+暗黙に取り込まない。
 
 ## 時刻
 
