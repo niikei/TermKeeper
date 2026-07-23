@@ -8,10 +8,10 @@ from pydantic import BaseModel
 
 from termkeeper.adapters.external import ExternalMapper
 from termkeeper.adapters.http.errors import ErrorResponse, register_error_handlers
+from termkeeper.adapters.http.routes.analytics import _register_analytics_routes
 from termkeeper.adapters.http.routes.capture import _register_capture_routes
 from termkeeper.adapters.http.routes.meaning import _register_meaning_routes
 from termkeeper.adapters.http.routes.occurrence import _register_occurrence_routes
-from termkeeper.adapters.http.routes.query import _register_query_routes
 from termkeeper.adapters.http.routes.reference import _register_reference_routes
 from termkeeper.adapters.http.routes.relation import _register_relation_routes
 from termkeeper.adapters.http.routes.scope import _register_scope_routes
@@ -43,7 +43,7 @@ def create_app(service: TermKeeperService | None = None) -> FastAPI:
     mapper = ExternalMapper(service)
     _register_capture_routes(app, service, mapper)
     _register_meaning_routes(app, service, mapper)
-    _register_query_routes(app, service, mapper)
+    _register_analytics_routes(app, service)
     _register_occurrence_routes(app, service, mapper)
     _register_tag_routes(app, service, mapper)
     _register_scope_routes(app, service, mapper)

@@ -62,7 +62,7 @@ class SearchFilters(BaseModel):
     tag: str | None = None
     scope_id: UUID | None = None
     favorite_only: bool = False
-    offset: int = Field(default=0, ge=0, le=399)
+    offset: int = Field(default=0, ge=0)
     limit: int = Field(default=20, ge=1, le=100)
 
 

@@ -57,6 +57,9 @@ Repositoryで部分一致候補を取得し、Applicationで関連度、ペー�
 通常ヒットが0件の場合だけ有効Meaningを読み込み、`SearchSuggestion`を生成する。
 各アダプターは入力契約とID表現の変換、出力表現だけを担当し、検索・候補・ページ判定の
 ロジックを持たない。
+HTTPとMCPのUUIDからDomain検索Queryへの変換は`adapters/external/queries.py`で共有し、
+各Route／Toolで個別に再実装しない。CLIはローカル整数IDとscope名を使うため入力変換だけを
+分けるが、同じ`SearchUseCases`を呼び出す。
 Occurrence検索はkeyword、memo、sourceをRepositoryで横断し、status、source、since、Meaningの
 構造化条件を同じqueryへ適用する。Inbox検索はこのユースケースをPendingへ固定して再利用する。
 Scope検索はnameとdescriptionを対象にし、Applicationから`Page[Scope]`として返す。

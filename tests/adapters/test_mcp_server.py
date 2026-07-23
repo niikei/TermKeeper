@@ -83,6 +83,9 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
         "required"
     ] == ["text"]
     assert definitions["search_scopes"]["$defs"]["ScopeSearchFilters"]["required"] == ["text"]
+    search_definitions = definitions["search_meanings"]["$defs"]
+    assert search_definitions["SearchText"]["minLength"] == 1
+    assert "next page" in search_definitions["Offset"]["description"]
     assert definitions["resolve_occurrence"]["properties"]["occurrence_id"]["format"] == "uuid"
     assert definitions["edit_occurrence"]["properties"]["occurrence_id"]["format"] == "uuid"
 

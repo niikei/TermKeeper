@@ -11,6 +11,12 @@ from termkeeper.adapters.external.models import (
     ExternalSearchResult,
     page,
 )
+from termkeeper.adapters.external.queries import (
+    inbox_search_query,
+    meaning_search_query,
+    occurrence_search_query,
+    scope_search_query,
+)
 
 __all__ = [
     "ExternalCaptureResult",
@@ -21,5 +27,9 @@ __all__ = [
     "ExternalReference",
     "ExternalSearchResult",
     "ExternalScope",
+    "inbox_search_query",
+    "meaning_search_query",
+    "occurrence_search_query",
     "page",
+    "scope_search_query",
 ]

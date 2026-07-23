@@ -33,7 +33,7 @@ def add_meaning_search_arguments(parser: argparse.ArgumentParser) -> None:
         type=SearchField,
         help="Field to search",
     )
-    parser.add_argument("--limit", type=int, default=20, help="Maximum results")
+    add_pagination_arguments(parser, default_limit=20)
     parser.add_argument("--tag", help="Filter by tag name")
     parser.add_argument("--scope", help="Filter by registered scope name")
     parser.add_argument(

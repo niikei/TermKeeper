@@ -7,8 +7,15 @@ from uuid import UUID
 
 from pydantic import Field
 
-type Offset = Annotated[int, Field(ge=0)]
-type Limit = Annotated[int, Field(ge=1, le=100)]
+type Offset = Annotated[
+    int,
+    Field(ge=0, description="Zero-based result offset; add returned item count for next page"),
+]
+type Limit = Annotated[int, Field(ge=1, le=100, description="Maximum items to return")]
+type SearchText = Annotated[
+    str,
+    Field(min_length=1, description="Case-insensitive text to find; SQL wildcards are literal"),
+]
 
 
 @dataclass(frozen=True)
@@ -24,7 +31,7 @@ class OccurrenceFilters:
 
 @dataclass(frozen=True)
 class OccurrenceSearchFilters:
-    text: str
+    text: SearchText
     meaning_id: UUID | None = None
     status: Literal["Pending", "Resolved", "Discarded"] | None = None
     source: str | None = None
@@ -35,7 +42,7 @@ class OccurrenceSearchFilters:
 
 @dataclass(frozen=True)
 class InboxSearchFilters:
-    text: str
+    text: SearchText
     source: str | None = None
     since: datetime | None = None
     offset: Offset = 0
@@ -44,7 +51,7 @@ class InboxSearchFilters:
 
 @dataclass(frozen=True)
 class SearchFilters:
-    text: str
+    text: SearchText
     field: Literal["all", "term", "name", "description"] = "all"
     tag: str | None = None
     scope_id: UUID | None = None
@@ -55,6 +62,6 @@ class SearchFilters:
 
 @dataclass(frozen=True)
 class ScopeSearchFilters:
-    text: str
+    text: SearchText
     offset: Offset = 0
     limit: Limit = 20

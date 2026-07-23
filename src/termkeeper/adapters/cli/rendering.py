@@ -136,6 +136,13 @@ def print_has_more[T](result: Page[T]) -> None:
         print(f"More items are available. Continue with {next_command}.")
 
 
+def print_search_has_more(result: SearchResult) -> None:
+    if result.has_more:
+        next_offset = result.offset + len(result.hits)
+        next_command = command(f"--offset {next_offset}")
+        print(f"More matches are available. Continue with {next_command}.")
+
+
 def print_scopes(items: Sequence[Scope]) -> None:
     if not items:
         print(muted("No scopes found."))

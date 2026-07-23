@@ -10,11 +10,11 @@ from termkeeper.adapters.external import (
     ExternalMeaning,
     ExternalPage,
     ExternalSearchResult,
+    meaning_search_query,
     page,
 )
 from termkeeper.adapters.http.common import _local_meaning_id, _scope_name
 from termkeeper.adapters.http.requests import MeaningUpdateRequest, SearchFilters
-from termkeeper.adapters.http.routes.query import meaning_search_result
 from termkeeper.application import TermKeeperService
 
 
@@ -29,7 +29,9 @@ def _register_meaning_routes(
     def search_meanings(
         filters: Annotated[SearchFilters, Query()],
     ) -> ExternalSearchResult:
-        return meaning_search_result(filters, service, mapper)
+        return mapper.search_result(
+            service.search_meanings(meaning_search_query(service, filters)),
+        )
 
     @app.get("/api/v1/meanings/{meaning_id}")
     def get_meaning(meaning_id: UUID) -> ExternalMeaning:

@@ -2,10 +2,14 @@
 
 from uuid import UUID
 
-from termkeeper.adapters.external import ExternalMeaning, ExternalSearchResult
+from termkeeper.adapters.external import (
+    ExternalMeaning,
+    ExternalSearchResult,
+    meaning_search_query,
+)
 from termkeeper.adapters.mcp.inputs import SearchFilters
 from termkeeper.adapters.mcp.tools.context import ToolContext
-from termkeeper.domain import SearchField, SearchQuery, StatsSummary
+from termkeeper.domain import StatsSummary
 
 
 class SearchTools(ToolContext):
@@ -13,17 +17,12 @@ class SearchTools(ToolContext):
         self,
         query: SearchFilters,
     ) -> ExternalSearchResult:
-        """Search meanings and return ranked hits or similar suggestions."""
-        domain_query = SearchQuery(
-            text=query.text,
-            field=SearchField(query.field),
-            offset=query.offset,
-            limit=query.limit,
-            tag=query.tag,
-            scope=self._scope_name(query.scope_id) if query.scope_id is not None else None,
-            favorite_only=query.favorite_only,
+        """Search known meanings. Follow has_more with offset + returned hit count."""
+        return self._mapper.search_result(
+            self._service.search_meanings(
+                meaning_search_query(self._service, query),
+            ),
         )
-        return self._mapper.search_result(self._service.search_meanings(domain_query))
 
     def get_meaning(self, meaning_id: UUID) -> ExternalMeaning:
         """Get one active meaning by its stable UUID."""

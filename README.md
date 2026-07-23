@@ -373,8 +373,7 @@ Scopeは`/api/v1/scopes`で管理し、HTTP/MCPからMeaningのScopeを指定す
 `public_id`（UUID）を使用します。
 
 検索エンドポイントは`/api/v1/meanings/search`、`/api/v1/occurrences/search`、
-`/api/v1/inbox/search`、`/api/v1/scopes/search`です。`/api/v1/search`はMeaning検索の
-短縮エンドポイントとして維持します。
+`/api/v1/inbox/search`、`/api/v1/scopes/search`です。
 
 ## データモデル
 

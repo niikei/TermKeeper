@@ -6,6 +6,7 @@ from termkeeper.adapters.cli.handlers.common import confirm_destructive
 from termkeeper.adapters.cli.rendering import (
     print_meaning,
     print_meaning_list,
+    print_search_has_more,
     print_search_hit,
     print_search_suggestion,
 )
@@ -19,6 +20,7 @@ def handle_search(args: argparse.Namespace, service: TermKeeperService) -> Searc
         text=args.text,
         match_all=args.match_all,
         field=args.search_field,
+        offset=args.offset,
         limit=args.limit,
         tag=args.tag,
         scope=args.scope,
@@ -34,6 +36,7 @@ def handle_search(args: argparse.Namespace, service: TermKeeperService) -> Searc
             print(heading("Did you mean:"))
             for suggestion in result.suggestions:
                 print_search_suggestion(suggestion)
+        print_search_has_more(result)
     return result
 
 

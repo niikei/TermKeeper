@@ -9,11 +9,11 @@ from termkeeper.adapters.external import (
     ExternalMapper,
     ExternalOccurrence,
     ExternalPage,
+    inbox_search_query,
 )
 from termkeeper.adapters.http.common import _local_meaning_id
 from termkeeper.adapters.http.requests import CaptureRequest, InboxSearchFilters
 from termkeeper.application import TermKeeperService
-from termkeeper.domain import OccurrenceQuery
 
 
 def _register_capture_routes(
@@ -51,13 +51,5 @@ def _register_capture_routes(
         filters: Annotated[InboxSearchFilters, Query()],
     ) -> ExternalPage[ExternalOccurrence]:
         return mapper.occurrence_page(
-            service.search_inbox(
-                OccurrenceQuery(
-                    text=filters.text,
-                    source=filters.source,
-                    since=filters.since,
-                    offset=filters.offset,
-                    limit=filters.limit,
-                ),
-            ),
+            service.search_inbox(inbox_search_query(filters)),
         )

@@ -15,8 +15,10 @@ def create_server(service: TermKeeperService | None = None) -> FastMCP:
     server = FastMCP(
         "TermKeeper",
         instructions=(
-            "Capture unfamiliar terms, resolve them into meanings, and retrieve "
-            "searchable organizational terminology."
+            "Use search_meanings before creating or assigning meanings, and search_scopes "
+            "before choosing a scope. Use search_inbox for pending classification work and "
+            "search_occurrences for full encounter history. Responses are structured, use "
+            "stable UUIDs, and expose has_more plus offset for pagination."
         ),
         json_response=True,
     )

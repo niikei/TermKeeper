@@ -86,7 +86,6 @@ def _exercise_core_workflow(client: TestClient) -> str:
     )
     assert updated.json()["description"] == "Integrated business software"
     assert updated.json()["scope"] == "SAP S/4HANA"
-    assert client.get("/api/v1/search", params={"text": "ERP"}).json()["hits"]
     assert client.get("/api/v1/meanings/search", params={"text": "ERP"}).json()["hits"]
     assert client.get("/api/v1/stats").json()["total_occurrences"] == 1
 
@@ -199,7 +198,7 @@ def _exercise_lifecycle_workflow(client: TestClient, public_id: str) -> None:
 def _assert_openapi_contract(client: TestClient) -> None:
     schema = client.get("/openapi.json").json()
     assert schema["info"]["title"] == "TermKeeper API"
-    assert "/api/v1/search" in schema["paths"]
+    assert "/api/v1/search" not in schema["paths"]
     assert "/api/v1/meanings/search" in schema["paths"]
     assert "/api/v1/occurrences/search" in schema["paths"]
     assert "/api/v1/inbox/search" in schema["paths"]
@@ -214,7 +213,7 @@ def _assert_openapi_contract(client: TestClient) -> None:
     ]["schema"] == {
         "$ref": "#/components/schemas/ExternalCaptureResult",
     }
-    assert schema["paths"]["/api/v1/search"]["get"]["responses"]["200"]["content"][
+    assert schema["paths"]["/api/v1/meanings/search"]["get"]["responses"]["200"]["content"][
         "application/json"
     ]["schema"] == {
         "$ref": "#/components/schemas/ExternalSearchResult",
@@ -236,7 +235,7 @@ def _assert_openapi_contract(client: TestClient) -> None:
         "error",
         "message",
     ]
-    assert schema["paths"]["/api/v1/search"]["get"]["responses"]["422"]["content"][
+    assert schema["paths"]["/api/v1/meanings/search"]["get"]["responses"]["422"]["content"][
         "application/json"
     ]["schema"] == {
         "$ref": "#/components/schemas/ErrorResponse",
@@ -279,7 +278,7 @@ def test_http_api_maps_application_and_request_errors() -> None:
 
     request_errors = (
         (
-            client.get("/api/v1/search", params={"text": "ERP", "limit": 0}),
+            client.get("/api/v1/meanings/search", params={"text": "ERP", "limit": 0}),
             ["query", "limit"],
             "greater_than_equal",
         ),

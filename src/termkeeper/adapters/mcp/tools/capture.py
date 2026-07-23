@@ -6,10 +6,10 @@ from termkeeper.adapters.external import (
     ExternalCaptureResult,
     ExternalOccurrence,
     ExternalPage,
+    inbox_search_query,
 )
 from termkeeper.adapters.mcp.inputs import InboxSearchFilters, Limit, Offset
 from termkeeper.adapters.mcp.tools.context import ToolContext
-from termkeeper.domain import OccurrenceQuery
 
 
 class CaptureTools(ToolContext):
@@ -45,15 +45,7 @@ class CaptureTools(ToolContext):
         self,
         query: InboxSearchFilters,
     ) -> ExternalPage[ExternalOccurrence]:
-        """Search only unresolved occurrences by term, memo, or source."""
+        """Search unresolved occurrences only; use this for pending classification work."""
         return self._mapper.occurrence_page(
-            self._service.search_inbox(
-                OccurrenceQuery(
-                    text=query.text,
-                    source=query.source,
-                    since=query.since,
-                    offset=query.offset,
-                    limit=query.limit,
-                ),
-            ),
+            self._service.search_inbox(inbox_search_query(query)),
         )

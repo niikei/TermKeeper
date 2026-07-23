@@ -8,6 +8,7 @@ from sqlalchemy import text
 from termkeeper import __version__
 from termkeeper.adapters.cli.csv_io import encode_values
 from termkeeper.adapters.cli.main import main
+from termkeeper.application import TermKeeperService
 from termkeeper.infrastructure.connection import get_engine, get_session
 
 
@@ -792,6 +793,20 @@ def test_search_human_output_is_compact(capsys: pytest.CaptureFixture[str]) -> N
     assert "[1] Enterprise Resource Planning [General]" in output
     assert "score 100" in output
     assert "Created:" not in output
+
+
+def test_search_human_output_exposes_next_page(capsys: pytest.CaptureFixture[str]) -> None:
+    service = TermKeeperService()
+    service.create_meaning("Alpha One")
+    service.create_meaning("Alpha Two")
+
+    assert main(["search", "Alpha", "--limit", "1"]) == 0
+    assert "Continue with --offset 1" in capsys.readouterr().out
+
+    assert main(["search", "Alpha", "--offset", "1", "--limit", "1", "--json"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["offset"] == 1
+    assert len(result["hits"]) == 1
 
 
 def test_resource_search_commands_share_filters_and_structured_results(
