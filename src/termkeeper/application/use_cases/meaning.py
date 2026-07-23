@@ -119,11 +119,22 @@ class MeaningUseCases:
                 if any(normalize_keyword(name) == tag_norm for name in meaning.tags)
             ]
 
-    def set_favorite(self, meaning_id: int, favorite: bool) -> Meaning:
+    def favorite_meaning(self, meaning_id: int) -> Meaning:
+        return self._set_favorite(meaning_id, favorite=True)
+
+    def unfavorite_meaning(self, meaning_id: int) -> Meaning:
+        return self._set_favorite(meaning_id, favorite=False)
+
+    def _set_favorite(self, meaning_id: int, *, favorite: bool) -> Meaning:
         with UnitOfWork() as uow:
             meaning = get_meaning(uow, meaning_id)
             actor_id = user_id(settings_repository.get_profile(uow.session))
-            meaning_repository.set_favorite(uow.session, meaning, favorite, actor_id)
+            meaning_repository.set_favorite(
+                uow.session,
+                meaning,
+                actor_id,
+                favorite=favorite,
+            )
             result = to_meaning(uow.session, meaning)
             uow.commit()
             return result

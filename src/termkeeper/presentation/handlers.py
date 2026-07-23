@@ -250,14 +250,14 @@ def handle_tags(args: argparse.Namespace, service: TermKeeperService) -> list[Ta
 
 
 def handle_favorite(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
-    result = service.set_favorite(args.meaning_id, True)
+    result = service.favorite_meaning(args.meaning_id)
     if not args.json:
         print(f"Favorited meaning #{args.meaning_id}.")
     return result
 
 
 def handle_unfavorite(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
-    result = service.set_favorite(args.meaning_id, False)
+    result = service.unfavorite_meaning(args.meaning_id)
     if not args.json:
         print(f"Unfavorited meaning #{args.meaning_id}.")
     return result

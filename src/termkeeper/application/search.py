@@ -17,7 +17,15 @@ def rank_search(meanings: list[Meaning], query: SearchQuery) -> list[SearchHit]:
     hits = [
         hit
         for meaning in meanings
-        if (hit := _score_meaning(meaning, tokens, query.field, query.match_all)) is not None
+        if (
+            hit := _score_meaning(
+                meaning,
+                tokens,
+                query.field,
+                match_all=query.match_all,
+            )
+        )
+        is not None
     ]
     hits.sort(
         key=lambda hit: (-hit.score, hit.meaning.full_name.casefold(), hit.meaning.meaning_id)
@@ -50,6 +58,7 @@ def _score_meaning(
     meaning: Meaning,
     tokens: tuple[str, ...],
     field: SearchField,
+    *,
     match_all: bool,
 ) -> SearchHit | None:
     token_matches = [_best_match(meaning, token, field) for token in tokens]

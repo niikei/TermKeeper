@@ -70,8 +70,8 @@ pytestはカバレッジも計測します。全体カバレッジが90%未満�
 特定のテストだけを実行する場合:
 
 ```bash
-uv run pytest tests/test_service.py
-uv run pytest tests/test_cli.py::test_json_workflow
+uv run pytest tests/application/test_search.py
+uv run pytest tests/presentation/test_cli.py::test_json_workflow
 ```
 
 ### フォーマットとLint

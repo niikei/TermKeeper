@@ -179,8 +179,9 @@ def touch(session: Session, record: Meaning, user_id: int | None) -> None:
 def set_favorite(
     session: Session,
     record: Meaning,
-    favorite: bool,
     user_id: int | None,
+    *,
+    favorite: bool,
 ) -> None:
     record.is_favorite = favorite
     touch(session, record, user_id)
