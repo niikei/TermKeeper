@@ -131,6 +131,9 @@ uv build
 git diff --check
 ```
 
+GitHub Actionsでも同じ品質検査をPython 3.12で実行し、pytestはPython 3.13・3.14でも
+実行します。`develop`・`main`へのpushとPull Requestが対象です。
+
 Ruffの警告は原則としてコード側で解消します。ルール除外は、フレームワークの制約やテストで
 一般的な記法など、理由を説明できる場合に限定します。
 
