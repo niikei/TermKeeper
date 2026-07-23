@@ -5,9 +5,19 @@ from typing import Literal
 from mcp.server.fastmcp import FastMCP
 
 from termkeeper.application import TermKeeperService
-from termkeeper.domain import OccurrenceQuery, SearchField, SearchQuery
-
-type JsonObject = dict[str, object]
+from termkeeper.domain import (
+    AddResult,
+    InboxItem,
+    Meaning,
+    OccurrenceItem,
+    OccurrenceQuery,
+    ReferenceLink,
+    SearchField,
+    SearchQuery,
+    SearchResult,
+    StatsSummary,
+    TagSummary,
+)
 
 
 class TermKeeperMcpTools:
@@ -21,22 +31,22 @@ class TermKeeperMcpTools:
         keyword: str,
         memo: str | None = None,
         source: str | None = None,
-    ) -> JsonObject:
+    ) -> AddResult:
         """Capture a term now and preserve where it was encountered."""
-        return self._service.add(keyword, memo, source).to_dict()
+        return self._service.add(keyword, memo, source)
 
-    def list_inbox(self) -> list[JsonObject]:
+    def list_inbox(self) -> list[InboxItem]:
         """List unresolved captured terms."""
-        return [item.to_dict() for item in self._service.inbox()]
+        return self._service.inbox()
 
     def resolve_inbox(
         self,
         inbox_id: int,
         full_name: str,
         description: str | None = None,
-    ) -> JsonObject:
+    ) -> Meaning:
         """Resolve an inbox item into a searchable meaning."""
-        return self._service.resolve(inbox_id, full_name, description).to_dict()
+        return self._service.resolve(inbox_id, full_name, description)
 
     def search_meanings(
         self,
@@ -46,7 +56,7 @@ class TermKeeperMcpTools:
         limit: int = 20,
         *,
         favorite_only: bool = False,
-    ) -> JsonObject:
+    ) -> SearchResult:
         """Search meanings and return ranked hits or similar suggestions."""
         query = SearchQuery(
             text=text,
@@ -55,68 +65,68 @@ class TermKeeperMcpTools:
             tag=tag,
             favorite_only=favorite_only,
         )
-        return self._service.search(query).to_dict()
+        return self._service.search(query)
 
-    def get_meaning(self, meaning_id: int) -> JsonObject:
+    def get_meaning(self, meaning_id: int) -> Meaning:
         """Get one active meaning by its local ID."""
-        return self._service.get_meaning(meaning_id).to_dict()
+        return self._service.get_meaning(meaning_id)
 
     def list_occurrences(
         self,
         query: OccurrenceQuery | None = None,
-    ) -> list[JsonObject]:
+    ) -> list[OccurrenceItem]:
         """List encounter history with optional filters."""
         query = query or OccurrenceQuery()
-        return [item.to_dict() for item in self._service.occurrences(query)]
+        return self._service.occurrences(query)
 
-    def get_stats(self, limit: int = 10) -> JsonObject:
+    def get_stats(self, limit: int = 10) -> StatsSummary:
         """Get occurrence totals and top term and source rankings."""
-        return self._service.stats(limit).to_dict()
+        return self._service.stats(limit)
 
-    def add_tag(self, meaning_id: int, name: str) -> JsonObject:
+    def add_tag(self, meaning_id: int, name: str) -> Meaning:
         """Add a tag to a meaning."""
-        return self._service.add_tag(meaning_id, name).to_dict()
+        return self._service.add_tag(meaning_id, name)
 
-    def remove_tag(self, meaning_id: int, name: str) -> JsonObject:
+    def remove_tag(self, meaning_id: int, name: str) -> Meaning:
         """Remove a tag from a meaning."""
-        return self._service.remove_tag(meaning_id, name).to_dict()
+        return self._service.remove_tag(meaning_id, name)
 
-    def list_tags(self) -> list[JsonObject]:
+    def list_tags(self) -> list[TagSummary]:
         """List tags with their active meaning counts."""
-        return [item.to_dict() for item in self._service.tags()]
+        return self._service.tags()
 
-    def favorite_meaning(self, meaning_id: int) -> JsonObject:
+    def favorite_meaning(self, meaning_id: int) -> Meaning:
         """Mark a meaning as a favorite."""
-        return self._service.favorite_meaning(meaning_id).to_dict()
+        return self._service.favorite_meaning(meaning_id)
 
-    def unfavorite_meaning(self, meaning_id: int) -> JsonObject:
+    def unfavorite_meaning(self, meaning_id: int) -> Meaning:
         """Remove a meaning from favorites."""
-        return self._service.unfavorite_meaning(meaning_id).to_dict()
+        return self._service.unfavorite_meaning(meaning_id)
 
-    def relate_meanings(self, meaning_id: int, related_id: int) -> list[JsonObject]:
+    def relate_meanings(self, meaning_id: int, related_id: int) -> list[Meaning]:
         """Create a symmetric relationship between two meanings."""
-        return [item.to_dict() for item in self._service.relate(meaning_id, related_id)]
+        return self._service.relate(meaning_id, related_id)
 
-    def unrelate_meanings(self, meaning_id: int, related_id: int) -> list[JsonObject]:
+    def unrelate_meanings(self, meaning_id: int, related_id: int) -> list[Meaning]:
         """Remove a relationship between two meanings."""
-        return [item.to_dict() for item in self._service.unrelate(meaning_id, related_id)]
+        return self._service.unrelate(meaning_id, related_id)
 
-    def list_related(self, meaning_id: int) -> list[JsonObject]:
+    def list_related(self, meaning_id: int) -> list[Meaning]:
         """List active meanings related to one meaning."""
-        return [item.to_dict() for item in self._service.related(meaning_id)]
+        return self._service.related(meaning_id)
 
     def add_reference(
         self,
         meaning_id: int,
         url: str,
         title: str | None = None,
-    ) -> JsonObject:
+    ) -> ReferenceLink:
         """Attach an HTTP or HTTPS reference URL to a meaning."""
-        return self._service.add_reference(meaning_id, url, title).to_dict()
+        return self._service.add_reference(meaning_id, url, title)
 
-    def list_references(self, meaning_id: int) -> list[JsonObject]:
+    def list_references(self, meaning_id: int) -> list[ReferenceLink]:
         """List reference URLs attached to a meaning."""
-        return [item.to_dict() for item in self._service.references(meaning_id)]
+        return self._service.references(meaning_id)
 
 
 def create_server(service: TermKeeperService | None = None) -> FastMCP:
@@ -152,7 +162,7 @@ def create_server(service: TermKeeperService | None = None) -> FastMCP:
         tools.add_reference,
         tools.list_references,
     ):
-        server.add_tool(tool)
+        server.add_tool(tool, structured_output=True)
     return server
 
 

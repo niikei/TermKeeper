@@ -1,5 +1,4 @@
 import asyncio
-from typing import cast
 
 from termkeeper.adapters.mcp_server import TermKeeperMcpTools, create_server
 from termkeeper.application import TermKeeperService
@@ -30,6 +29,25 @@ def test_mcp_server_registers_expected_tools() -> None:
         "unfavorite_meaning",
         "unrelate_meanings",
     }
+    schemas = {tool.name: tool.outputSchema for tool in tools}
+    capture_schema = schemas["capture_term"]
+    meaning_schema = schemas["get_meaning"]
+    search_schema = schemas["search_meanings"]
+    stats_schema = schemas["get_stats"]
+    inbox_schema = schemas["list_inbox"]
+    assert capture_schema is not None
+    assert meaning_schema is not None
+    assert search_schema is not None
+    assert stats_schema is not None
+    assert inbox_schema is not None
+    assert capture_schema["title"] == "AddResult"
+    assert capture_schema["required"] == ["outcome"]
+    assert meaning_schema["title"] == "Meaning"
+    assert search_schema["title"] == "SearchResult"
+    assert stats_schema["title"] == "StatsSummary"
+    assert inbox_schema["properties"]["result"]["items"]["$ref"].endswith(
+        "/InboxItem",
+    )
 
 
 def test_mcp_tools_delegate_complete_workflow() -> None:
@@ -37,35 +55,31 @@ def test_mcp_tools_delegate_complete_workflow() -> None:
     tools = TermKeeperMcpTools(service)
 
     captured = tools.capture_term("ERP", "planning", "Teams")
-    captured_inbox = cast("dict[str, object]", captured["inbox"])
-    inbox_id = cast("int", captured_inbox["inbox_id"])
-    assert tools.list_inbox()[0]["keyword"] == "ERP"
+    assert captured.inbox is not None
+    inbox_id = captured.inbox.inbox_id
+    assert tools.list_inbox()[0].keyword == "ERP"
     meaning = tools.resolve_inbox(inbox_id, "Enterprise Resource Planning")
-    meaning_id = cast("int", meaning["meaning_id"])
+    meaning_id = meaning.meaning_id
 
-    assert tools.search_meanings("ERP")["hits"]
-    assert tools.get_meaning(meaning_id)["full_name"] == "Enterprise Resource Planning"
-    assert tools.list_occurrences(OccurrenceQuery(meaning_id=meaning_id))[0]["source"] == "Teams"
-    assert tools.get_stats()["total_occurrences"] == 1
+    assert tools.search_meanings("ERP").hits
+    assert tools.get_meaning(meaning_id).full_name == "Enterprise Resource Planning"
+    assert tools.list_occurrences(OccurrenceQuery(meaning_id=meaning_id))[0].source == "Teams"
+    assert tools.get_stats().total_occurrences == 1
 
-    assert tools.add_tag(meaning_id, "SAP")["tags"] == ("SAP",)
-    assert tools.list_tags()[0]["name"] == "SAP"
-    assert tools.remove_tag(meaning_id, "SAP")["tags"] == ()
-    assert tools.favorite_meaning(meaning_id)["is_favorite"] is True
-    assert tools.unfavorite_meaning(meaning_id)["is_favorite"] is False
+    assert tools.add_tag(meaning_id, "SAP").tags == ("SAP",)
+    assert tools.list_tags()[0].name == "SAP"
+    assert tools.remove_tag(meaning_id, "SAP").tags == ()
+    assert tools.favorite_meaning(meaning_id).is_favorite is True
+    assert tools.unfavorite_meaning(meaning_id).is_favorite is False
 
     second = tools.capture_term("MRP")
-    second_inbox = cast("dict[str, object]", second["inbox"])
-    second_inbox_id = cast("int", second_inbox["inbox_id"])
-    related_id = cast(
-        "int",
-        tools.resolve_inbox(
-            second_inbox_id,
-            "Material Requirements Planning",
-        )["meaning_id"],
-    )
-    assert tools.relate_meanings(meaning_id, related_id)[0]["meaning_id"] == related_id
-    assert tools.list_related(related_id)[0]["meaning_id"] == meaning_id
+    assert second.inbox is not None
+    related_id = tools.resolve_inbox(
+        second.inbox.inbox_id,
+        "Material Requirements Planning",
+    ).meaning_id
+    assert tools.relate_meanings(meaning_id, related_id)[0].meaning_id == related_id
+    assert tools.list_related(related_id)[0].meaning_id == meaning_id
     assert tools.unrelate_meanings(meaning_id, related_id) == []
 
     reference = tools.add_reference(
@@ -73,5 +87,5 @@ def test_mcp_tools_delegate_complete_workflow() -> None:
         "https://example.com/erp",
         "ERP guide",
     )
-    assert reference["title"] == "ERP guide"
-    assert tools.list_references(meaning_id)[0]["url"] == "https://example.com/erp"
+    assert reference.title == "ERP guide"
+    assert tools.list_references(meaning_id)[0].url == "https://example.com/erp"

@@ -59,9 +59,9 @@ APIやMCPを追加するときは `TermKeeperService` を再利用し、SQLやCL
 操作の計17ツールを公開する。
 
 MCPアダプターは公式Python SDKのFastMCPを使用し、標準入出力transportで提供する。
-`TermKeeperMcpTools`はDTOをJSON互換値へ変換するだけとし、検証・トランザクション・検索などの
-業務ロジックは`TermKeeperService`へ委譲する。SDKは安定版v1系へ上限を設け、v2の破壊的変更を
-暗黙に取り込まない。
+`TermKeeperMcpTools`は具体的なDomain DTOを返し、FastMCPが型注釈から構造化出力スキーマを
+生成・検証する。検証・トランザクション・検索などの業務ロジックは`TermKeeperService`へ
+委譲する。SDKは安定版v1系へ上限を設け、v2の破壊的変更を暗黙に取り込まない。
 
 HTTPアダプターはFastAPIで`/api/v1`以下へ公開し、PydanticはHTTPリクエストの構文検証だけを
 担当する。業務検証はApplicationへ委譲し、`ValidationError`を422、`NotFoundError`を404の
