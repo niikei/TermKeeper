@@ -106,6 +106,8 @@ tk resolve 1 \
 tk resolve 1 --meaning 12
 ```
 
+`--json`では入力待ちを行いません。新しいMeaningを作る場合は`--name`を必ず指定してください。
+
 分類は後から安全に修正できます。
 
 ```bash
@@ -168,6 +170,9 @@ tk discard 2
 tk history
 ```
 
+`edit`は指定した項目だけを更新し、省略した項目は現在値を維持します。引数なしの通常実行では
+対話入力に切り替わりますが、`--json edit`では更新項目を1つ以上指定してください。
+
 `merge SOURCE TARGET`は、統合元のTerm、Tag、Occurrence、Reference、Relationを統合先へ移動し、
 統合元Meaningを削除します。同一URLのReferenceと同一関連先のRelationは重複排除され、
 sourceとtargetの直接Relationは自己Relationになるため畳み込まれます。`--dry-run`では変更せず、
@@ -220,7 +225,8 @@ tk --json search MDM
 tk --json add BTP --source Slack
 ```
 
-エラー時もJSON形式でエラー種別とメッセージを返し、終了コードは `2` になります。
+JSONモードは完全に非対話で、標準入力を要求せず、標準出力にはJSONだけを出力します。
+必須の入力が不足した場合もJSON形式でエラー種別とメッセージを返し、終了コードは `2` になります。
 検索JSONは`hits`と`suggestions`を持つオブジェクトです。
 
 ## Python APIとMCP連携

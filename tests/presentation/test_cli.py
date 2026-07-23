@@ -154,6 +154,77 @@ def test_interactive_resolve_and_edit(
     assert "Updated meaning" in capsys.readouterr().out
 
 
+def test_json_resolve_never_prompts_or_mixes_human_output(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["--json", "add", "MDM"]) == 0
+    capsys.readouterr()
+
+    def fail_input(_prompt: str) -> str:
+        raise AssertionError("JSON mode must not prompt")
+
+    monkeypatch.setattr("builtins.input", fail_input)
+
+    assert main(["--json", "resolve", "1"]) == 2
+    captured = capsys.readouterr()
+    error = json.loads(captured.out)
+    assert error == {
+        "error": "ValidationError",
+        "message": "--name is required with --json when creating a meaning.",
+    }
+    assert captured.err == ""
+
+    assert main(["--json", "resolve", "1", "--name", "Master Data Management"]) == 0
+    captured = capsys.readouterr()
+    resolved = json.loads(captured.out)
+    assert resolved["full_name"] == "Master Data Management"
+    assert captured.err == ""
+
+
+def test_edit_only_prompts_when_no_values_are_provided(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["add", "ERP"]) == 0
+    assert (
+        main(
+            [
+                "resolve",
+                "1",
+                "--name",
+                "Enterprise Resource Planning",
+                "--description",
+                "Original",
+            ],
+        )
+        == 0
+    )
+    capsys.readouterr()
+
+    def fail_input(_prompt: str) -> str:
+        raise AssertionError("explicit edits must not prompt")
+
+    monkeypatch.setattr("builtins.input", fail_input)
+
+    assert main(["--json", "edit", "1", "--description", "Updated"]) == 0
+    updated = json.loads(capsys.readouterr().out)
+    assert updated["full_name"] == "Enterprise Resource Planning"
+    assert updated["description"] == "Updated"
+
+    assert main(["edit", "1", "--scope", "SAP"]) == 0
+    capsys.readouterr()
+    assert main(["--json", "show", "1"]) == 0
+    scoped = json.loads(capsys.readouterr().out)
+    assert scoped["scope"] == "SAP"
+    assert scoped["description"] == "Updated"
+
+    assert main(["--json", "edit", "1"]) == 2
+    error = json.loads(capsys.readouterr().out)
+    assert error["error"] == "ValidationError"
+    assert "required with --json" in error["message"]
+
+
 def test_config_set_get_list_and_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["config", "user.name", "Taro Yamada"]) == 0
     assert main(["config", "user.email", "taro@example.com"]) == 0

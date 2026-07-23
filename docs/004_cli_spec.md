@@ -61,8 +61,15 @@ tk resolve OCCURRENCE_ID --name NAME --scope SCOPE --description TEXT
 tk resolve OCCURRENCE_ID --meaning MEANING_ID
 ```
 
-`--name`省略時は対話入力する。新規作成では同じ`scope_norm`と`full_name_norm`を持つ有効Meaningを
-拒否する。既存Meaning指定はResolvedの再分類にも利用できる。
+通常モードでは`--name`省略時に対話入力する。JSONモードは入力待ちを行わないため、新規作成時の
+`--name`を必須とし、不足時はJSONエラーと終了コード`2`を返す。新規作成では同じ`scope_norm`と
+`full_name_norm`を持つ有効Meaningを拒否する。既存Meaning指定はResolvedの再分類にも利用できる。
+
+## `tk edit`
+
+`--name`、`--scope`、`--description`のうち指定した項目だけを更新し、省略した項目は現在値を
+維持する。通常モードで更新項目を1つも指定しない場合だけ対話入力する。JSONモードでは入力待ちを
+行わず、更新項目を1つ以上必須とする。
 
 ## 分類状態
 

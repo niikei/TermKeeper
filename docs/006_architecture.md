@@ -32,6 +32,8 @@ Repositoryは`infrastructure/repositories/`へ集約し、テーブル・接続�
 CLIの`main.py`はパース、Service初期化、エラー処理、JSON出力だけを担当する。
 各コマンドの入出力変換は`presentation/cli/handlers/`へユースケース単位で配置し、
 `registry.py`だけがコマンド名とHandlerの対応を管理する。
+JSONモードは自動化向けの非対話境界とし、標準入力を読まず、標準出力には単一のJSON値だけを
+書き出す。不足入力も構造化エラーへ変換する。
 
 CSVファイルの読み取りはPresentationで`ImportRow`へ変換し、検証、Dry Run、既存UUIDの判定、
 一括更新は`use_cases/importing.py`で行う。Import中のRepository操作は同じUnit of Workを
@@ -97,7 +99,8 @@ RouteとMCP Toolは機能単位のモジュールへ分割し、アプリケー�
 `tk init` および各CLI起動時にAlembicを実行し、最新Revisionまでupgradeする。
 現行モデルを`0001_initial`の初期ベースラインとする。各Revisionは固定DDLとして保持し、
 スキーマ変更時は適用済みRevisionを書き換えず、新しいRevisionを追加して順番に適用する。
-SQLModel metadataと初期Revisionの差分をテストし、モデルだけを変更してMigrationを追加し忘れる
+初期ベースラインは正式リリース前かつ既存DBを引き継がない期間に限りリベースできる。
+SQLModel metadataと最新Revisionの差分をテストし、モデルだけを変更してMigrationを追加し忘れる
 schema driftを防ぐ。既存データを移行するRevisionは、実際の旧スキーマとデータを模したfixtureで
 upgradeを検証する。
 

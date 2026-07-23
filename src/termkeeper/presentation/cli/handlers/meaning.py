@@ -2,7 +2,7 @@
 
 import argparse
 
-from termkeeper.application import TermKeeperService
+from termkeeper.application import TermKeeperService, ValidationError
 from termkeeper.domain import Meaning, MergeResult, SearchQuery, SearchResult
 from termkeeper.presentation.cli.rendering import (
     print_meaning,
@@ -103,18 +103,35 @@ def handle_merge(args: argparse.Namespace, service: TermKeeperService) -> MergeR
 
 def handle_edit(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
     current = service.get_meaning(args.meaning_id)
-    name = args.name
-    scope = args.scope
-    description = args.description
-    if name is None:
-        name = input(f"Full name [{current.full_name}]: ").strip() or current.full_name
-        if description is None:
-            entered = input(f"Description [{current.description or ''}]: ").strip()
-            description = entered or current.description
-    result = service.edit(args.meaning_id, name, description, scope)
+    if _has_edit_values(args):
+        name = args.name if args.name is not None else current.full_name
+        description = args.description if args.description is not None else current.description
+    else:
+        if args.json:
+            message = "At least one of --name, --scope, or --description is required with --json."
+            raise ValidationError(message)
+        name, description = _prompt_for_edit(current)
+    result = service.edit(args.meaning_id, name, description, args.scope)
     if not args.json:
         print(f"Updated meaning #{args.meaning_id}.")
     return result
+
+
+def _has_edit_values(args: argparse.Namespace) -> bool:
+    return any(
+        value is not None
+        for value in (
+            args.name,
+            args.scope,
+            args.description,
+        )
+    )
+
+
+def _prompt_for_edit(current: Meaning) -> tuple[str, str | None]:
+    name = input(f"Full name [{current.full_name}]: ").strip() or current.full_name
+    entered = input(f"Description [{current.description or ''}]: ").strip()
+    return name, entered or current.description
 
 
 def handle_meanings(args: argparse.Namespace, service: TermKeeperService) -> list[Meaning]:

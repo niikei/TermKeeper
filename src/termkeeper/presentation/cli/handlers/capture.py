@@ -2,7 +2,7 @@
 
 import argparse
 
-from termkeeper.application import TermKeeperService
+from termkeeper.application import TermKeeperService, ValidationError
 from termkeeper.domain import (
     CaptureResult,
     Meaning,
@@ -121,11 +121,10 @@ def handle_resolve(
     name = args.name
     description = args.description
     if name is None:
-        item = service.get_occurrence(args.occurrence_id)
-        print(f"Resolving: {item.keyword}")
-        name = input("Full name: ").strip()
-        if description is None:
-            description = input("Description: ").strip() or None
+        if args.json:
+            message = "--name is required with --json when creating a meaning."
+            raise ValidationError(message)
+        name, description = _prompt_for_resolution(args, service)
     meaning = service.resolve(args.occurrence_id, name, description, args.scope)
     if not args.json:
         print(f"Created meaning #{meaning.meaning_id}: {meaning.full_name}")
@@ -151,3 +150,16 @@ def handle_reopen(args: argparse.Namespace, service: TermKeeperService) -> Occur
     if not args.json:
         print(f"Reopened occurrence #{args.occurrence_id}.")
     return result
+
+
+def _prompt_for_resolution(
+    args: argparse.Namespace,
+    service: TermKeeperService,
+) -> tuple[str, str | None]:
+    item = service.get_occurrence(args.occurrence_id)
+    print(f"Resolving: {item.keyword}")
+    name = input("Full name: ").strip()
+    description = args.description
+    if description is None:
+        description = input("Description: ").strip() or None
+    return name, description

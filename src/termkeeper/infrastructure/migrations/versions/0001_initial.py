@@ -27,6 +27,7 @@ def upgrade() -> None:
         sa.Column("scope", sa.String(), nullable=False),
         sa.Column("scope_norm", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=True),
+        sa.Column("description_norm", sa.String(), nullable=False),
         sa.Column("is_favorite", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
