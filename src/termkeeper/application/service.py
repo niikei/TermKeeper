@@ -1,7 +1,7 @@
 """Stable use-case API for CLI, HTTP, and MCP adapters."""
 
 from termkeeper.domain.models import AddResult, InboxItem, Meaning
-from termkeeper.infrastructure import repository
+from termkeeper.infrastructure import repository, settings_repository
 from termkeeper.infrastructure.schema import init_db
 from termkeeper.infrastructure.tables import Inbox as InboxRecord
 
@@ -116,12 +116,44 @@ class TermKeeperService:
         repository.add_term(meaning_id, full_name)
         return self.get_meaning(meaning_id)
 
+    def set_config(self, key: str, value: str) -> dict[str, str]:
+        _validate_config(key, value)
+        setting = settings_repository.set_setting(key, value.strip())
+        return {"key": setting.key, "value": setting.value, "updated_at": setting.updated_at}
+
+    def get_config(self, key: str) -> dict[str, str]:
+        _validate_config_key(key)
+        setting = settings_repository.get_setting(key)
+        if setting is None:
+            message = f"Configuration '{key}' was not found."
+            raise NotFoundError(message)
+        return {"key": setting.key, "value": setting.value, "updated_at": setting.updated_at}
+
+    def list_config(self) -> dict[str, str]:
+        return {setting.key: setting.value for setting in settings_repository.list_settings()}
+
 
 def _required_id(value: int | None) -> int:
     if value is None:
         message = "A persisted record has no primary key."
         raise RuntimeError(message)
     return value
+
+
+def _validate_config(key: str, value: str) -> None:
+    _validate_config_key(key)
+    if not value.strip():
+        message = f"Configuration '{key}' must not be empty."
+        raise ValidationError(message)
+    if key == "user.email" and ("@" not in value or value.startswith("@") or value.endswith("@")):
+        message = "user.email must be a valid email address."
+        raise ValidationError(message)
+
+
+def _validate_config_key(key: str) -> None:
+    if key not in {"user.name", "user.email"}:
+        message = f"Unsupported configuration key: {key}"
+        raise ValidationError(message)
 
 
 def _to_inbox(record: InboxRecord) -> InboxItem:

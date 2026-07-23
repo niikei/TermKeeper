@@ -117,6 +117,24 @@ def handle_meanings(args: argparse.Namespace, service: TermKeeperService) -> lis
     return result
 
 
+def handle_config(args: argparse.Namespace, service: TermKeeperService) -> dict[str, str]:
+    if args.list_config or args.key is None:
+        result = service.list_config()
+        if not args.json:
+            for key, value in result.items():
+                print(f"{key}={value}")
+        return result
+    if args.value is None:
+        setting = service.get_config(args.key)
+        if not args.json:
+            print(setting["value"])
+        return setting
+    result = service.set_config(args.key, args.value)
+    if not args.json:
+        print(f"Set {args.key}.")
+    return result
+
+
 def handle_export(
     args: argparse.Namespace,
     _service: TermKeeperService,
@@ -149,6 +167,7 @@ HANDLERS: dict[str, CommandHandler] = {
     "alias": handle_alias,
     "edit": handle_edit,
     "meanings": handle_meanings,
+    "config": handle_config,
     "export": handle_export,
     "import": handle_import,
 }

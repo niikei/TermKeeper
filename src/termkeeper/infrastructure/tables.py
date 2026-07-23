@@ -48,3 +48,9 @@ class Term(SQLModel, table=True):
     keyword_norm: str
     created_at: str
     updated_at: str
+
+
+class AppSetting(SQLModel, table=True):
+    key: str = Field(primary_key=True)
+    value: str
+    updated_at: str

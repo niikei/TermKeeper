@@ -12,6 +12,7 @@
 - 対話／非対話での解決と編集
 - CSV Import／Export
 - JSON出力
+- `user.name` と `user.email` の設定管理
 - UTCの作成・更新・最終確認・終了日時
 - Applicationサービスを介した外部アダプター向け境界
 

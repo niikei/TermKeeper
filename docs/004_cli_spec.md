@@ -25,6 +25,7 @@ tk [--json] <command> [options]
 | `alias` | Meaningへ別名を追加 | `meaning_id`, `keyword` |
 | `edit` | Meaningを編集 | `meaning_id`, `--name`, `--description` |
 | `discard` | 未解決Inboxを破棄 | `inbox_id` |
+| `config` | ユーザー設定を取得・更新 | `[key]`, `[value]`, `--list` |
 | `export` | MeaningをCSV出力 | `[path]` |
 | `import` | MeaningをCSV取込 | `path` |
 
@@ -56,3 +57,8 @@ meaning_id,full_name,description,terms,created_at,updated_at
 ```
 
 `terms` はセミコロン区切り。Import時、存在する `meaning_id` は更新し、それ以外は新規作成する。
+
+### `tk config`
+
+対応キーは `user.name` と `user.email`。値を指定すると更新、値を省略すると取得、
+`--list` または引数なしでは全設定を表示する。設定はデータベース単位で保存する。

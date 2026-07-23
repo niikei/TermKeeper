@@ -65,3 +65,14 @@ def test_interactive_resolve_and_edit(
     monkeypatch.setattr("builtins.input", lambda _prompt: next(answers))
     assert main(["edit", "1"]) == 0
     assert "Updated meaning" in capsys.readouterr().out
+
+
+def test_config_set_get_list_and_json(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["config", "user.name", "Taro Yamada"]) == 0
+    assert main(["config", "user.email", "taro@example.com"]) == 0
+    assert main(["config", "user.name"]) == 0
+    assert "Taro Yamada" in capsys.readouterr().out
+
+    assert main(["--json", "config", "--list"]) == 0
+    settings = json.loads(capsys.readouterr().out)
+    assert settings == {"user.email": "taro@example.com", "user.name": "Taro Yamada"}

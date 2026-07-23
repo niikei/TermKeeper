@@ -85,6 +85,17 @@ tk export terms.csv
 tk import terms.csv
 ```
 
+### ユーザー設定
+
+```bash
+tk config user.name "Taro Yamada"
+tk config user.email taro@example.com
+tk config user.name
+tk config --list
+```
+
+設定はTermKeeperのデータベース単位で保存されます。
+
 ## JSON出力
 
 主要コマンドは機械可読なJSONを出力できます。`--json` はサブコマンドより前に指定します。

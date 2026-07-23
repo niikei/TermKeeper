@@ -16,6 +16,12 @@ erDiagram
     MEANING ||--o{ TERM : "has aliases"
     MEANING o|--o{ INBOX : "resolves captures"
 
+    APPSETTING {
+        text key PK "user.name or user.email"
+        text value
+        datetime updated_at "UTC ISO 8601"
+    }
+
     MEANING {
         integer meaning_id PK
         text full_name
