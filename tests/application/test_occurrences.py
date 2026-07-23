@@ -104,6 +104,10 @@ def test_occurrence_search_treats_wildcards_as_text_and_requires_text() -> None:
     assert [item.keyword for item in result.items] == ["100%"]
     with pytest.raises(ValidationError, match="text must not be empty"):
         service.search_occurrences(OccurrenceQuery(text=" "))
+    with pytest.raises(ValidationError, match="source filter"):
+        service.search_occurrences(OccurrenceQuery(text="ERP", source=" "))
+    with pytest.raises(ValidationError, match="keyword filter"):
+        service.occurrences(OccurrenceQuery(keyword=" "))
 
 
 def test_occurrence_pages_reach_records_beyond_500() -> None:

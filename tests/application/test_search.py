@@ -62,6 +62,10 @@ def test_search_treats_sql_wildcards_as_text_and_validates_limit() -> None:
         service.search_meanings(SearchQuery("term", limit=101))
     with pytest.raises(ValidationError):
         service.search_meanings(SearchQuery("term", suggestion_limit=11))
+    with pytest.raises(ValidationError, match="Tag filter"):
+        service.search_meanings(SearchQuery("term", tag=" "))
+    with pytest.raises(ValidationError, match="Scope filter"):
+        service.search_meanings(SearchQuery("term", scope=" "))
 
 
 def test_search_pages_ranked_results_inside_application_boundary() -> None:
@@ -103,6 +107,7 @@ def test_search_suggests_similar_active_meanings_only_when_no_hits() -> None:
     assert exact.hits
     assert exact.suggestions == ()
     assert service.search_meanings(SearchQuery("ERPP", suggestion_limit=0)).suggestions == ()
+    assert service.search_meanings(SearchQuery("ERPP", offset=1)).suggestions == ()
 
 
 def test_description_search_has_no_suggestion_without_descriptions() -> None:

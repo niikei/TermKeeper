@@ -6,6 +6,7 @@ from termkeeper.application.errors import ValidationError
 from termkeeper.application.mapping import to_meaning, to_occurrence, to_scope
 from termkeeper.application.search import rank_search, rank_suggestions, search_tokens
 from termkeeper.application.support import get_scope_by_name, required_id
+from termkeeper.application.validation import optional_filter, validate_page
 from termkeeper.domain import (
     Meaning,
     OccurrenceItem,
@@ -36,13 +37,31 @@ class SearchUseCases:
     def search_meanings(self, query: SearchQuery | str) -> SearchResult:
         query = SearchQuery(query) if isinstance(query, str) else query
         tokens = search_tokens(query.text)
-        _validate_page(query.offset, query.limit, resource="Meaning")
+        validate_page(
+            query.offset,
+            query.limit,
+            resource="Meaning",
+            max_limit=MAX_SEARCH_LIMIT,
+        )
         if not tokens:
             message = "Search keyword must not be empty."
             raise ValidationError(message)
         if not 0 <= query.suggestion_limit <= MAX_SUGGESTION_LIMIT:
             message = f"Suggestion limit must be between 0 and {MAX_SUGGESTION_LIMIT}."
             raise ValidationError(message)
+        tag = optional_filter(query.tag, name="Tag")
+        scope = optional_filter(query.scope, name="Scope")
+        query = SearchQuery(
+            text=query.text.strip(),
+            match_all=query.match_all,
+            field=query.field,
+            offset=query.offset,
+            limit=query.limit,
+            tag=tag,
+            scope=scope,
+            favorite_only=query.favorite_only,
+            suggestion_limit=query.suggestion_limit,
+        )
 
         with UnitOfWork() as uow:
             scope_id = (
@@ -64,7 +83,7 @@ class SearchUseCases:
             ranked = rank_search(meanings, query)
             if ranked:
                 return _search_page(ranked, query)
-            if query.suggestion_limit == 0:
+            if query.suggestion_limit == 0 or query.offset > 0:
                 return _search_page([], query)
             all_meanings = _filter_tag(
                 [
@@ -107,7 +126,12 @@ class SearchUseCases:
         if not query.text.strip():
             message = "Scope search text must not be empty."
             raise ValidationError(message)
-        _validate_page(query.offset, query.limit, resource="Scope")
+        validate_page(
+            query.offset,
+            query.limit,
+            resource="Scope",
+            max_limit=MAX_SEARCH_LIMIT,
+        )
         with UnitOfWork() as uow:
             records = scope_repository.search(
                 uow.session,
@@ -133,18 +157,20 @@ def _occurrence_page(
     *,
     max_limit: int,
 ) -> Page[OccurrenceItem]:
-    _validate_page(
+    validate_page(
         query.offset,
         query.limit,
         resource="Occurrence",
         max_limit=max_limit,
     )
+    keyword = optional_filter(query.keyword, name="Occurrence keyword")
+    source = optional_filter(query.source, name="Occurrence source")
     normalized = OccurrenceQuery(
         meaning_id=query.meaning_id,
         status=query.status,
         text=query.text.strip() if query.text else None,
-        keyword=query.keyword.strip() if query.keyword else None,
-        source=query.source.strip() if query.source else None,
+        keyword=keyword,
+        source=source,
         since=_to_utc(query.since),
         offset=query.offset,
         limit=query.limit,
@@ -167,21 +193,6 @@ def _search_page(hits: list[SearchHit], query: SearchQuery) -> SearchResult:
         limit=query.limit,
         has_more=len(page) > query.limit,
     )
-
-
-def _validate_page(
-    offset: int,
-    limit: int,
-    *,
-    resource: str,
-    max_limit: int = MAX_SEARCH_LIMIT,
-) -> None:
-    if offset < 0:
-        message = f"{resource} offset must not be negative."
-        raise ValidationError(message)
-    if not 1 <= limit <= max_limit:
-        message = f"{resource} limit must be between 1 and {max_limit}."
-        raise ValidationError(message)
 
 
 def _filter_tag(meanings: list[Meaning], tag: str | None) -> list[Meaning]:
