@@ -1,0 +1,19 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv
+
+# Generated data and exports
+/data/
+/termkeeper_export.csv
+/terms.csv
+/terms_*.csv
+*.csv

@@ -1,0 +1,47 @@
+"""Public application facade for CLI, HTTP, and MCP adapters."""
+
+from termkeeper.application.errors import InitializationError
+from termkeeper.application.use_cases import (
+    AnalyticsUseCases,
+    CaptureUseCases,
+    ConfigUseCases,
+    ImportUseCases,
+    MeaningUseCases,
+    MergeUseCases,
+    OccurrenceUseCases,
+    ReferenceUseCases,
+    RelationUseCases,
+    ScopeUseCases,
+    TagUseCases,
+)
+from termkeeper.config import database_target
+from termkeeper.infrastructure.schema import SchemaMismatchError, init_db
+
+
+class TermKeeperService(
+    AnalyticsUseCases,
+    CaptureUseCases,
+    ImportUseCases,
+    MeaningUseCases,
+    MergeUseCases,
+    OccurrenceUseCases,
+    ReferenceUseCases,
+    RelationUseCases,
+    ScopeUseCases,
+    TagUseCases,
+    ConfigUseCases,
+):
+    """Stable entry point composed from feature-oriented use cases."""
+
+    def initialize(self) -> None:
+        try:
+            init_db()
+        except SchemaMismatchError as exc:
+            raise InitializationError(str(exc)) from exc
+        except Exception as exc:
+            target = database_target()
+            message = (
+                f"Could not initialize the TermKeeper database at '{target}'. "
+                "Run 'tk --debug init' for technical details."
+            )
+            raise InitializationError(message) from exc

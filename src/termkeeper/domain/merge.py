@@ -1,0 +1,22 @@
+"""Meaning merge result DTO."""
+
+from dataclasses import asdict, dataclass
+from typing import Any
+
+
+@dataclass(frozen=True)
+class MergeResult:
+    source_meaning_id: int
+    target_meaning_id: int
+    terms_moved: int
+    tags_moved: int
+    occurrences_moved: int
+    references_moved: int
+    references_deduplicated: int
+    relations_moved: int
+    relations_deduplicated: int
+    relations_collapsed: int
+    applied: bool
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
