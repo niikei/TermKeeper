@@ -4,7 +4,7 @@
 とする。Domainは他レイヤーへ依存しない。
 
 - `domain/`: 外部境界でも使えるシリアライズ可能なDTO
-- `application/`: 用語捕捉、解決、検索などのユースケース
+- `application/`: 公開Serviceファサード、機能別ユースケース、DTO変換、アプリケーション例外
 - `infrastructure/`: SQLModelテーブル、Engine／Session、スキーマ作成、リポジトリ
 - `presentation/`: CLI引数、コマンド処理、表示、CSV入出力
 
@@ -13,6 +13,9 @@ CRUD、検索、スキーマ作成はSQLModelを使用する。旧SQLiteスキ�
 持たないため、本版は新規データベースを前提とする。
 Applicationの各更新ユースケースはUnit of Workを使用し、1つのSessionとトランザクションで
 完結する。Repositoryはcommitせず、トランザクション境界をApplicationへ集約する。
+`TermKeeperService` 自体は薄いファサードとし、実装は `use_cases/inbox.py`、
+`use_cases/meaning.py`、`use_cases/config.py` に分割する。共有するレコード取得とDTO変換だけを
+`support.py` と `mapping.py` に置き、機能間の直接呼び出しは避ける。
 
 APIやMCPを追加するときは `TermKeeperService` を再利用し、SQLやCLIの標準出力を直接
 呼ばない。MCPツールはまず `add`, `inbox`, `resolve`, `search`, `show` を1対1で公開する。

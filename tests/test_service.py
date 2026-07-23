@@ -180,7 +180,10 @@ def test_resolve_rolls_back_all_changes_on_failure(monkeypatch: pytest.MonkeyPat
     def fail_add_term(*_args: object, **_kwargs: object) -> bool:
         raise RuntimeError("simulated failure")
 
-    monkeypatch.setattr("termkeeper.application.service.meaning_repository.add_term", fail_add_term)
+    monkeypatch.setattr(
+        "termkeeper.application.use_cases.inbox.meaning_repository.add_term",
+        fail_add_term,
+    )
     with pytest.raises(RuntimeError):
         service.resolve(captured.inbox.inbox_id, "Transaction")
 
