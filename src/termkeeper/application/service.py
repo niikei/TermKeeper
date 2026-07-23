@@ -37,11 +37,13 @@ class TermKeeperService:
                 meaning_id = _required_id(registered.meaning_id)
                 inbox_repository.add_occurrence(
                     uow.session,
-                    keyword,
-                    user_id,
-                    meaning_id=meaning_id,
-                    memo=memo,
-                    source=source,
+                    inbox_repository.NewOccurrence(
+                        keyword,
+                        user_id,
+                        meaning_id=meaning_id,
+                        memo=memo,
+                        source=source,
+                    ),
                 )
                 result = AddResult("registered", meaning=_to_meaning(uow.session, registered))
             else:
@@ -53,11 +55,13 @@ class TermKeeperService:
                 inbox.updated_at = utc_now()
                 inbox_repository.add_occurrence(
                     uow.session,
-                    keyword,
-                    user_id,
-                    inbox_id=inbox_id,
-                    memo=memo,
-                    source=source,
+                    inbox_repository.NewOccurrence(
+                        keyword,
+                        user_id,
+                        inbox_id=inbox_id,
+                        memo=memo,
+                        source=source,
+                    ),
                 )
                 uow.session.flush()
                 result = AddResult(outcome, inbox=_to_inbox(uow.session, inbox))

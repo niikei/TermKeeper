@@ -1,10 +1,22 @@
 """Persistence operations for inbox items and occurrence history."""
 
+from dataclasses import dataclass
+
 from sqlmodel import Session, col, select
 
 from termkeeper.domain.status import InboxStatus
 from termkeeper.infrastructure.sqlite_utils import normalize_keyword
 from termkeeper.infrastructure.tables import Inbox, Occurrence, utc_now
+
+
+@dataclass(frozen=True, slots=True)
+class NewOccurrence:
+    keyword: str
+    user_id: int | None
+    inbox_id: int | None = None
+    meaning_id: int | None = None
+    memo: str | None = None
+    source: str | None = None
 
 
 def add_inbox(session: Session, keyword: str, user_id: int | None) -> Inbox:
@@ -20,21 +32,15 @@ def add_inbox(session: Session, keyword: str, user_id: int | None) -> Inbox:
 
 def add_occurrence(
     session: Session,
-    keyword: str,
-    user_id: int | None,
-    *,
-    inbox_id: int | None = None,
-    meaning_id: int | None = None,
-    memo: str | None = None,
-    source: str | None = None,
+    new: NewOccurrence,
 ) -> Occurrence:
     occurrence = Occurrence(
-        keyword=keyword,
-        inbox_id=inbox_id,
-        meaning_id=meaning_id,
-        memo=memo,
-        source=source,
-        created_by_id=user_id,
+        keyword=new.keyword,
+        inbox_id=new.inbox_id,
+        meaning_id=new.meaning_id,
+        memo=new.memo,
+        source=new.source,
+        created_by_id=new.user_id,
     )
     session.add(occurrence)
     return occurrence

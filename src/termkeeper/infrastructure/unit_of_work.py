@@ -1,6 +1,7 @@
 """A small transaction boundary shared by application use cases."""
 
 from types import TracebackType
+from typing import Self
 
 from sqlmodel import Session
 
@@ -10,7 +11,7 @@ from termkeeper.infrastructure.connection import get_session
 class UnitOfWork:
     session: Session
 
-    def __enter__(self) -> "UnitOfWork":
+    def __enter__(self) -> Self:
         self.session = get_session()
         return self
 
