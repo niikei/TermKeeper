@@ -21,7 +21,8 @@ def test_http_api_workflow_and_openapi() -> None:
         json={"full_name": "Enterprise Resource Planning"},
     )
     meaning_id = resolved.json()["meaning_id"]
-    assert client.get(f"/api/v1/meanings/{meaning_id}").status_code == 200
+    public_id = resolved.json()["public_id"]
+    assert client.get(f"/api/v1/meanings/{public_id}").status_code == 200
     assert client.get("/api/v1/meanings").json()[0]["meaning_id"] == meaning_id
     assert (
         client.get(
@@ -32,7 +33,7 @@ def test_http_api_workflow_and_openapi() -> None:
     )
 
     updated = client.put(
-        f"/api/v1/meanings/{meaning_id}",
+        f"/api/v1/meanings/{public_id}",
         json={
             "full_name": "Enterprise Resource Planning System",
             "description": "Integrated business software",
@@ -42,13 +43,13 @@ def test_http_api_workflow_and_openapi() -> None:
     assert client.get("/api/v1/search", params={"text": "ERP"}).json()["hits"]
     assert client.get("/api/v1/stats").json()["total_occurrences"] == 1
 
-    deleted = client.delete(f"/api/v1/meanings/{meaning_id}")
+    deleted = client.delete(f"/api/v1/meanings/{public_id}")
     assert deleted.status_code == 204
     assert deleted.content == b""
     assert client.get("/api/v1/meanings").json() == []
     assert client.get("/api/v1/trash").json()[0]["meaning_id"] == meaning_id
 
-    restored = client.post(f"/api/v1/trash/{meaning_id}/restore")
+    restored = client.post(f"/api/v1/trash/{public_id}/restore")
     assert restored.json()["meaning_id"] == meaning_id
     assert client.get("/api/v1/trash").json() == []
 
@@ -82,12 +83,14 @@ def test_http_api_workflow_and_openapi() -> None:
         "error",
         "message",
     ]
+    meaning_parameter = schema["paths"]["/api/v1/meanings/{meaning_id}"]["get"]["parameters"][0]
+    assert meaning_parameter["schema"]["format"] == "uuid"
 
 
 def test_http_api_maps_application_and_request_errors() -> None:
     client = TestClient(create_app(TermKeeperService()))
 
-    missing = client.get("/api/v1/meanings/999")
+    missing = client.get("/api/v1/meanings/00000000-0000-0000-0000-000000000999")
     assert missing.status_code == 404
     assert missing.json()["error"] == "NotFoundError"
 
@@ -95,8 +98,13 @@ def test_http_api_maps_application_and_request_errors() -> None:
     assert invalid.status_code == 422
     assert invalid.json()["error"] == "ValidationError"
 
+    captured = client.post("/api/v1/inbox", json={"keyword": "ERP"}).json()
+    resolved = client.post(
+        f"/api/v1/inbox/{captured['inbox']['inbox_id']}/resolve",
+        json={"full_name": "Enterprise Resource Planning"},
+    ).json()
     invalid_update = client.put(
-        "/api/v1/meanings/999",
+        f"/api/v1/meanings/{resolved['public_id']}",
         json={"full_name": " "},
     )
     assert invalid_update.status_code == 422
@@ -104,3 +112,6 @@ def test_http_api_maps_application_and_request_errors() -> None:
 
     request_error = client.get("/api/v1/search", params={"text": "ERP", "limit": 0})
     assert request_error.status_code == 422
+
+    invalid_identifier = client.get("/api/v1/meanings/not-a-uuid")
+    assert invalid_identifier.status_code == 422

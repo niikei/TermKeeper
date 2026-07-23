@@ -1,6 +1,7 @@
 """HTTP API adapter backed by TermKeeperService."""
 
 from typing import Annotated, Literal
+from uuid import UUID
 
 import uvicorn
 from fastapi import FastAPI, Query, Request, Response, status
@@ -109,8 +110,8 @@ def _register_meaning_routes(app: FastAPI, service: TermKeeperService) -> None:
     """Register meaning lifecycle routes."""
 
     @app.get("/api/v1/meanings/{meaning_id}")
-    def get_meaning(meaning_id: int) -> Meaning:
-        return service.get_meaning(meaning_id)
+    def get_meaning(meaning_id: UUID) -> Meaning:
+        return service.get_meaning_by_public_id(meaning_id)
 
     @app.get("/api/v1/meanings")
     def list_meanings(
@@ -122,11 +123,11 @@ def _register_meaning_routes(app: FastAPI, service: TermKeeperService) -> None:
 
     @app.put("/api/v1/meanings/{meaning_id}")
     def update_meaning(
-        meaning_id: int,
+        meaning_id: UUID,
         request: MeaningUpdateRequest,
     ) -> Meaning:
         return service.edit(
-            meaning_id,
+            _local_meaning_id(service, meaning_id),
             request.full_name,
             request.description,
         )
@@ -135,8 +136,8 @@ def _register_meaning_routes(app: FastAPI, service: TermKeeperService) -> None:
         "/api/v1/meanings/{meaning_id}",
         status_code=status.HTTP_204_NO_CONTENT,
     )
-    def delete_meaning(meaning_id: int) -> Response:
-        service.delete_meaning(meaning_id)
+    def delete_meaning(meaning_id: UUID) -> Response:
+        service.delete_meaning(_local_meaning_id(service, meaning_id))
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     @app.get("/api/v1/trash")
@@ -144,8 +145,9 @@ def _register_meaning_routes(app: FastAPI, service: TermKeeperService) -> None:
         return service.trash()
 
     @app.post("/api/v1/trash/{meaning_id}/restore")
-    def restore_meaning(meaning_id: int) -> Meaning:
-        return service.restore_meaning(meaning_id)
+    def restore_meaning(meaning_id: UUID) -> Meaning:
+        local_id = _local_meaning_id(service, meaning_id, include_deleted=True)
+        return service.restore_meaning(local_id)
 
 
 def _register_query_routes(app: FastAPI, service: TermKeeperService) -> None:
@@ -180,6 +182,18 @@ def _error_response(exc: Exception, status_code: int) -> JSONResponse:
         status_code=status_code,
         content=error.model_dump(),
     )
+
+
+def _local_meaning_id(
+    service: TermKeeperService,
+    public_id: UUID,
+    *,
+    include_deleted: bool = False,
+) -> int:
+    return service.get_meaning_by_public_id(
+        public_id,
+        include_deleted=include_deleted,
+    ).meaning_id
 
 
 def main() -> None:

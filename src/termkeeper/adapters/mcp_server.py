@@ -1,6 +1,9 @@
 """Model Context Protocol adapter backed by TermKeeperService."""
 
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Literal
+from uuid import UUID
 
 from mcp.server.fastmcp import FastMCP
 
@@ -18,6 +21,16 @@ from termkeeper.domain import (
     StatsSummary,
     TagSummary,
 )
+
+
+@dataclass(frozen=True)
+class OccurrenceFilters:
+    meaning_id: UUID | None = None
+    inbox_id: int | None = None
+    keyword: str | None = None
+    source: str | None = None
+    since: datetime | None = None
+    limit: int = 50
 
 
 class TermKeeperMcpTools:
@@ -67,66 +80,91 @@ class TermKeeperMcpTools:
         )
         return self._service.search(query)
 
-    def get_meaning(self, meaning_id: int) -> Meaning:
-        """Get one active meaning by its local ID."""
-        return self._service.get_meaning(meaning_id)
+    def get_meaning(self, meaning_id: UUID) -> Meaning:
+        """Get one active meaning by its stable UUID."""
+        return self._service.get_meaning_by_public_id(meaning_id)
 
     def list_occurrences(
         self,
-        query: OccurrenceQuery | None = None,
+        query: OccurrenceFilters | None = None,
     ) -> list[OccurrenceItem]:
         """List encounter history with optional filters."""
-        query = query or OccurrenceQuery()
-        return self._service.occurrences(query)
+        query = query or OccurrenceFilters()
+        meaning_id = (
+            self._local_meaning_id(query.meaning_id) if query.meaning_id is not None else None
+        )
+        return self._service.occurrences(
+            OccurrenceQuery(
+                meaning_id=meaning_id,
+                inbox_id=query.inbox_id,
+                keyword=query.keyword,
+                source=query.source,
+                since=query.since,
+                limit=query.limit,
+            ),
+        )
 
     def get_stats(self, limit: int = 10) -> StatsSummary:
         """Get occurrence totals and top term and source rankings."""
         return self._service.stats(limit)
 
-    def add_tag(self, meaning_id: int, name: str) -> Meaning:
+    def add_tag(self, meaning_id: UUID, name: str) -> Meaning:
         """Add a tag to a meaning."""
-        return self._service.add_tag(meaning_id, name)
+        return self._service.add_tag(self._local_meaning_id(meaning_id), name)
 
-    def remove_tag(self, meaning_id: int, name: str) -> Meaning:
+    def remove_tag(self, meaning_id: UUID, name: str) -> Meaning:
         """Remove a tag from a meaning."""
-        return self._service.remove_tag(meaning_id, name)
+        return self._service.remove_tag(self._local_meaning_id(meaning_id), name)
 
     def list_tags(self) -> list[TagSummary]:
         """List tags with their active meaning counts."""
         return self._service.tags()
 
-    def favorite_meaning(self, meaning_id: int) -> Meaning:
+    def favorite_meaning(self, meaning_id: UUID) -> Meaning:
         """Mark a meaning as a favorite."""
-        return self._service.favorite_meaning(meaning_id)
+        return self._service.favorite_meaning(self._local_meaning_id(meaning_id))
 
-    def unfavorite_meaning(self, meaning_id: int) -> Meaning:
+    def unfavorite_meaning(self, meaning_id: UUID) -> Meaning:
         """Remove a meaning from favorites."""
-        return self._service.unfavorite_meaning(meaning_id)
+        return self._service.unfavorite_meaning(self._local_meaning_id(meaning_id))
 
-    def relate_meanings(self, meaning_id: int, related_id: int) -> list[Meaning]:
+    def relate_meanings(self, meaning_id: UUID, related_id: UUID) -> list[Meaning]:
         """Create a symmetric relationship between two meanings."""
-        return self._service.relate(meaning_id, related_id)
+        return self._service.relate(
+            self._local_meaning_id(meaning_id),
+            self._local_meaning_id(related_id),
+        )
 
-    def unrelate_meanings(self, meaning_id: int, related_id: int) -> list[Meaning]:
+    def unrelate_meanings(self, meaning_id: UUID, related_id: UUID) -> list[Meaning]:
         """Remove a relationship between two meanings."""
-        return self._service.unrelate(meaning_id, related_id)
+        return self._service.unrelate(
+            self._local_meaning_id(meaning_id),
+            self._local_meaning_id(related_id),
+        )
 
-    def list_related(self, meaning_id: int) -> list[Meaning]:
+    def list_related(self, meaning_id: UUID) -> list[Meaning]:
         """List active meanings related to one meaning."""
-        return self._service.related(meaning_id)
+        return self._service.related(self._local_meaning_id(meaning_id))
 
     def add_reference(
         self,
-        meaning_id: int,
+        meaning_id: UUID,
         url: str,
         title: str | None = None,
     ) -> ReferenceLink:
         """Attach an HTTP or HTTPS reference URL to a meaning."""
-        return self._service.add_reference(meaning_id, url, title)
+        return self._service.add_reference(
+            self._local_meaning_id(meaning_id),
+            url,
+            title,
+        )
 
-    def list_references(self, meaning_id: int) -> list[ReferenceLink]:
+    def list_references(self, meaning_id: UUID) -> list[ReferenceLink]:
         """List reference URLs attached to a meaning."""
-        return self._service.references(meaning_id)
+        return self._service.references(self._local_meaning_id(meaning_id))
+
+    def _local_meaning_id(self, public_id: UUID) -> int:
+        return self._service.get_meaning_by_public_id(public_id).meaning_id
 
 
 def create_server(service: TermKeeperService | None = None) -> FastMCP:

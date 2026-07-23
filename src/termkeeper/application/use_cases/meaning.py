@@ -22,9 +22,18 @@ class MeaningUseCases:
         with UnitOfWork() as uow:
             return to_meaning(uow.session, get_meaning(uow, meaning_id))
 
-    def get_meaning_by_public_id(self, public_id: UUID) -> Meaning:
+    def get_meaning_by_public_id(
+        self,
+        public_id: UUID,
+        *,
+        include_deleted: bool = False,
+    ) -> Meaning:
         with UnitOfWork() as uow:
-            record = meaning_repository.get_by_public_id(uow.session, public_id)
+            record = meaning_repository.get_by_public_id(
+                uow.session,
+                public_id,
+                include_deleted=include_deleted,
+            )
             if record is None:
                 message = f"Meaning {public_id} was not found."
                 raise NotFoundError(message)
