@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import func, select
 
 from termkeeper.application import NotFoundError, TermKeeperService, ValidationError
-from termkeeper.domain import OccurrenceQuery, SearchField
+from termkeeper.domain import OccurrenceQuery, SearchField, SearchQuery
 from termkeeper.infrastructure.connection import get_session
 from termkeeper.infrastructure.tables import Inbox, Occurrence
 from termkeeper.infrastructure.tables import Meaning as MeaningRecord
@@ -105,13 +105,13 @@ def test_search_supports_multiple_words_fields_modes_and_limit() -> None:
 
     assert service.search("enterprise planning")[0].meaning.meaning_id == erp.meaning_id
     assert service.search("enterprise missing") == []
-    assert len(service.search("planning document", match_all=False)) == 2
+    assert len(service.search(SearchQuery("planning document", match_all=False))) == 2
     assert (
-        service.search("business", field=SearchField.DESCRIPTION)[0].meaning.meaning_id
+        service.search(SearchQuery("business", field=SearchField.DESCRIPTION))[0].meaning.meaning_id
         == erp.meaning_id
     )
-    assert service.search("enterprise", field=SearchField.DESCRIPTION) == []
-    assert len(service.search("enterprise", limit=1)) == 1
+    assert service.search(SearchQuery("enterprise", field=SearchField.DESCRIPTION)) == []
+    assert len(service.search(SearchQuery("enterprise", limit=1))) == 1
 
 
 def test_search_treats_sql_wildcards_as_text_and_validates_limit() -> None:
@@ -123,9 +123,43 @@ def test_search_treats_sql_wildcards_as_text_and_validates_limit() -> None:
 
     assert [hit.meaning.meaning_id for hit in hits] == [percent.meaning_id]
     with pytest.raises(ValidationError):
-        service.search("term", limit=0)
+        service.search(SearchQuery("term", limit=0))
     with pytest.raises(ValidationError):
-        service.search("term", limit=101)
+        service.search(SearchQuery("term", limit=101))
+
+
+def test_tags_are_idempotent_listed_and_filter_meanings_and_search() -> None:
+    service = TermKeeperService()
+    erp = service.create_meaning("Enterprise Resource Planning", terms=("ERP",))
+    crm = service.create_meaning("Customer Relationship Management", terms=("CRM",))
+
+    service.add_tag(erp.meaning_id, "SAP")
+    tagged = service.add_tag(erp.meaning_id, "sap")
+    service.add_tag(crm.meaning_id, "Sales")
+
+    assert tagged.tags == ("SAP",)
+    assert [(tag.name, tag.meaning_count) for tag in service.tags()] == [
+        ("Sales", 1),
+        ("SAP", 1),
+    ]
+    assert [item.meaning_id for item in service.meanings("SAP")] == [erp.meaning_id]
+    hits = service.search(SearchQuery("enterprise", tag="sap"))
+    assert [hit.meaning.meaning_id for hit in hits] == [erp.meaning_id]
+    assert service.search(SearchQuery("customer", tag="SAP")) == []
+
+    updated = service.remove_tag(erp.meaning_id, "sAp")
+    assert updated.tags == ()
+    assert [tag.name for tag in service.tags()] == ["Sales"]
+
+
+def test_tag_validation_and_missing_assignment() -> None:
+    service = TermKeeperService()
+    meaning = service.create_meaning("Meaning")
+
+    with pytest.raises(ValidationError):
+        service.add_tag(meaning.meaning_id, " ")
+    with pytest.raises(NotFoundError):
+        service.remove_tag(meaning.meaning_id, "missing")
 
 
 def test_discard_updates_history_and_prevents_repeated_actions() -> None:
@@ -269,10 +303,14 @@ def test_merge_meanings_moves_terms_occurrences_and_inboxes() -> None:
     service.add_alias(source.meaning_id, "shared")
     service.add_alias(source.meaning_id, "source-only")
     service.add_alias(target.meaning_id, "shared")
+    service.add_tag(source.meaning_id, "source-tag")
+    service.add_tag(source.meaning_id, "shared-tag")
+    service.add_tag(target.meaning_id, "shared-tag")
 
     preview = service.merge_meanings(source.meaning_id, target.meaning_id, dry_run=True)
 
     assert preview.terms_moved == 3
+    assert preview.tags_moved == 1
     assert preview.occurrences_moved == 2
     assert preview.inboxes_moved == 1
     assert preview.applied is False
@@ -285,6 +323,7 @@ def test_merge_meanings_moves_terms_occurrences_and_inboxes() -> None:
         service.get_meaning(source.meaning_id)
     merged = service.get_meaning(target.meaning_id)
     assert {"SRC", "Source Meaning", "shared", "source-only"} <= set(merged.terms)
+    assert set(merged.tags) == {"source-tag", "shared-tag"}
     assert service.occurrences(OccurrenceQuery(meaning_id=source.meaning_id)) == []
     assert len(service.occurrences(OccurrenceQuery(meaning_id=target.meaning_id))) == 3
     source_inbox = service.get_inbox(captured_source.inbox.inbox_id)

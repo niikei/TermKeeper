@@ -11,6 +11,7 @@
 - Meaningの作成、編集、一覧、詳細表示
 - Termと別名の管理
 - Meaning統合のDry Run、Term・Occurrence・Inbox移動
+- Meaningへの複数Tag付与、一覧・検索のTag絞り込み
 - Term・正式名称・説明の複数語検索、対象指定、関連度順、一致理由
 - 対話／非対話での解決と編集
 - CSV Import／Export
@@ -29,7 +30,7 @@
 - Web UI
 - Teams、Slack、メールなどからの自動捕捉
 - Power Automate、SharePoint、Dataverse連携
-- タグ、カテゴリ、関連用語
+- カテゴリ、関連用語
 - URL、添付ファイル
 - お気に入り
 - 出現回数を利用した分析・ランキング・ダッシュボード

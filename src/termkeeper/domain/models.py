@@ -36,6 +36,7 @@ class Meaning:
     created_at: datetime
     updated_at: datetime
     terms: tuple[str, ...] = ()
+    tags: tuple[str, ...] = ()
     created_by_id: int | None = None
     updated_by_id: int | None = None
 

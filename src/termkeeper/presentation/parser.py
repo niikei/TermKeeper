@@ -58,6 +58,7 @@ def _add_meaning_commands(sub: _Subparsers) -> None:
         type=SearchField,
     )
     search.add_argument("--limit", type=int, default=20)
+    search.add_argument("--tag")
     show = sub.add_parser("show", help="Show a meaning")
     show.add_argument("meaning_id", type=int)
     alias = sub.add_parser("alias", help="Add an alias to a meaning")
@@ -72,12 +73,20 @@ def _add_meaning_commands(sub: _Subparsers) -> None:
     merge.add_argument("source_id", type=int)
     merge.add_argument("target_id", type=int)
     merge.add_argument("--dry-run", action="store_true")
+    tag = sub.add_parser("tag", help="Add a tag to a meaning")
+    tag.add_argument("meaning_id", type=int)
+    tag.add_argument("name")
+    untag = sub.add_parser("untag", help="Remove a tag from a meaning")
+    untag.add_argument("meaning_id", type=int)
+    untag.add_argument("name")
+    sub.add_parser("tags", help="List tags")
 
     edit = sub.add_parser("edit", help="Edit a meaning")
     edit.add_argument("meaning_id", type=int)
     edit.add_argument("--name", help="New full name")
     edit.add_argument("--description", help="New description")
-    sub.add_parser("meanings", help="List meanings")
+    meanings = sub.add_parser("meanings", help="List meanings")
+    meanings.add_argument("--tag")
 
 
 def _add_config_and_transfer_commands(

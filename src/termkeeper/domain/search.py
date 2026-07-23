@@ -20,6 +20,7 @@ class SearchQuery:
     match_all: bool = True
     field: SearchField = SearchField.ALL
     limit: int = 20
+    tag: str | None = None
 
 
 @dataclass(frozen=True)

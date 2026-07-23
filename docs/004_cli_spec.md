@@ -20,13 +20,16 @@ tk [--json] <command> [options]
 | `history` | 全Inbox履歴 | なし |
 | `occurrences` | 遭遇履歴を表示・絞り込み | `--meaning`, `--inbox`, `--keyword`, `--source`, `--since`, `--limit` |
 | `resolve` | InboxをMeaningへ解決 | `inbox_id`, `--name`, `--description` |
-| `search` | Term・正式名称・説明を関連度順で検索 | `keyword`, `--all`, `--any`, `--in`, `--limit` |
+| `search` | Term・正式名称・説明を関連度順で検索 | `keyword`, `--all`, `--any`, `--in`, `--limit`, `--tag` |
 | `show` | Meaning詳細 | `meaning_id` |
-| `meanings` | Meaning一覧 | なし |
+| `meanings` | Meaning一覧 | `--tag` |
 | `alias` | Meaningへ別名を追加 | `meaning_id`, `keyword` |
 | `unalias` | Meaningから別名を削除 | `meaning_id`, `keyword` |
 | `delete` | Meaningを削除 | `meaning_id` |
 | `merge` | Meaningを別のMeaningへ統合 | `source_id`, `target_id`, `--dry-run` |
+| `tag` | Meaningへタグを追加 | `meaning_id`, `name` |
+| `untag` | Meaningからタグを削除 | `meaning_id`, `name` |
+| `tags` | タグとMeaning件数を一覧表示 | なし |
 | `edit` | Meaningを編集 | `meaning_id`, `--name`, `--description` |
 | `discard` | 未解決Inboxを破棄 | `inbox_id` |
 | `config` | ユーザー設定を取得・更新 | `[key]`, `[value]`, `--list`, `--unset` |
@@ -73,13 +76,21 @@ Termにも追加する。
 tk merge SOURCE_ID TARGET_ID [--dry-run]
 ```
 
-統合元MeaningのTerm、Occurrence、解決済みInboxを統合先Meaningへ移動する。同じ正規化Termが
-統合先に存在する場合は重複Termを削除し、それ以外のTerm行は作成日時・作成者を保持したまま
-移動する。統合先の更新日時と更新者を記録し、最後に統合元Meaningを削除する。
+統合元MeaningのTerm、Tag、Occurrence、解決済みInboxを統合先Meaningへ移動する。
+同じ正規化TermまたはTagが統合先に存在する場合は重複を削除し、それ以外の関連行は
+作成日時・作成者を保持したまま移動する。統合先の更新日時と更新者を記録し、最後に
+統合元Meaningを削除する。
 
 すべての変更は1トランザクションで実行し、途中で失敗した場合はロールバックする。
-`--dry-run`は`terms_moved`、`occurrences_moved`、`inboxes_moved`を返すが変更を保存しない。
+`--dry-run`は`terms_moved`、`tags_moved`、`occurrences_moved`、`inboxes_moved`を返すが
+変更を保存しない。
 統合元と統合先に同じIDは指定できない。
+
+### `tk tag` / `tk untag` / `tk tags`
+
+Tag名はNFKC正規化と大文字小文字の統一により一意に管理する。同じTagの追加は冪等で、
+最後のMeaningからTagを外すと未使用Tagも削除する。`tk meanings --tag NAME`と
+`tk search QUERY --tag NAME`で絞り込める。Meaning統合時はTagリンクも移動し、重複を除去する。
 
 ### `tk search`
 
@@ -89,6 +100,7 @@ tk merge SOURCE_ID TARGET_ID [--dry-run]
 - `--any`: いずれかの検索語に一致
 - `--in all|term|name|description`: 検索対象。標準は`all`
 - `--limit N`: 最大件数。標準20、指定可能範囲は1〜100
+- `--tag NAME`: 指定タグを持つMeaningだけに絞り込み
 
 Term完全一致、正式名称完全一致、前方一致、部分一致、説明一致の順に重み付けし、合計スコアの
 降順で返す。同点では正式名称、Meaning IDの順に並べる。結果はMeaningに加えて`score`、
@@ -99,10 +111,11 @@ Term完全一致、正式名称完全一致、前方一致、部分一致、説�
 CSV列は以下の通り。
 
 ```text
-public_id,full_name,description,terms,created_at,updated_at
+public_id,full_name,description,terms,tags,created_at,updated_at
 ```
 
-`terms` はセミコロン区切り。Import時、存在するUUID `public_id` は更新し、それ以外は新規作成する。
+`terms` と `tags` はセミコロン区切り。Import時、存在するUUID `public_id` は更新し、
+それ以外は新規作成する。
 
 ### `tk config`
 

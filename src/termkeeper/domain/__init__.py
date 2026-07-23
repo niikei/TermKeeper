@@ -5,6 +5,7 @@ from termkeeper.domain.models import AddResult, InboxItem, Meaning
 from termkeeper.domain.occurrence import OccurrenceItem, OccurrenceQuery
 from termkeeper.domain.search import SearchField, SearchHit, SearchQuery
 from termkeeper.domain.status import InboxStatus
+from termkeeper.domain.tag import TagSummary
 
 __all__ = [
     "AddResult",
@@ -17,4 +18,5 @@ __all__ = [
     "SearchField",
     "SearchHit",
     "SearchQuery",
+    "TagSummary",
 ]

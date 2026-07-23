@@ -60,6 +60,8 @@ def print_meaning(item: Meaning) -> None:
         print(item.description)
     if item.terms:
         print("Aliases: " + ", ".join(item.terms))
+    if item.tags:
+        print("Tags: " + ", ".join(item.tags))
     print(f"Created: {item.created_at}  Updated: {item.updated_at}")
 
 

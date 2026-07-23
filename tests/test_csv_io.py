@@ -18,12 +18,14 @@ def test_csv_round_trip_and_update(tmp_path: Path) -> None:
     captured = service.add("BOM")
     assert captured.inbox is not None
     meaning = service.resolve(captured.inbox.inbox_id, "Bill of Materials", "parts")
+    service.add_tag(meaning.meaning_id, "Manufacturing")
     path = tmp_path / "terms.csv"
 
     assert export_meanings(str(path)) == 1
     rows = list(csv.DictReader(path.open(encoding="utf-8-sig")))
     assert rows[0]["public_id"] == str(meaning.public_id)
     assert set(rows[0]["terms"].split(";")) == {"BOM", "Bill of Materials"}
+    assert rows[0]["tags"] == "Manufacturing"
 
     rows[0]["full_name"] = "Bill of Material"
     rows[0]["description"] = "updated"
@@ -36,28 +38,31 @@ def test_csv_round_trip_and_update(tmp_path: Path) -> None:
     result = import_meanings(str(path), service)
     assert result == {"created": 0, "updated": 1, "skipped": 1}
     assert service.get_meaning(meaning.meaning_id).description == "updated"
+    assert service.get_meaning(meaning.meaning_id).tags == ("Manufacturing",)
 
 
 def test_import_creates_meaning_and_aliases(tmp_path: Path) -> None:
     path = tmp_path / "new.csv"
     path.write_text(
-        "public_id,full_name,description,terms\n"
-        ",Master Data Management,governance,MDM;master data\n",
+        "public_id,full_name,description,terms,tags\n"
+        ",Master Data Management,governance,MDM;master data,Data\n",
         encoding="utf-8",
     )
 
     result = import_meanings(str(path), TermKeeperService())
 
     assert result == {"created": 1, "updated": 0, "skipped": 0}
-    assert TermKeeperService().search("MDM")[0].meaning.description == "governance"
+    imported = TermKeeperService().search("MDM")[0].meaning
+    assert imported.description == "governance"
+    assert imported.tags == ("Data",)
 
 
 def test_import_preserves_unknown_public_id(tmp_path: Path) -> None:
     public_id = uuid4()
     path = tmp_path / "external.csv"
     path.write_text(
-        "public_id,full_name,description,terms\n"
-        f"{public_id},Customer Relationship Management,customers,CRM\n",
+        "public_id,full_name,description,terms,tags\n"
+        f"{public_id},Customer Relationship Management,customers,CRM,Sales\n",
         encoding="utf-8",
     )
     service = TermKeeperService()
@@ -68,3 +73,4 @@ def test_import_preserves_unknown_public_id(tmp_path: Path) -> None:
     assert service.get_meaning_by_public_id(public_id).full_name == (
         "Customer Relationship Management"
     )
+    assert service.get_meaning_by_public_id(public_id).tags == ("Sales",)

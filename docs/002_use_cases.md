@@ -75,13 +75,15 @@ Meaningへ直接関連付けたOccurrenceとして保存する。
 tk search ICMR
 tk search "enterprise planning" --all
 tk search "planning document" --any --in description --limit 10
+tk search ERP --tag SAP
 tk show 1
 tk meanings
 ```
 
 検索はTerm、正式名称、説明を対象に、完全一致、前方一致、部分一致の順で関連度を付ける。
 複数語は標準ですべての語に一致する結果を返し、`--any`でいずれかの語に切り替える。
-結果にはスコア、一致フィールド、一致文字列を含む。詳細表示では別名と作成・更新日時も表示する。
+結果にはスコア、一致フィールド、一致文字列を含む。`--tag`でタグを持つMeaningだけに
+絞り込める。詳細表示では別名・タグと作成・更新日時も表示する。
 
 ## 8. Meaningを整理する
 
@@ -89,13 +91,17 @@ tk meanings
 tk alias 1 ICMR
 tk unalias 1 ICMR
 tk edit 1 --name "Intercompany Matching and Reconciliation"
+tk tag 1 SAP
+tk untag 1 SAP
+tk tags
 tk merge 2 1 --dry-run
 tk merge 2 1
 tk delete 1
 ```
 
 Meaningへ別名を追加・削除し、正式名称や説明を更新する。不要になったMeaningは削除できる。
-重複Meaningは統合元のTerm・Occurrence・解決済みInboxを統合先へ移動して整理する。
+Meaningへ複数のタグを付与し、一覧・検索を絞り込める。重複Meaningは統合元の
+Term・Tag・Occurrence・解決済みInboxを統合先へ移動して整理する。
 `--dry-run`では移動件数を確認するだけでDBを変更しない。対話形式の編集も利用できる。
 
 ## 9. Inboxを破棄する

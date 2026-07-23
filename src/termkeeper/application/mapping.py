@@ -5,7 +5,7 @@ from sqlmodel import Session
 from termkeeper.application.support import required_id
 from termkeeper.domain import InboxItem, OccurrenceItem
 from termkeeper.domain import Meaning as MeaningDto
-from termkeeper.infrastructure import inbox_repository, meaning_repository
+from termkeeper.infrastructure import inbox_repository, meaning_repository, tag_repository
 from termkeeper.infrastructure.tables import Inbox, Meaning, Occurrence
 
 
@@ -43,6 +43,7 @@ def to_meaning(session: Session, record: Meaning) -> MeaningDto:
         created_at=record.created_at,
         updated_at=record.updated_at,
         terms=terms,
+        tags=tuple(tag_repository.get_names(session, required_id(record.meaning_id))),
         created_by_id=record.created_by_id,
         updated_by_id=record.updated_by_id,
     )

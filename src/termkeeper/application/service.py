@@ -6,6 +6,7 @@ from termkeeper.application.use_cases import (
     MeaningUseCases,
     MergeUseCases,
     OccurrenceUseCases,
+    TagUseCases,
 )
 from termkeeper.infrastructure.schema import init_db
 
@@ -15,6 +16,7 @@ class TermKeeperService(
     MeaningUseCases,
     MergeUseCases,
     OccurrenceUseCases,
+    TagUseCases,
     ConfigUseCases,
 ):
     """Stable entry point composed from feature-oriented use cases."""

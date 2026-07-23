@@ -82,13 +82,15 @@ tk resolve 1 \
 tk search ICMR
 tk search "enterprise planning" --all
 tk search "planning document" --any --in description --limit 10
+tk search ERP --tag SAP
 tk show 1
-tk meanings
+tk meanings --tag SAP
 ```
 
 検索は完全一致、前方一致、部分一致の順に関連度を付け、一致理由とともに表示します。
 複数語は標準ですべての語に一致するMeaningを探します。`--any`でいずれかの語、
 `--in term|name|description|all`で検索対象、`--limit`で最大件数を指定できます。
+`--tag`を指定すると、そのタグを持つMeaningだけに絞り込みます。
 
 ### 整理
 
@@ -96,6 +98,9 @@ tk meanings
 tk alias 1 ICMR
 tk unalias 1 ICMR
 tk edit 1 --name "Intercompany Matching and Reconciliation"
+tk tag 1 SAP
+tk untag 1 SAP
+tk tags
 tk merge 2 1 --dry-run
 tk merge 2 1
 tk delete 1
@@ -103,7 +108,7 @@ tk discard 2
 tk history
 ```
 
-`merge SOURCE TARGET`は、統合元のTerm、Occurrence、解決済みInboxを統合先へ移動し、
+`merge SOURCE TARGET`は、統合元のTerm、Tag、Occurrence、解決済みInboxを統合先へ移動し、
 統合元Meaningを削除します。`--dry-run`では変更せず、移動件数だけを確認できます。
 
 ### CSV入出力

@@ -15,6 +15,8 @@ USERPROFILE ──> INBOX ──> OCCURRENCE
 erDiagram
 
     MEANING ||--o{ TERM : "has aliases"
+    MEANING ||--o{ MEANINGTAG : "classified by"
+    TAG ||--o{ MEANINGTAG : "assigned through"
     MEANING o|--o{ INBOX : "resolves captures"
     INBOX o|--o{ OCCURRENCE : "records encounters"
     MEANING o|--o{ OCCURRENCE : "classifies encounters"
@@ -47,6 +49,21 @@ erDiagram
         text keyword_norm
         datetime created_at "UTC"
         datetime updated_at "UTC"
+        integer created_by_id FK "nullable"
+    }
+
+    TAG {
+        integer tag_id PK
+        text name
+        text name_norm UK
+        datetime created_at "UTC"
+        integer created_by_id FK "nullable"
+    }
+
+    MEANINGTAG {
+        integer meaning_id PK, FK
+        integer tag_id PK, FK
+        datetime created_at "UTC"
         integer created_by_id FK "nullable"
     }
 
@@ -85,6 +102,7 @@ erDiagram
 - Meaningは外部連携用の安定したUUID `public_id` を持つ。
 - 開いているInboxの `keyword_norm` は部分一意制約で重複を防ぐ。
 - Termの `(keyword_norm, meaning_id)` は一意で、同じMeaningへの別表記の重複を防ぐ。
+- Tagの `name_norm` は一意で、MeaningTagによりMeaningと多対多で関連付ける。
 - `keyword_norm` はNFKC正規化と大文字・小文字の統一後の検索値を保持する。
 
 ### インデックス
@@ -96,6 +114,7 @@ erDiagram
 | `idx_term_meaning` | `term.meaning_id` | Meaningから別名を取得 |
 | `ix_occurrence_keyword_norm` | `occurrence.keyword_norm` | 遭遇用語の検索 |
 | `ix_occurrence_occurred_at` | `occurrence.occurred_at` | 期間検索と新しい順の表示 |
+| `ix_tag_name_norm` | `tag.name_norm` | タグの正規化検索 |
 
 ## TERM
 

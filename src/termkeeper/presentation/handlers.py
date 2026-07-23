@@ -11,6 +11,8 @@ from termkeeper.domain import (
     OccurrenceItem,
     OccurrenceQuery,
     SearchHit,
+    SearchQuery,
+    TagSummary,
 )
 from termkeeper.presentation.csv_io import export_meanings, import_meanings
 from termkeeper.presentation.rendering import (
@@ -96,12 +98,14 @@ def handle_resolve(args: argparse.Namespace, service: TermKeeperService) -> Mean
 
 
 def handle_search(args: argparse.Namespace, service: TermKeeperService) -> list[SearchHit]:
-    result = service.search(
-        args.keyword,
+    query = SearchQuery(
+        text=args.keyword,
         match_all=args.match_all,
         field=args.search_field,
         limit=args.limit,
+        tag=args.tag,
     )
+    result = service.search(query)
     if not args.json:
         print(f"{len(result)} match(es)")
         for item in result:
@@ -150,9 +154,31 @@ def handle_merge(args: argparse.Namespace, service: TermKeeperService) -> MergeR
         action = "Would merge" if args.dry_run else "Merged"
         print(
             f"{action} meaning #{args.source_id} into #{args.target_id}: "
-            f"{result.terms_moved} term(s), {result.occurrences_moved} occurrence(s), "
-            f"{result.inboxes_moved} inbox(es).",
+            f"{result.terms_moved} term(s), {result.tags_moved} tag(s), "
+            f"{result.occurrences_moved} occurrence(s), {result.inboxes_moved} inbox(es).",
         )
+    return result
+
+
+def handle_tag(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
+    result = service.add_tag(args.meaning_id, args.name)
+    if not args.json:
+        print(f"Tagged meaning #{args.meaning_id} with '{args.name}'.")
+    return result
+
+
+def handle_untag(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
+    result = service.remove_tag(args.meaning_id, args.name)
+    if not args.json:
+        print(f"Removed tag '{args.name}' from meaning #{args.meaning_id}.")
+    return result
+
+
+def handle_tags(args: argparse.Namespace, service: TermKeeperService) -> list[TagSummary]:
+    result = service.tags()
+    if not args.json:
+        for tag in result:
+            print(f"{tag.name} ({tag.meaning_count})")
     return result
 
 
@@ -172,7 +198,7 @@ def handle_edit(args: argparse.Namespace, service: TermKeeperService) -> Meaning
 
 
 def handle_meanings(args: argparse.Namespace, service: TermKeeperService) -> list[Meaning]:
-    result = service.meanings()
+    result = service.meanings(args.tag)
     if not args.json:
         for item in result:
             print_meaning(item)
@@ -239,6 +265,9 @@ HANDLERS: dict[str, CommandHandler] = {
     "unalias": handle_unalias,
     "delete": handle_delete,
     "merge": handle_merge,
+    "tag": handle_tag,
+    "untag": handle_untag,
+    "tags": handle_tags,
     "edit": handle_edit,
     "meanings": handle_meanings,
     "config": handle_config,

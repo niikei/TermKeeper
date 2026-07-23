@@ -9,6 +9,7 @@ class MergeResult:
     source_meaning_id: int
     target_meaning_id: int
     terms_moved: int
+    tags_moved: int
     occurrences_moved: int
     inboxes_moved: int
     applied: bool

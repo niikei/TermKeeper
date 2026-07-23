@@ -145,6 +145,24 @@ def test_merge_dry_run_and_json_apply(capsys: pytest.CaptureFixture[str]) -> Non
     assert result["target_meaning_id"] == 2
 
 
+def test_tag_commands_and_filters(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["add", "ERP"]) == 0
+    assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
+    assert main(["tag", "1", "SAP"]) == 0
+    assert "Tagged meaning #1" in capsys.readouterr().out
+
+    assert main(["tags"]) == 0
+    assert "SAP (1)" in capsys.readouterr().out
+    assert main(["meanings", "--tag", "sap"]) == 0
+    assert "Tags: SAP" in capsys.readouterr().out
+    assert main(["search", "ERP", "--tag", "SAP"]) == 0
+    assert "Enterprise Resource Planning" in capsys.readouterr().out
+
+    assert main(["--json", "untag", "1", "sap"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["tags"] == []
+
+
 def test_config_unset_requires_key(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["config", "--unset"]) == 2
     assert "requires a key" in capsys.readouterr().err

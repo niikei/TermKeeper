@@ -76,6 +76,25 @@ class Term(SQLModel, table=True):
     created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
 
 
+class Tag(SQLModel, table=True):
+    tag_id: int | None = Field(default=None, primary_key=True)
+    name: str
+    name_norm: str = Field(unique=True, index=True)
+    created_at: datetime = Field(default_factory=utc_now)
+    created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
+
+
+class MeaningTag(SQLModel, table=True):
+    meaning_id: int = Field(
+        primary_key=True,
+        foreign_key="meaning.meaning_id",
+        ondelete="CASCADE",
+    )
+    tag_id: int = Field(primary_key=True, foreign_key="tag.tag_id", ondelete="CASCADE")
+    created_at: datetime = Field(default_factory=utc_now)
+    created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
+
+
 class Occurrence(SQLModel, table=True):
     occurrence_id: int | None = Field(default=None, primary_key=True)
     keyword: str

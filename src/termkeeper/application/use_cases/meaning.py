@@ -6,8 +6,9 @@ from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_meaning
 from termkeeper.application.search import rank_search, search_tokens
 from termkeeper.application.support import get_meaning, required_id, user_id
-from termkeeper.domain import Meaning, SearchField, SearchHit, SearchQuery
+from termkeeper.domain import Meaning, SearchHit, SearchQuery
 from termkeeper.infrastructure import meaning_repository, settings_repository
+from termkeeper.infrastructure.sqlite_utils import normalize_keyword
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
 
@@ -52,13 +53,9 @@ class MeaningUseCases:
 
     def search(
         self,
-        keyword: str,
-        *,
-        match_all: bool = True,
-        field: SearchField = SearchField.ALL,
-        limit: int = 20,
+        query: SearchQuery | str,
     ) -> list[SearchHit]:
-        query = SearchQuery(keyword, match_all, field, limit)
+        query = SearchQuery(query) if isinstance(query, str) else query
         tokens = search_tokens(query.text)
         if not tokens:
             message = "Search keyword must not be empty."
@@ -69,12 +66,27 @@ class MeaningUseCases:
         with UnitOfWork() as uow:
             records = meaning_repository.search(uow.session, tokens, query.field)
             meanings = [to_meaning(uow.session, row) for row in records]
+            if query.tag:
+                tag_norm = normalize_keyword(query.tag)
+                meanings = [
+                    meaning
+                    for meaning in meanings
+                    if any(normalize_keyword(tag) == tag_norm for tag in meaning.tags)
+                ]
             return rank_search(meanings, query)
 
-    def meanings(self) -> list[Meaning]:
+    def meanings(self, tag: str | None = None) -> list[Meaning]:
         with UnitOfWork() as uow:
-            return [
+            meanings = [
                 to_meaning(uow.session, row) for row in meaning_repository.list_all(uow.session)
+            ]
+            if not tag:
+                return meanings
+            tag_norm = normalize_keyword(tag)
+            return [
+                meaning
+                for meaning in meanings
+                if any(normalize_keyword(name) == tag_norm for name in meaning.tags)
             ]
 
     def add_alias(self, meaning_id: int, keyword: str) -> Meaning:
