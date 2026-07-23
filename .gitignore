@@ -11,5 +11,8 @@ htmlcov/
 # Virtual environments
 .venv
 
-# Data
-data/
+# Generated data and exports
+/data/
+/termkeeper_export.csv
+/terms.csv
+/terms_*.csv
