@@ -30,6 +30,23 @@ type NonEmptyText = Annotated[
         description="Non-blank text; surrounding whitespace is normalized",
     ),
 ]
+type CaptureItems = Annotated[
+    tuple["CaptureTermInput", ...],
+    Field(min_length=1, max_length=100, description="Terms captured in input order"),
+]
+
+
+@dataclass(frozen=True)
+class CaptureTermInput:
+    keyword: NonEmptyText
+    memo: str | None = None
+    source: str | None = None
+    meaning_id: UUID | None = None
+
+
+@dataclass(frozen=True)
+class CaptureBatchInput:
+    items: CaptureItems
 
 
 @dataclass(frozen=True)

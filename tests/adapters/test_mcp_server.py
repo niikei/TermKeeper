@@ -1,7 +1,11 @@
 import asyncio
 from datetime import UTC
 
+import pytest
+
 from termkeeper.adapters.mcp import (
+    CaptureBatchInput,
+    CaptureTermInput,
     InboxSearchFilters,
     MeaningCreateInput,
     MeaningEditInput,
@@ -13,7 +17,7 @@ from termkeeper.adapters.mcp import (
     TermKeeperMcpTools,
     create_server,
 )
-from termkeeper.application import TermKeeperService
+from termkeeper.application import TermKeeperService, ValidationError
 from termkeeper.domain import OccurrenceUpdate, ReferenceUpdate
 from termkeeper.infrastructure.connection import get_session
 from termkeeper.infrastructure.tables import Occurrence
@@ -30,6 +34,7 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
         "add_tag",
         "assign_occurrence",
         "capture_term",
+        "capture_terms",
         "create_scope",
         "create_meaning",
         "delete_meaning",
@@ -67,17 +72,20 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
     }
     schemas = {tool.name: tool.outputSchema for tool in tools}
     capture_schema = schemas["capture_term"]
+    capture_batch_schema = schemas["capture_terms"]
     meaning_schema = schemas["get_meaning"]
     search_schema = schemas["search_meanings"]
     stats_schema = schemas["get_stats"]
     inbox_schema = schemas["list_inbox"]
     assert capture_schema is not None
+    assert capture_batch_schema is not None
     assert meaning_schema is not None
     assert search_schema is not None
     assert stats_schema is not None
     assert inbox_schema is not None
     assert capture_schema["title"] == "ExternalCaptureResult"
     assert capture_schema["required"] == ["occurrence", "candidates"]
+    assert capture_batch_schema["title"] == "ExternalCaptureBatchResult"
     assert meaning_schema["title"] == "ExternalMeaning"
     assert search_schema["title"] == "ExternalSearchResult"
     assert stats_schema["title"] == "StatsSummary"
@@ -107,6 +115,10 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
     assert definitions["add_alias"]["properties"]["alias"] == {"$ref": "#/$defs/NonEmptyText"}
     assert definitions["resolve_occurrence"]["properties"]["occurrence_id"]["format"] == "uuid"
     assert definitions["edit_occurrence"]["properties"]["occurrence_id"]["format"] == "uuid"
+    capture_batch_definitions = definitions["capture_terms"]["$defs"]
+    assert capture_batch_definitions["CaptureItems"]["minItems"] == 1
+    assert capture_batch_definitions["CaptureItems"]["maxItems"] == 100
+    assert capture_batch_definitions["NonEmptyText"]["pattern"] == r".*\S.*"
 
 
 def test_mcp_meaning_lifecycle_is_safe_and_reversible() -> None:
@@ -135,6 +147,35 @@ def test_mcp_meaning_lifecycle_is_safe_and_reversible() -> None:
     assert tools.delete_meaning(created.public_id) == {"meaning_id": created.public_id}
     assert tools.list_trash().items[0].public_id == created.public_id
     assert tools.restore_meaning(created.public_id).public_id == created.public_id
+
+
+def test_mcp_batch_capture_is_typed_atomic_and_ordered() -> None:
+    service = TermKeeperService()
+    tools = TermKeeperMcpTools(service)
+
+    result = tools.capture_terms(
+        CaptureBatchInput(
+            (
+                CaptureTermInput("ERP", source="Teams"),
+                CaptureTermInput("Business Unit", memo="SAP context"),
+            ),
+        ),
+    )
+
+    assert [item.occurrence.keyword for item in result.items] == [
+        "ERP",
+        "Business Unit",
+    ]
+    assert result.items[0].occurrence.source == "Teams"
+    assert result.items[1].occurrence.memo == "SAP context"
+
+    with pytest.raises(ValidationError, match="duplicates position"):
+        tools.capture_terms(
+            CaptureBatchInput(
+                (CaptureTermInput("CRM"), CaptureTermInput("ＣＲＭ")),
+            ),
+        )
+    assert len(service.history().items) == 2
 
 
 def test_mcp_tools_delegate_complete_workflow() -> None:

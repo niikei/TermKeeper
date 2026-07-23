@@ -24,6 +24,7 @@ def create_server(service: TermKeeperService | None = None) -> FastMCP:
     )
     for tool in (
         tools.capture_term,
+        tools.capture_terms,
         tools.create_meaning,
         tools.edit_meaning,
         tools.add_alias,

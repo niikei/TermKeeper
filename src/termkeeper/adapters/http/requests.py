@@ -16,6 +16,10 @@ class CaptureRequest(BaseModel):
     meaning_id: UUID | None = None
 
 
+class CaptureBatchRequest(BaseModel):
+    items: tuple[CaptureRequest, ...] = Field(min_length=1, max_length=100)
+
+
 class ResolveRequest(BaseModel):
     full_name: str
     scope_id: UUID = GENERAL_SCOPE_PUBLIC_ID

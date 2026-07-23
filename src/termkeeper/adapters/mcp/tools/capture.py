@@ -3,13 +3,15 @@
 from uuid import UUID
 
 from termkeeper.adapters.external import (
+    ExternalCaptureBatchResult,
     ExternalCaptureResult,
     ExternalOccurrence,
     ExternalPage,
     inbox_search_query,
 )
-from termkeeper.adapters.mcp.inputs import InboxSearchFilters, Limit, Offset
+from termkeeper.adapters.mcp.inputs import CaptureBatchInput, InboxSearchFilters, Limit, Offset
 from termkeeper.adapters.mcp.tools.context import ToolContext
+from termkeeper.domain import CaptureInput
 
 
 class CaptureTools(ToolContext):
@@ -28,6 +30,26 @@ class CaptureTools(ToolContext):
                 memo,
                 source,
                 meaning_id=local_meaning_id,
+            ),
+        )
+
+    def capture_terms(self, request: CaptureBatchInput) -> ExternalCaptureBatchResult:
+        """Atomically capture 1-100 terms; duplicate or invalid input writes nothing."""
+        return self._mapper.capture_batch(
+            self._service.capture_many(
+                tuple(
+                    CaptureInput(
+                        item.keyword,
+                        item.memo,
+                        item.source,
+                        (
+                            self._local_meaning_id(item.meaning_id)
+                            if item.meaning_id is not None
+                            else None
+                        ),
+                    )
+                    for item in request.items
+                ),
             ),
         )
 

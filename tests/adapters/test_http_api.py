@@ -217,6 +217,14 @@ def _assert_openapi_contract(client: TestClient) -> None:
     ]["schema"] == {
         "$ref": "#/components/schemas/ExternalCaptureResult",
     }
+    assert schema["paths"]["/api/v1/occurrences/batch"]["post"]["responses"]["201"]["content"][
+        "application/json"
+    ]["schema"] == {
+        "$ref": "#/components/schemas/ExternalCaptureBatchResult",
+    }
+    batch_items = schema["components"]["schemas"]["CaptureBatchRequest"]["properties"]["items"]
+    assert batch_items["minItems"] == 1
+    assert batch_items["maxItems"] == 100
     assert schema["paths"]["/api/v1/meanings/search"]["get"]["responses"]["200"]["content"][
         "application/json"
     ]["schema"] == {
@@ -305,6 +313,38 @@ def test_http_api_maps_application_and_request_errors() -> None:
         assert body["details"][0]["location"] == location
         assert body["details"][0]["code"] == code
         assert body["details"][0]["message"]
+
+
+def test_http_batch_capture_is_atomic_and_uses_external_ids() -> None:
+    service = TermKeeperService()
+    client = TestClient(create_app(service))
+    meaning = service.create_meaning("Enterprise Resource Planning")
+
+    response = client.post(
+        "/api/v1/occurrences/batch",
+        json={
+            "items": [
+                {"keyword": "ERP", "meaning_id": str(meaning.public_id)},
+                {"keyword": "Business Unit", "source": "Teams"},
+            ],
+        },
+    )
+
+    assert response.status_code == 201
+    items = response.json()["items"]
+    assert [item["occurrence"]["keyword"] for item in items] == [
+        "ERP",
+        "Business Unit",
+    ]
+    assert items[0]["occurrence"]["meaning_id"] == str(meaning.public_id)
+    assert "occurrence_id" not in items[0]["occurrence"]
+
+    duplicate = client.post(
+        "/api/v1/occurrences/batch",
+        json={"items": [{"keyword": "CRM"}, {"keyword": "ＣＲＭ"}]},
+    )
+    assert duplicate.status_code == 422
+    assert len(service.history().items) == 2
 
 
 def test_http_scope_lifecycle_uses_stable_ids() -> None:

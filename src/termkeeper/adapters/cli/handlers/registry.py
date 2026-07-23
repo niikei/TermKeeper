@@ -2,7 +2,6 @@
 
 from termkeeper.adapters.cli.handlers.capture import (
     handle_add,
-    handle_add_many,
     handle_discard,
     handle_history,
     handle_inbox,
@@ -15,6 +14,7 @@ from termkeeper.adapters.cli.handlers.capture import (
     handle_stats,
     handle_unresolve,
 )
+from termkeeper.adapters.cli.handlers.capture_batch import handle_add_many
 from termkeeper.adapters.cli.handlers.config import handle_config
 from termkeeper.adapters.cli.handlers.meaning import (
     handle_alias,

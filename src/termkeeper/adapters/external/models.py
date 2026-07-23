@@ -7,6 +7,7 @@ from uuid import UUID
 
 from termkeeper.application import TermKeeperService
 from termkeeper.domain import (
+    CaptureBatchResult,
     CaptureResult,
     Meaning,
     OccurrenceItem,
@@ -79,6 +80,11 @@ class ExternalScope:
 class ExternalCaptureResult:
     occurrence: ExternalOccurrence
     candidates: tuple[ExternalMeaning, ...]
+
+
+@dataclass(frozen=True)
+class ExternalCaptureBatchResult:
+    items: tuple[ExternalCaptureResult, ...]
 
 
 @dataclass(frozen=True)
@@ -204,6 +210,22 @@ class ExternalMapper:
 
     def capture_result(self, result: CaptureResult) -> ExternalCaptureResult:
         public_ids = self._meaning_public_ids((result.occurrence.meaning_id,))
+        return self._capture_result(result, public_ids)
+
+    def capture_batch(
+        self,
+        result: CaptureBatchResult,
+    ) -> ExternalCaptureBatchResult:
+        public_ids = self._meaning_public_ids(item.occurrence.meaning_id for item in result.items)
+        return ExternalCaptureBatchResult(
+            items=tuple(self._capture_result(item, public_ids) for item in result.items),
+        )
+
+    def _capture_result(
+        self,
+        result: CaptureResult,
+        public_ids: Mapping[int, UUID],
+    ) -> ExternalCaptureResult:
         return ExternalCaptureResult(
             occurrence=self._occurrence(result.occurrence, public_ids),
             candidates=tuple(self.meaning(item) for item in result.candidates),
