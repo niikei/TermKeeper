@@ -45,7 +45,12 @@ def get_names(session: Session, meaning_id: int) -> list[str]:
     return list(session.exec(statement).all())
 
 
-def list_summaries(session: Session) -> list[tuple[str, int]]:
+def list_summaries(
+    session: Session,
+    *,
+    offset: int | None = None,
+    limit: int | None = None,
+) -> list[tuple[str, int]]:
     statement = (
         select(Tag.name, func.count(col(MeaningTag.meaning_id)))
         .join(MeaningTag)
@@ -57,6 +62,10 @@ def list_summaries(session: Session) -> list[tuple[str, int]]:
         .group_by(col(Tag.tag_id))
         .order_by(col(Tag.name_norm))
     )
+    if offset is not None:
+        statement = statement.offset(offset)
+    if limit is not None:
+        statement = statement.limit(limit + 1)
     return [(name, count) for name, count in session.exec(statement).all()]
 
 

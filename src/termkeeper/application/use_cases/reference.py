@@ -5,7 +5,8 @@ from uuid import UUID
 
 from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.support import get_meaning, required_id, user_id
-from termkeeper.domain import ReferenceLink, ReferenceUpdate
+from termkeeper.application.validation import validate_page
+from termkeeper.domain import Page, PageQuery, ReferenceLink, ReferenceUpdate
 from termkeeper.infrastructure.repositories import (
     meaning_repository,
     reference_repository,
@@ -16,6 +17,28 @@ from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
 
 class ReferenceUseCases:
+    def reference_page(
+        self,
+        meaning_id: int,
+        query: PageQuery | None = None,
+    ) -> Page[ReferenceLink]:
+        query = query or PageQuery()
+        validate_page(query.offset, query.limit, resource="Reference", max_limit=100)
+        with UnitOfWork() as uow:
+            get_meaning(uow, meaning_id)
+            records = reference_repository.list_page(
+                uow.session,
+                meaning_id,
+                offset=query.offset,
+                limit=query.limit,
+            )
+            return Page(
+                items=tuple(_to_reference(record) for record in records[: query.limit]),
+                offset=query.offset,
+                limit=query.limit,
+                has_more=len(records) > query.limit,
+            )
+
     def references(self, meaning_id: int) -> list[ReferenceLink]:
         with UnitOfWork() as uow:
             get_meaning(uow, meaning_id)

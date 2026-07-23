@@ -63,6 +63,37 @@ def list_related(session: Session, meaning_id: int) -> list[Meaning]:
     return list(session.exec(statement).all())
 
 
+def list_related_page(
+    session: Session,
+    meaning_id: int,
+    *,
+    offset: int,
+    limit: int,
+) -> list[Meaning]:
+    statement = (
+        select(Meaning)
+        .join(
+            MeaningRelation,
+            or_(
+                col(Meaning.meaning_id) == col(MeaningRelation.meaning_id_low),
+                col(Meaning.meaning_id) == col(MeaningRelation.meaning_id_high),
+            ),
+        )
+        .where(
+            or_(
+                col(MeaningRelation.meaning_id_low) == meaning_id,
+                col(MeaningRelation.meaning_id_high) == meaning_id,
+            ),
+            col(Meaning.meaning_id) != meaning_id,
+            col(Meaning.deleted_at).is_(None),
+        )
+        .order_by(col(Meaning.full_name_norm), col(Meaning.meaning_id))
+        .offset(offset)
+        .limit(limit + 1)
+    )
+    return list(session.exec(statement).all())
+
+
 def plan_merge(session: Session, source_id: int, target_id: int) -> MergePlan:
     target_related_ids = _related_ids(_list_records(session, target_id), target_id)
     source_related_ids = _related_ids(_list_records(session, source_id), source_id)

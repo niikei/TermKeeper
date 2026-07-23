@@ -227,6 +227,18 @@ class ExternalMapper:
             has_more=result.has_more,
         )
 
+    def reference_page(
+        self,
+        result: Page[ReferenceLink],
+    ) -> ExternalPage[ExternalReference]:
+        public_ids = self._meaning_public_ids(reference.meaning_id for reference in result.items)
+        return ExternalPage(
+            items=tuple(self._reference(reference, public_ids) for reference in result.items),
+            offset=result.offset,
+            limit=result.limit,
+            has_more=result.has_more,
+        )
+
     def search_result(
         self,
         result: SearchResult,

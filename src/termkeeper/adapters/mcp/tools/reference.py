@@ -2,10 +2,10 @@
 
 from uuid import UUID
 
-from termkeeper.adapters.external import ExternalPage, ExternalReference, page
+from termkeeper.adapters.external import ExternalPage, ExternalReference
 from termkeeper.adapters.mcp.inputs import Limit, Offset
 from termkeeper.adapters.mcp.tools.context import ToolContext
-from termkeeper.domain import ReferenceUpdate
+from termkeeper.domain import PageQuery, ReferenceUpdate
 
 
 class ReferenceTools(ToolContext):
@@ -31,12 +31,11 @@ class ReferenceTools(ToolContext):
         limit: Limit = 20,
     ) -> ExternalPage[ExternalReference]:
         """List reference URLs attached to a meaning."""
-        return page(
-            self._mapper.references(
-                self._service.references(self._local_meaning_id(meaning_id)),
+        return self._mapper.reference_page(
+            self._service.reference_page(
+                self._local_meaning_id(meaning_id),
+                PageQuery(offset, limit),
             ),
-            offset,
-            limit,
         )
 
     def edit_reference(

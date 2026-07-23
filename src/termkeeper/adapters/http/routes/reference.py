@@ -5,11 +5,11 @@ from uuid import UUID
 
 from fastapi import FastAPI, Query
 
-from termkeeper.adapters.external import ExternalMapper, ExternalPage, ExternalReference, page
+from termkeeper.adapters.external import ExternalMapper, ExternalPage, ExternalReference
 from termkeeper.adapters.http.common import _local_meaning_id
 from termkeeper.adapters.http.requests import ReferenceCreateRequest, ReferenceUpdateRequest
 from termkeeper.application import TermKeeperService
-from termkeeper.domain import ReferenceUpdate
+from termkeeper.domain import PageQuery, ReferenceUpdate
 
 
 def _register_reference_routes(
@@ -23,10 +23,11 @@ def _register_reference_routes(
         offset: Annotated[int, Query(ge=0)] = 0,
         limit: Annotated[int, Query(ge=1, le=100)] = 20,
     ) -> ExternalPage[ExternalReference]:
-        return page(
-            mapper.references(service.references(_local_meaning_id(service, meaning_id))),
-            offset,
-            limit,
+        return mapper.reference_page(
+            service.reference_page(
+                _local_meaning_id(service, meaning_id),
+                PageQuery(offset, limit),
+            ),
         )
 
     @app.post("/api/v1/meanings/{meaning_id}/references")

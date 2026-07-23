@@ -2,10 +2,10 @@
 
 from uuid import UUID
 
-from termkeeper.adapters.external import ExternalMeaning, ExternalPage, page
+from termkeeper.adapters.external import ExternalMeaning, ExternalPage
 from termkeeper.adapters.mcp.inputs import Limit, Offset
 from termkeeper.adapters.mcp.tools.context import ToolContext
-from termkeeper.domain import TagSummary
+from termkeeper.domain import PageQuery, TagSummary
 
 
 class MetadataTools(ToolContext):
@@ -27,7 +27,13 @@ class MetadataTools(ToolContext):
         limit: Limit = 20,
     ) -> ExternalPage[TagSummary]:
         """List tags with their active meaning counts."""
-        return page(self._service.tags(), offset, limit)
+        result = self._service.tag_page(PageQuery(offset, limit))
+        return ExternalPage(
+            items=result.items,
+            offset=result.offset,
+            limit=result.limit,
+            has_more=result.has_more,
+        )
 
     def favorite_meaning(self, meaning_id: UUID) -> ExternalMeaning:
         """Mark a meaning as a favorite."""
@@ -76,11 +82,9 @@ class MetadataTools(ToolContext):
         limit: Limit = 20,
     ) -> ExternalPage[ExternalMeaning]:
         """List active meanings related to one meaning."""
-        return page(
-            [
-                self._mapper.meaning(item)
-                for item in self._service.related(self._local_meaning_id(meaning_id))
-            ],
-            offset,
-            limit,
+        return self._mapper.meaning_page(
+            self._service.related_page(
+                self._local_meaning_id(meaning_id),
+                PageQuery(offset, limit),
+            ),
         )

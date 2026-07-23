@@ -12,7 +12,7 @@ from termkeeper.application.support import (
     user_id,
 )
 from termkeeper.application.validation import optional_filter, validate_page
-from termkeeper.domain import Meaning, MeaningListQuery, Page
+from termkeeper.domain import Meaning, MeaningListQuery, Page, PageQuery
 from termkeeper.infrastructure.normalization import normalize_keyword
 from termkeeper.infrastructure.repositories import (
     meaning_repository,
@@ -236,6 +236,22 @@ class MeaningUseCases:
             return [
                 to_meaning(uow.session, row) for row in meaning_repository.list_deleted(uow.session)
             ]
+
+    def trash_page(self, query: PageQuery | None = None) -> Page[Meaning]:
+        query = query or PageQuery()
+        validate_page(query.offset, query.limit, resource="Trash", max_limit=100)
+        with UnitOfWork() as uow:
+            records = meaning_repository.list_deleted_page(
+                uow.session,
+                offset=query.offset,
+                limit=query.limit,
+            )
+            return Page(
+                items=tuple(to_meaning(uow.session, record) for record in records[: query.limit]),
+                offset=query.offset,
+                limit=query.limit,
+                has_more=len(records) > query.limit,
+            )
 
     def restore_meaning(self, meaning_id: int) -> Meaning:
         with UnitOfWork() as uow:

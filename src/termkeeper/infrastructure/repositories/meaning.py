@@ -285,6 +285,22 @@ def list_deleted(session: Session) -> list[Meaning]:
     return list(session.exec(statement).all())
 
 
+def list_deleted_page(
+    session: Session,
+    *,
+    offset: int,
+    limit: int,
+) -> list[Meaning]:
+    statement = (
+        select(Meaning)
+        .where(col(Meaning.deleted_at).is_not(None))
+        .order_by(col(Meaning.deleted_at).desc(), col(Meaning.meaning_id).desc())
+        .offset(offset)
+        .limit(limit + 1)
+    )
+    return list(session.exec(statement).all())
+
+
 def soft_delete(session: Session, record: Meaning, user_id: int | None) -> None:
     record.deleted_at = utc_now()
     record.deleted_by_id = user_id

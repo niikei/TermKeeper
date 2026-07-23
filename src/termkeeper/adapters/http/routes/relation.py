@@ -5,9 +5,10 @@ from uuid import UUID
 
 from fastapi import FastAPI, Query
 
-from termkeeper.adapters.external import ExternalMapper, ExternalMeaning, ExternalPage, page
+from termkeeper.adapters.external import ExternalMapper, ExternalMeaning, ExternalPage
 from termkeeper.adapters.http.common import _local_meaning_id
 from termkeeper.application import TermKeeperService
+from termkeeper.domain import PageQuery
 
 
 def _register_relation_routes(
@@ -21,13 +22,11 @@ def _register_relation_routes(
         offset: Annotated[int, Query(ge=0)] = 0,
         limit: Annotated[int, Query(ge=1, le=100)] = 20,
     ) -> ExternalPage[ExternalMeaning]:
-        return page(
-            [
-                mapper.meaning(item)
-                for item in service.related(_local_meaning_id(service, meaning_id))
-            ],
-            offset,
-            limit,
+        return mapper.meaning_page(
+            service.related_page(
+                _local_meaning_id(service, meaning_id),
+                PageQuery(offset, limit),
+            ),
         )
 
     @app.put("/api/v1/meanings/{meaning_id}/related/{related_id}")

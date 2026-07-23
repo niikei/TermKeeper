@@ -11,12 +11,11 @@ from termkeeper.adapters.external import (
     ExternalPage,
     ExternalSearchResult,
     meaning_search_query,
-    page,
 )
 from termkeeper.adapters.http.common import _local_meaning_id, _scope_name
 from termkeeper.adapters.http.requests import MeaningUpdateRequest, SearchFilters
 from termkeeper.application import TermKeeperService
-from termkeeper.domain import MeaningListQuery
+from termkeeper.domain import MeaningListQuery, PageQuery
 
 
 def _register_meaning_routes(
@@ -86,7 +85,7 @@ def _register_meaning_routes(
         offset: Annotated[int, Query(ge=0)] = 0,
         limit: Annotated[int, Query(ge=1, le=100)] = 20,
     ) -> ExternalPage[ExternalMeaning]:
-        return page([mapper.meaning(item) for item in service.trash()], offset, limit)
+        return mapper.meaning_page(service.trash_page(PageQuery(offset, limit)))
 
     @app.post("/api/v1/trash/{meaning_id}/restore")
     def restore_meaning(meaning_id: UUID) -> ExternalMeaning:
