@@ -39,7 +39,7 @@ src/termkeeper/
 ├── domain/                 # DTO、Enum
 ├── application/
 │   ├── service.py          # 公開ファサード
-│   ├── use_cases/          # inbox、meaning、configのユースケース
+│   ├── use_cases/          # inbox、meaning、occurrence、configのユースケース
 │   ├── mapping.py          # SQLModelレコードからDTOへの変換
 │   ├── support.py          # Application層の共有処理
 │   └── errors.py           # Application層の例外
@@ -122,6 +122,7 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 - 1つの更新ユースケースを1つのUnit of Workで完結させる
 - Repository内では`commit()`しない
 - 遭遇は毎回Occurrenceとして保存し、memoやsourceを上書きしない
+- Occurrence一覧の入力は`OccurrenceQuery`、出力は`OccurrenceItem`で表現する
 - DB内部IDを外部連携の識別子にせず、Meaningの`public_id`を使用する
 - 検索条件と結果は`SearchQuery`／`SearchHit`で表現し、CLI固有の型を持ち込まない
 - CLI固有の処理をApplication層へ持ち込まない

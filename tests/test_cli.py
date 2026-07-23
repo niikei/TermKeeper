@@ -106,6 +106,26 @@ def test_human_output_for_repeated_and_registered_terms(
     assert "Already registered as meaning #1" in capsys.readouterr().out
 
 
+def test_occurrence_history_human_and_json(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["add", "ERP", "--memo", "meeting", "--source", "Teams"]) == 0
+    capsys.readouterr()
+
+    assert main(["occurrences", "--source", "teams", "--keyword", "erp"]) == 0
+    output = capsys.readouterr().out
+    assert "ERP" in output
+    assert "memo: meeting" in output
+
+    assert main(["--json", "occurrences", "--inbox", "1", "--limit", "1"]) == 0
+    occurrences = json.loads(capsys.readouterr().out)
+    assert occurrences[0]["keyword"] == "ERP"
+    assert occurrences[0]["inbox_id"] == 1
+
+
+def test_empty_occurrence_history(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["occurrences", "--since", "2099-01-01"]) == 0
+    assert "No occurrences found." in capsys.readouterr().out
+
+
 def test_config_unset_requires_key(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["config", "--unset"]) == 2
     assert "requires a key" in capsys.readouterr().err

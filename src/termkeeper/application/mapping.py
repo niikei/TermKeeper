@@ -3,10 +3,10 @@
 from sqlmodel import Session
 
 from termkeeper.application.support import required_id
-from termkeeper.domain import InboxItem
+from termkeeper.domain import InboxItem, OccurrenceItem
 from termkeeper.domain import Meaning as MeaningDto
 from termkeeper.infrastructure import inbox_repository, meaning_repository
-from termkeeper.infrastructure.tables import Inbox, Meaning
+from termkeeper.infrastructure.tables import Inbox, Meaning, Occurrence
 
 
 def to_inbox(session: Session, record: Inbox) -> InboxItem:
@@ -45,4 +45,17 @@ def to_meaning(session: Session, record: Meaning) -> MeaningDto:
         terms=terms,
         created_by_id=record.created_by_id,
         updated_by_id=record.updated_by_id,
+    )
+
+
+def to_occurrence(record: Occurrence) -> OccurrenceItem:
+    return OccurrenceItem(
+        occurrence_id=required_id(record.occurrence_id),
+        keyword=record.keyword,
+        memo=record.memo,
+        source=record.source,
+        occurred_at=record.occurred_at,
+        inbox_id=record.inbox_id,
+        meaning_id=record.meaning_id,
+        created_by_id=record.created_by_id,
     )

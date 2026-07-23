@@ -2,7 +2,7 @@
 
 import json
 
-from termkeeper.domain import AddResult, InboxItem, Meaning, SearchHit
+from termkeeper.domain import AddResult, InboxItem, Meaning, OccurrenceItem, SearchHit
 from termkeeper.presentation.types import CommandResult
 
 
@@ -33,6 +33,25 @@ def print_inbox(items: list[InboxItem]) -> None:
         details = " / ".join(value for value in (item.memo, item.source) if value)
         if details:
             print(f"      {details}")
+
+
+def print_occurrences(items: list[OccurrenceItem]) -> None:
+    if not items:
+        print("No occurrences found.")
+        return
+    print(f"{'ID':>4}  {'Term':<24} {'Source':<16} Occurred (UTC)")
+    for item in items:
+        print(
+            f"{item.occurrence_id:>4}  {item.keyword:<24.24} "
+            f"{(item.source or '-'):<16.16} {item.occurred_at}",
+        )
+        details = [f"memo: {item.memo}"] if item.memo else []
+        if item.inbox_id is not None:
+            details.append(f"inbox: {item.inbox_id}")
+        if item.meaning_id is not None:
+            details.append(f"meaning: {item.meaning_id}")
+        if details:
+            print("      " + " / ".join(details))
 
 
 def print_meaning(item: Meaning) -> None:

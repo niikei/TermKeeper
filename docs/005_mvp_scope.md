@@ -7,6 +7,7 @@
 - memoとsourceによる遭遇コンテキスト
 - 同一未解決語の出現回数と最終確認日時
 - 遭遇ごとのsource・memo・時刻を保持するOccurrence履歴
+- Meaning・Inbox・keyword・source・期間によるOccurrence履歴の絞り込み
 - Meaningの作成、編集、一覧、詳細表示
 - Termと別名の管理
 - Term・正式名称・説明の複数語検索、対象指定、関連度順、一致理由

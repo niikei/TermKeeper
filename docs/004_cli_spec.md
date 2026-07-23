@@ -18,6 +18,7 @@ tk [--json] <command> [options]
 | `add` | Inboxへ捕捉 | `keyword`, `--memo`, `--source` |
 | `inbox` | 未解決Inbox一覧 | なし |
 | `history` | 全Inbox履歴 | なし |
+| `occurrences` | 遭遇履歴を表示・絞り込み | `--meaning`, `--inbox`, `--keyword`, `--source`, `--since`, `--limit` |
 | `resolve` | InboxをMeaningへ解決 | `inbox_id`, `--name`, `--description` |
 | `search` | Term・正式名称・説明を関連度順で検索 | `keyword`, `--all`, `--any`, `--in`, `--limit` |
 | `show` | Meaning詳細 | `meaning_id` |
@@ -44,6 +45,21 @@ tk [--json] <command> [options]
 
 `--name` を省略すると正式名称と説明を対話入力する。解決時にMeaningを作成し、Inboxの
 keywordと正式名称をTermとして登録する。
+
+### `tk occurrences`
+
+Occurrenceを`occurred_at`の新しい順で表示する。
+
+- `--meaning ID`: Meaning IDで絞り込み
+- `--inbox ID`: Inbox IDで絞り込み
+- `--keyword TEXT`: NFKC・大文字小文字を正規化した部分一致
+- `--source TEXT`: 大文字小文字を区別しない完全一致
+- `--since DATE_OR_DATETIME`: ISO 8601形式の日時以降
+- `--limit N`: 最大件数。標準50、指定可能範囲は1〜500
+
+複数の条件を指定した場合はすべてを満たすOccurrenceを返す。JSON結果は
+`occurrence_id`、`keyword`、`memo`、`source`、`occurred_at`、`inbox_id`、
+`meaning_id`、`created_by_id`を含む。
 
 ### `tk edit`
 

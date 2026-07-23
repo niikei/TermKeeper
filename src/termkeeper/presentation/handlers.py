@@ -3,9 +3,21 @@
 import argparse
 
 from termkeeper.application import TermKeeperService
-from termkeeper.domain import AddResult, InboxItem, Meaning, SearchHit
+from termkeeper.domain import (
+    AddResult,
+    InboxItem,
+    Meaning,
+    OccurrenceItem,
+    OccurrenceQuery,
+    SearchHit,
+)
 from termkeeper.presentation.csv_io import export_meanings, import_meanings
-from termkeeper.presentation.rendering import print_inbox, print_meaning, print_search_hit
+from termkeeper.presentation.rendering import (
+    print_inbox,
+    print_meaning,
+    print_occurrences,
+    print_search_hit,
+)
 from termkeeper.presentation.types import CommandHandler
 
 
@@ -46,6 +58,24 @@ def handle_history(args: argparse.Namespace, service: TermKeeperService) -> list
     result = service.history()
     if not args.json:
         print_inbox(result)
+    return result
+
+
+def handle_occurrences(
+    args: argparse.Namespace,
+    service: TermKeeperService,
+) -> list[OccurrenceItem]:
+    query = OccurrenceQuery(
+        meaning_id=args.meaning_id,
+        inbox_id=args.inbox_id,
+        keyword=args.keyword,
+        source=args.source,
+        since=args.since,
+        limit=args.limit,
+    )
+    result = service.occurrences(query)
+    if not args.json:
+        print_occurrences(result)
     return result
 
 
@@ -187,6 +217,7 @@ HANDLERS: dict[str, CommandHandler] = {
     "add": handle_add,
     "inbox": handle_inbox,
     "history": handle_history,
+    "occurrences": handle_occurrences,
     "resolve": handle_resolve,
     "search": handle_search,
     "discard": handle_discard,

@@ -48,6 +48,18 @@ tk add ICMR --memo "月次決算会議" --source "Teams"
 tk inbox
 ```
 
+### 遭遇履歴
+
+```bash
+tk occurrences
+tk occurrences --meaning 1
+tk occurrences --inbox 2
+tk occurrences --keyword MDM --source Slack
+tk occurrences --since 2026-07-01 --limit 20
+```
+
+遭遇ごとの用語、memo、source、日時、Inbox／Meaningとの関連を確認できます。
+
 ### 解決
 
 対話形式:

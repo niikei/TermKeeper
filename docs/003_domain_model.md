@@ -65,6 +65,7 @@ erDiagram
     OCCURRENCE {
         integer occurrence_id PK
         text keyword
+        text keyword_norm
         integer inbox_id FK "nullable"
         integer meaning_id FK "nullable"
         text memo "nullable"
@@ -80,6 +81,7 @@ erDiagram
 - Termは必ず1つのMeaningに属し、Meaning削除時に連動して削除される。
 - Inboxは未解決・破棄状態ではMeaningを持たず、解決後に1つのMeaningを参照する。
 - 用語への遭遇は毎回Occurrenceとして保存し、sourceやmemoを上書きしない。
+- Occurrenceの `keyword_norm` は履歴検索に使用する。
 - Meaningは外部連携用の安定したUUID `public_id` を持つ。
 - 開いているInboxの `keyword_norm` は部分一意制約で重複を防ぐ。
 - Termの `(keyword_norm, meaning_id)` は一意で、同じMeaningへの別表記の重複を防ぐ。
@@ -92,6 +94,8 @@ erDiagram
 | `uq_inbox_open_keyword` | `inbox.keyword_norm WHERE status = NEW` | 未解決Inboxの重複防止 |
 | `idx_term_keyword` | `term.keyword_norm` | 用語検索 |
 | `idx_term_meaning` | `term.meaning_id` | Meaningから別名を取得 |
+| `ix_occurrence_keyword_norm` | `occurrence.keyword_norm` | 遭遇用語の検索 |
+| `ix_occurrence_occurred_at` | `occurrence.occurred_at` | 期間検索と新しい順の表示 |
 
 ## TERM
 

@@ -28,7 +28,20 @@ tk inbox
 未解決のInboxを最終確認日時の新しい順で表示する。ID、用語、状態、出現回数、更新日時に
 加えて、登録されていればmemoとsourceも表示する。
 
-## 4. 用語を解決する
+## 4. 遭遇履歴を確認する
+
+```bash
+tk occurrences
+tk occurrences --meaning 1
+tk occurrences --inbox 2
+tk occurrences --keyword MDM --source Slack
+tk occurrences --since 2026-07-01 --limit 20
+```
+
+Occurrenceを新しい順に表示する。Meaning、Inbox、正規化キーワード、sourceの完全一致、
+ISO 8601形式の開始日時で絞り込める。標準50件、最大500件まで取得できる。
+
+## 5. 用語を解決する
 
 対話形式:
 
@@ -47,7 +60,7 @@ Meaningを作成し、Inboxのkeywordと正式名称をTermとして関連付け
 遷移し、解決先Meaningと終了日時を記録する。Meaning作成・Term追加・Inbox更新・Occurrence
 関連付けは1トランザクションで実行し、途中で失敗した場合はすべて取り消す。
 
-## 5. 登録済み用語に再遭遇する
+## 6. 登録済み用語に再遭遇する
 
 ```bash
 tk add ICMR
@@ -56,7 +69,7 @@ tk add ICMR
 一致するTermが既に存在する場合はInboxを作成せず、登録済みMeaningを表示する。この遭遇も
 Meaningへ直接関連付けたOccurrenceとして保存する。
 
-## 6. 用語を検索・参照する
+## 7. 用語を検索・参照する
 
 ```bash
 tk search ICMR
@@ -70,7 +83,7 @@ tk meanings
 複数語は標準ですべての語に一致する結果を返し、`--any`でいずれかの語に切り替える。
 結果にはスコア、一致フィールド、一致文字列を含む。詳細表示では別名と作成・更新日時も表示する。
 
-## 7. Meaningを整理する
+## 8. Meaningを整理する
 
 ```bash
 tk alias 1 ICMR
@@ -82,7 +95,7 @@ tk delete 1
 Meaningへ別名を追加・削除し、正式名称や説明を更新する。不要になったMeaningは削除できる。
 対話形式の編集も利用できる。
 
-## 8. Inboxを破棄する
+## 9. Inboxを破棄する
 
 ```bash
 tk discard 2
@@ -90,7 +103,7 @@ tk discard 2
 
 未解決Inboxを `Discarded` に遷移し、更新日時と終了日時を記録する。
 
-## 9. 外部ツールと連携する
+## 10. 外部ツールと連携する
 
 ```bash
 tk --json search ICMR
@@ -101,7 +114,7 @@ tk import terms.csv
 JSONはスクリプトや将来のアダプター、CSVはバックアップや一括編集に利用する。
 CSVではDB内部IDではなく、外部連携向けのUUID `public_id` を使用する。
 
-## 10. 利用者情報を管理する
+## 11. 利用者情報を管理する
 
 ```bash
 tk config user.name "Taro Yamada"

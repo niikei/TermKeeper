@@ -1,9 +1,12 @@
 """Persistence operations for inbox items and occurrence history."""
 
 from dataclasses import dataclass
+from datetime import datetime
 
+from sqlalchemy import func
 from sqlmodel import Session, col, select
 
+from termkeeper.domain import OccurrenceQuery
 from termkeeper.domain.status import InboxStatus
 from termkeeper.infrastructure.sqlite_utils import normalize_keyword
 from termkeeper.infrastructure.tables import Inbox, Occurrence, utc_now
@@ -36,6 +39,7 @@ def add_occurrence(
 ) -> Occurrence:
     occurrence = Occurrence(
         keyword=new.keyword,
+        keyword_norm=normalize_keyword(new.keyword),
         inbox_id=new.inbox_id,
         meaning_id=new.meaning_id,
         memo=new.memo,
@@ -44,6 +48,34 @@ def add_occurrence(
     )
     session.add(occurrence)
     return occurrence
+
+
+def list_occurrences(session: Session, query: OccurrenceQuery) -> list[Occurrence]:
+    statement = select(Occurrence)
+    if query.meaning_id is not None:
+        statement = statement.where(Occurrence.meaning_id == query.meaning_id)
+    if query.inbox_id is not None:
+        statement = statement.where(Occurrence.inbox_id == query.inbox_id)
+    if query.keyword:
+        statement = statement.where(
+            col(Occurrence.keyword_norm).contains(
+                normalize_keyword(query.keyword),
+                autoescape=True,
+            ),
+        )
+    if query.source:
+        statement = statement.where(func.lower(Occurrence.source) == query.source.casefold())
+    if query.since is not None:
+        statement = statement.where(Occurrence.occurred_at >= _sqlite_datetime(query.since))
+    statement = statement.order_by(
+        col(Occurrence.occurred_at).desc(),
+        col(Occurrence.occurrence_id).desc(),
+    ).limit(query.limit)
+    return list(session.exec(statement).all())
+
+
+def _sqlite_datetime(value: datetime) -> datetime:
+    return value.replace(tzinfo=None)
 
 
 def list_inbox(session: Session) -> list[Inbox]:

@@ -1,8 +1,14 @@
 """Argument parser construction for the CLI."""
 
 import argparse
+from datetime import datetime
+from typing import Protocol
 
 from termkeeper.domain import SearchField
+
+
+class _Subparsers(Protocol):
+    def add_parser(self, name: str, *, help: str) -> argparse.ArgumentParser: ...
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -10,19 +16,35 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("init", help="Initialize or migrate the database")
+    _add_capture_commands(sub)
+    _add_meaning_commands(sub)
+    _add_config_and_transfer_commands(sub)
+    return parser
 
+
+def _add_capture_commands(sub: _Subparsers) -> None:
     add = sub.add_parser("add", help="Add a term to the inbox")
     add.add_argument("keyword")
     add.add_argument("--memo", help="Context or a short reminder")
     add.add_argument("--source", help="Where the term was encountered")
     sub.add_parser("inbox", help="Show unresolved items")
     sub.add_parser("history", help="Show all captured items")
-
+    occurrences = sub.add_parser("occurrences", help="Show occurrence history")
+    occurrences.add_argument("--meaning", type=int, dest="meaning_id")
+    occurrences.add_argument("--inbox", type=int, dest="inbox_id")
+    occurrences.add_argument("--keyword")
+    occurrences.add_argument("--source")
+    occurrences.add_argument("--since", type=_parse_datetime)
+    occurrences.add_argument("--limit", type=int, default=50)
     resolve = sub.add_parser("resolve", help="Turn an inbox item into a meaning")
     resolve.add_argument("inbox_id", type=int)
     resolve.add_argument("--name", help="Full name (omit for an interactive prompt)")
     resolve.add_argument("--description", help="Description")
+    discard = sub.add_parser("discard", help="Discard an inbox item")
+    discard.add_argument("inbox_id", type=int)
 
+
+def _add_meaning_commands(sub: _Subparsers) -> None:
     search = sub.add_parser("search", help="Search terms and descriptions")
     search.add_argument("keyword")
     mode = search.add_mutually_exclusive_group()
@@ -36,8 +58,6 @@ def create_parser() -> argparse.ArgumentParser:
         type=SearchField,
     )
     search.add_argument("--limit", type=int, default=20)
-    discard = sub.add_parser("discard", help="Discard an inbox item")
-    discard.add_argument("inbox_id", type=int)
     show = sub.add_parser("show", help="Show a meaning")
     show.add_argument("meaning_id", type=int)
     alias = sub.add_parser("alias", help="Add an alias to a meaning")
@@ -54,6 +74,11 @@ def create_parser() -> argparse.ArgumentParser:
     edit.add_argument("--name", help="New full name")
     edit.add_argument("--description", help="New description")
     sub.add_parser("meanings", help="List meanings")
+
+
+def _add_config_and_transfer_commands(
+    sub: _Subparsers,
+) -> None:
     config = sub.add_parser("config", help="Get or set user configuration")
     config.add_argument("key", nargs="?", choices=("user.name", "user.email"))
     config.add_argument("value", nargs="?")
@@ -63,4 +88,11 @@ def create_parser() -> argparse.ArgumentParser:
     export.add_argument("path", nargs="?", default="termkeeper_export.csv")
     import_ = sub.add_parser("import", help="Import meanings from CSV")
     import_.add_argument("path")
-    return parser
+
+
+def _parse_datetime(value: str) -> datetime:
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError as exc:
+        message = f"invalid ISO 8601 date or datetime: {value}"
+        raise argparse.ArgumentTypeError(message) from exc

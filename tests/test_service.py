@@ -1,9 +1,11 @@
+from datetime import UTC, timedelta
+
 import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import func, select
 
 from termkeeper.application import NotFoundError, TermKeeperService, ValidationError
-from termkeeper.domain import SearchField
+from termkeeper.domain import OccurrenceQuery, SearchField
 from termkeeper.infrastructure.connection import get_session
 from termkeeper.infrastructure.tables import Inbox, Occurrence
 from termkeeper.infrastructure.tables import Meaning as MeaningRecord
@@ -192,6 +194,36 @@ def test_occurrences_are_preserved_and_linked_after_resolve() -> None:
     assert len(occurrences) == 2
     assert {item.source for item in occurrences} == {"Teams", "Slack"}
     assert all(item.meaning_id == meaning.meaning_id for item in occurrences)
+
+
+def test_occurrence_history_supports_filters_and_limit() -> None:
+    service = TermKeeperService()
+    captured = service.add("\uff2d\uff24\uff2d", memo="meeting", source="Teams")
+    service.add("mdm", memo="follow-up", source="Slack")
+    assert captured.inbox is not None
+    meaning = service.resolve(captured.inbox.inbox_id, "Master Data Management")
+    service.add("MDM", source="teams")
+
+    all_items = service.occurrences(OccurrenceQuery(meaning_id=meaning.meaning_id))
+
+    assert len(all_items) == 3
+    assert len(service.occurrences(OccurrenceQuery(inbox_id=captured.inbox.inbox_id))) == 2
+    assert len(service.occurrences(OccurrenceQuery(keyword="mdm"))) == 3
+    assert len(service.occurrences(OccurrenceQuery(source="TEAMS"))) == 2
+    assert len(service.occurrences(OccurrenceQuery(limit=1))) == 1
+    aware_since = all_items[-1].occurred_at.replace(tzinfo=UTC)
+    assert len(service.occurrences(OccurrenceQuery(since=aware_since))) == 3
+    since = all_items[-1].occurred_at + timedelta(microseconds=1)
+    assert len(service.occurrences(OccurrenceQuery(since=since))) == 2
+
+
+def test_occurrence_history_validates_limit() -> None:
+    service = TermKeeperService()
+
+    with pytest.raises(ValidationError):
+        service.occurrences(OccurrenceQuery(limit=0))
+    with pytest.raises(ValidationError):
+        service.occurrences(OccurrenceQuery(limit=501))
 
 
 def test_user_profile_is_recorded_in_audit_columns() -> None:
