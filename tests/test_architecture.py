@@ -3,6 +3,7 @@
 import ast
 from pathlib import Path
 
+from termkeeper.application.use_cases.capture import CaptureUseCases
 from termkeeper.application.use_cases.meaning import MeaningUseCases
 from termkeeper.application.use_cases.occurrence import OccurrenceUseCases
 from termkeeper.application.use_cases.scope import ScopeUseCases
@@ -40,3 +41,8 @@ def test_resource_search_methods_have_one_application_owner() -> None:
     assert "search_occurrences" not in OccurrenceUseCases.__dict__
     assert "search_inbox" not in OccurrenceUseCases.__dict__
     assert "search_scopes" not in ScopeUseCases.__dict__
+
+
+def test_capture_methods_have_one_application_owner() -> None:
+    assert {"add", "capture_many"} <= CaptureUseCases.__dict__.keys()
+    assert "capture_many" not in OccurrenceUseCases.__dict__

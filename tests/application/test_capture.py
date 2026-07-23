@@ -1,12 +1,14 @@
 from uuid import uuid4
 
 import pytest
-from sqlmodel import func, select
+from sqlmodel import Session, func, select
 
 from termkeeper.application import NotFoundError, TermKeeperService, ValidationError
-from termkeeper.domain import OccurrenceStatus
+from termkeeper.domain import CaptureInput, OccurrenceStatus
 from termkeeper.infrastructure.connection import get_session
+from termkeeper.infrastructure.repositories import occurrence_repository
 from termkeeper.infrastructure.tables import Meaning as MeaningRecord
+from termkeeper.infrastructure.tables import Occurrence as OccurrenceRecord
 
 
 def test_capture_always_creates_independent_pending_occurrences() -> None:
@@ -146,6 +148,69 @@ def test_capture_normalizes_and_validates_optional_context() -> None:
         service.add("ERP", memo=" ")
     with pytest.raises(ValidationError, match="Source must not be empty"):
         service.add("ERP", source=" ")
+
+
+def test_capture_many_is_ordered_normalized_and_atomic() -> None:
+    service = TermKeeperService()
+
+    result = service.capture_many(
+        (
+            CaptureInput(" ERP ", memo=" planning "),
+            CaptureInput("Business Unit", source=" Teams "),
+        ),
+    )
+
+    assert [item.occurrence.keyword for item in result.items] == [
+        "ERP",
+        "Business Unit",
+    ]
+    assert result.items[0].occurrence.memo == "planning"
+    assert result.items[1].occurrence.source == "Teams"
+    assert [item.keyword for item in service.inbox().items] == [
+        "Business Unit",
+        "ERP",
+    ]
+
+
+def test_capture_many_rejects_invalid_or_duplicate_batches_before_writing() -> None:
+    service = TermKeeperService()
+
+    with pytest.raises(ValidationError, match="At least one term"):
+        service.capture_many(())
+    with pytest.raises(ValidationError, match="position 2 duplicates position 1"):
+        service.capture_many((CaptureInput("\uff25\uff32\uff30"), CaptureInput("erp")))
+    with pytest.raises(ValidationError, match="cannot exceed 100"):
+        service.capture_many(tuple(CaptureInput(f"Term {index}") for index in range(101)))
+    with pytest.raises(NotFoundError):
+        service.capture_many((CaptureInput("ERP"), CaptureInput("CRM", meaning_id=999)))
+
+    assert service.history().items == ()
+
+
+def test_capture_many_rolls_back_repository_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    service = TermKeeperService()
+    original_create = occurrence_repository.create
+    calls = 0
+
+    def fail_second_create(
+        session: Session,
+        new: occurrence_repository.NewOccurrence,
+    ) -> OccurrenceRecord:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise RuntimeError("simulated failure")
+        return original_create(session, new)
+
+    monkeypatch.setattr(occurrence_repository, "create", fail_second_create)
+    with pytest.raises(RuntimeError, match="simulated failure"):
+        service.capture_many((CaptureInput("ERP"), CaptureInput("CRM")))
+
+    with get_session() as session:
+        occurrence_count = session.exec(
+            select(func.count()).select_from(OccurrenceRecord),
+        ).one()
+    assert occurrence_count == 0
 
 
 def test_resolve_rolls_back_all_changes_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:

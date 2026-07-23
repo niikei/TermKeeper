@@ -50,3 +50,19 @@ class CaptureResult:
             "occurrence": self.occurrence.to_dict(),
             "candidates": [candidate.to_dict() for candidate in self.candidates],
         }
+
+
+@dataclass(frozen=True)
+class CaptureInput:
+    keyword: str
+    memo: str | None = None
+    source: str | None = None
+    meaning_id: int | None = None
+
+
+@dataclass(frozen=True)
+class CaptureBatchResult:
+    items: tuple[CaptureResult, ...]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"items": [item.to_dict() for item in self.items]}
