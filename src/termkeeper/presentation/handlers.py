@@ -145,8 +145,30 @@ def handle_unalias(args: argparse.Namespace, service: TermKeeperService) -> Mean
 def handle_delete(args: argparse.Namespace, service: TermKeeperService) -> dict[str, int]:
     service.delete_meaning(args.meaning_id)
     if not args.json:
-        print(f"Deleted meaning #{args.meaning_id}.")
+        print(f"Moved meaning #{args.meaning_id} to trash.")
     return {"deleted": args.meaning_id}
+
+
+def handle_trash(args: argparse.Namespace, service: TermKeeperService) -> list[Meaning]:
+    result = service.trash()
+    if not args.json:
+        for item in result:
+            print_meaning(item)
+    return result
+
+
+def handle_restore(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
+    result = service.restore_meaning(args.meaning_id)
+    if not args.json:
+        print(f"Restored meaning #{args.meaning_id}.")
+    return result
+
+
+def handle_purge(args: argparse.Namespace, service: TermKeeperService) -> dict[str, int]:
+    service.purge_meaning(args.meaning_id)
+    if not args.json:
+        print(f"Permanently deleted meaning #{args.meaning_id}.")
+    return {"purged": args.meaning_id}
 
 
 def handle_merge(args: argparse.Namespace, service: TermKeeperService) -> MergeResult:
@@ -272,6 +294,9 @@ HANDLERS: dict[str, CommandHandler] = {
     "alias": handle_alias,
     "unalias": handle_unalias,
     "delete": handle_delete,
+    "trash": handle_trash,
+    "restore": handle_restore,
+    "purge": handle_purge,
     "merge": handle_merge,
     "tag": handle_tag,
     "untag": handle_untag,

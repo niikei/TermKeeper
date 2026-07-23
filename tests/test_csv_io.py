@@ -132,6 +132,23 @@ def test_import_skips_duplicate_public_id_in_file(tmp_path: Path) -> None:
     assert service.get_meaning_by_public_id(public_id).full_name == "First Meaning"
 
 
+def test_import_reports_deleted_public_id(tmp_path: Path) -> None:
+    service = TermKeeperService()
+    meaning = service.create_meaning("Archived")
+    service.delete_meaning(meaning.meaning_id)
+    path = tmp_path / "deleted.csv"
+    path.write_text(
+        "public_id,full_name,description,terms,tags\n"
+        f"{meaning.public_id},Archived Updated,,ARCHIVED,\n",
+        encoding="utf-8",
+    )
+
+    result = import_meanings(str(path), service)
+
+    assert (result.created, result.updated, result.skipped) == (0, 0, 1)
+    assert "restore it before import" in result.issues[0].message
+
+
 def test_import_rolls_back_all_rows_on_runtime_failure(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

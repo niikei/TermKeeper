@@ -97,12 +97,17 @@ tk tags
 tk merge 2 1 --dry-run
 tk merge 2 1
 tk delete 1
+tk trash
+tk restore 1
+tk purge 1
 ```
 
 Meaningへ別名を追加・削除し、正式名称や説明を更新する。不要になったMeaningは削除できる。
 Meaningへ複数のタグを付与し、一覧・検索を絞り込める。重複Meaningは統合元の
 Term・Tag・Occurrence・解決済みInboxを統合先へ移動して整理する。
 `--dry-run`では移動件数を確認するだけでDBを変更しない。対話形式の編集も利用できる。
+`delete`はTrashへの論理削除で、`restore`によりTerm・Tag・履歴を保持したまま復元できる。
+`purge`はTrash内のMeaningを完全削除する。
 
 ## 9. Inboxを破棄する
 

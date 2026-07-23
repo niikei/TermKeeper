@@ -42,7 +42,7 @@ class MergeUseCases:
                 inbox_repository.move_meaning_references(uow.session, source_id, target_id)
                 actor_id = user_id(settings_repository.get_profile(uow.session))
                 meaning_repository.touch(uow.session, target, actor_id)
-                meaning_repository.delete(uow.session, source)
+                meaning_repository.purge(uow.session, source)
                 uow.commit()
             return MergeResult(
                 source_meaning_id=source_id,

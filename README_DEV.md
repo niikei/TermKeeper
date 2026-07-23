@@ -123,6 +123,7 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 - Meaning統合はTerm行の監査情報を保持し、参照付け替えと削除を同一トランザクションで行う
 - Tagは正規化名を一意にし、MeaningTagで多対多の関連を管理する
 - CSV ImportはApplication層で全行を検証し、1つのUnit of Workで一括反映する
+- Meaningの通常取得は論理削除済みを除外し、完全削除はTrash経由に限定する
 - Repository内では`commit()`しない
 - 遭遇は毎回Occurrenceとして保存し、memoやsourceを上書きしない
 - Occurrence一覧の入力は`OccurrenceQuery`、出力は`OccurrenceItem`で表現する

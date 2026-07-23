@@ -6,9 +6,10 @@ from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_meaning
 from termkeeper.application.search import rank_search, search_tokens
 from termkeeper.application.support import get_meaning, required_id, user_id
-from termkeeper.domain import Meaning, SearchHit, SearchQuery
-from termkeeper.infrastructure import meaning_repository, settings_repository
+from termkeeper.domain import InboxStatus, Meaning, SearchHit, SearchQuery
+from termkeeper.infrastructure import inbox_repository, meaning_repository, settings_repository
 from termkeeper.infrastructure.sqlite_utils import normalize_keyword
+from termkeeper.infrastructure.tables import Meaning as MeaningRecord
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
 
@@ -127,7 +128,40 @@ class MeaningUseCases:
 
     def delete_meaning(self, meaning_id: int) -> None:
         with UnitOfWork() as uow:
-            meaning_repository.delete(uow.session, get_meaning(uow, meaning_id))
+            meaning = get_meaning(uow, meaning_id)
+            actor_id = user_id(settings_repository.get_profile(uow.session))
+            meaning_repository.soft_delete(uow.session, meaning, actor_id)
+            uow.commit()
+
+    def trash(self) -> list[Meaning]:
+        with UnitOfWork() as uow:
+            return [
+                to_meaning(uow.session, row) for row in meaning_repository.list_deleted(uow.session)
+            ]
+
+    def restore_meaning(self, meaning_id: int) -> Meaning:
+        with UnitOfWork() as uow:
+            meaning = _get_deleted_meaning(uow, meaning_id)
+            actor_id = user_id(settings_repository.get_profile(uow.session))
+            meaning_repository.restore(uow.session, meaning, actor_id)
+            for term in meaning_repository.get_terms(uow.session, meaning_id):
+                inbox = inbox_repository.find_open_inbox(uow.session, term.keyword)
+                if inbox is not None:
+                    inbox_id = required_id(inbox.inbox_id)
+                    inbox_repository.close(
+                        uow.session,
+                        inbox,
+                        InboxStatus.CLOSED,
+                        meaning_id,
+                    )
+                    inbox_repository.link_occurrences(uow.session, inbox_id, meaning_id)
+            result = to_meaning(uow.session, meaning)
+            uow.commit()
+            return result
+
+    def purge_meaning(self, meaning_id: int) -> None:
+        with UnitOfWork() as uow:
+            meaning_repository.purge(uow.session, _get_deleted_meaning(uow, meaning_id))
             uow.commit()
 
 
@@ -135,3 +169,11 @@ def _validate_name(full_name: str) -> None:
     if not full_name.strip():
         message = "Full name must not be empty."
         raise ValidationError(message)
+
+
+def _get_deleted_meaning(uow: UnitOfWork, meaning_id: int) -> MeaningRecord:
+    meaning = meaning_repository.get(uow.session, meaning_id, include_deleted=True)
+    if meaning is None or meaning.deleted_at is None:
+        message = f"Deleted meaning {meaning_id} was not found."
+        raise NotFoundError(message)
+    return meaning

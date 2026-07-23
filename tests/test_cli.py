@@ -163,6 +163,24 @@ def test_tag_commands_and_filters(capsys: pytest.CaptureFixture[str]) -> None:
     assert result["tags"] == []
 
 
+def test_trash_restore_and_purge_commands(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["add", "ERP"]) == 0
+    assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
+    assert main(["delete", "1"]) == 0
+    assert "Moved meaning #1 to trash" in capsys.readouterr().out
+
+    assert main(["trash"]) == 0
+    assert "Deleted:" in capsys.readouterr().out
+    assert main(["restore", "1"]) == 0
+    assert "Restored meaning #1" in capsys.readouterr().out
+
+    assert main(["delete", "1"]) == 0
+    capsys.readouterr()
+    assert main(["--json", "purge", "1"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result == {"purged": 1}
+
+
 def test_config_unset_requires_key(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["config", "--unset"]) == 2
     assert "requires a key" in capsys.readouterr().err

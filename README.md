@@ -104,12 +104,18 @@ tk tags
 tk merge 2 1 --dry-run
 tk merge 2 1
 tk delete 1
+tk trash
+tk restore 1
+tk purge 1
 tk discard 2
 tk history
 ```
 
 `merge SOURCE TARGET`は、統合元のTerm、Tag、Occurrence、解決済みInboxを統合先へ移動し、
 統合元Meaningを削除します。`--dry-run`では変更せず、移動件数だけを確認できます。
+
+`delete`はMeaningをTrashへ移す論理削除です。通常の一覧・検索・Term照合・CSV Exportから
+除外されます。`restore`で復元し、`purge`でTrash内のMeaningを完全削除できます。
 
 ### CSV入出力
 

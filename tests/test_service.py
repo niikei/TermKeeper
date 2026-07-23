@@ -291,6 +291,50 @@ def test_alias_removal_meaning_deletion_and_config_unset() -> None:
         service.get_meaning(meaning.meaning_id)
 
 
+def test_trash_restore_and_purge_preserve_then_remove_related_data() -> None:
+    service = TermKeeperService()
+    captured = service.add("ERP", source="meeting")
+    assert captured.inbox is not None
+    meaning = service.resolve(captured.inbox.inbox_id, "Enterprise Resource Planning")
+    service.add_tag(meaning.meaning_id, "Business")
+
+    service.delete_meaning(meaning.meaning_id)
+
+    assert service.meanings() == []
+    assert service.search("ERP") == []
+    recaptured = service.add("ERP")
+    assert recaptured.outcome == "created"
+    assert recaptured.inbox is not None
+    trashed = service.trash()[0]
+    assert trashed.meaning_id == meaning.meaning_id
+    assert trashed.deleted_at is not None
+    assert trashed.tags == ("Business",)
+
+    restored = service.restore_meaning(meaning.meaning_id)
+
+    assert restored.deleted_at is None
+    assert service.search("ERP")[0].meaning.meaning_id == meaning.meaning_id
+    assert service.get_inbox(recaptured.inbox.inbox_id).resolved_meaning_id == meaning.meaning_id
+    with pytest.raises(NotFoundError):
+        service.restore_meaning(meaning.meaning_id)
+    with pytest.raises(NotFoundError):
+        service.purge_meaning(meaning.meaning_id)
+
+    service.delete_meaning(meaning.meaning_id)
+    service.purge_meaning(meaning.meaning_id)
+
+    assert service.trash() == []
+    with get_session() as session:
+        assert session.get(MeaningRecord, meaning.meaning_id) is None
+        occurrence = session.exec(
+            select(Occurrence).where(Occurrence.inbox_id == captured.inbox.inbox_id),
+        ).one()
+        inbox = session.get(Inbox, captured.inbox.inbox_id)
+    assert occurrence.meaning_id is None
+    assert inbox is not None
+    assert inbox.resolved_meaning_id is None
+
+
 def test_merge_meanings_moves_terms_occurrences_and_inboxes() -> None:
     service = TermKeeperService()
     captured_source = service.add("SRC", source="Teams")

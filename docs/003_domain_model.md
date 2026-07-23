@@ -38,8 +38,10 @@ erDiagram
         text description "nullable"
         datetime created_at "UTC"
         datetime updated_at "UTC"
+        datetime deleted_at "nullable"
         integer created_by_id FK "nullable"
         integer updated_by_id FK "nullable"
+        integer deleted_by_id FK "nullable"
     }
 
     TERM {
@@ -100,6 +102,7 @@ erDiagram
 - 用語への遭遇は毎回Occurrenceとして保存し、sourceやmemoを上書きしない。
 - Occurrenceの `keyword_norm` は履歴検索に使用する。
 - Meaningは外部連携用の安定したUUID `public_id` を持つ。
+- Meaning削除は`deleted_at`と`deleted_by_id`による論理削除とし、Term・Tag・履歴を保持する。
 - 開いているInboxの `keyword_norm` は部分一意制約で重複を防ぐ。
 - Termの `(keyword_norm, meaning_id)` は一意で、同じMeaningへの別表記の重複を防ぐ。
 - Tagの `name_norm` は一意で、MeaningTagによりMeaningと多対多で関連付ける。
@@ -115,6 +118,7 @@ erDiagram
 | `ix_occurrence_keyword_norm` | `occurrence.keyword_norm` | 遭遇用語の検索 |
 | `ix_occurrence_occurred_at` | `occurrence.occurred_at` | 期間検索と新しい順の表示 |
 | `ix_tag_name_norm` | `tag.name_norm` | タグの正規化検索 |
+| `ix_meaning_deleted_at` | `meaning.deleted_at` | 通常データとTrashの分離 |
 
 ## TERM
 

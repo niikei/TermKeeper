@@ -23,6 +23,10 @@ CSVファイルの読み取りはPresentationで`ImportRow`へ変換し、検証
 一括更新は`use_cases/importing.py`で行う。Import中のRepository操作は同じUnit of Workを
 共有し、実行時エラーでは全件をロールバックする。
 
+Meaning Repositoryの通常取得は`deleted_at IS NULL`を共通条件とする。Trash操作だけが
+削除済みMeaningを明示的に取得する。Meaning統合は参照移動後に統合元を完全削除するが、
+利用者による通常削除は必ず論理削除とする。
+
 APIやMCPを追加するときは `TermKeeperService` を再利用し、SQLやCLIの標準出力を直接
 呼ばない。MCPツールはまず `add`, `inbox`, `occurrences`, `resolve`, `search`, `show`,
 `merge`, `tag`, `untag`, `tags` を1対1で公開する。

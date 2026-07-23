@@ -11,6 +11,7 @@
 - Meaningの作成、編集、一覧、詳細表示
 - Termと別名の管理
 - Meaning統合のDry Run、Term・Occurrence・Inbox移動
+- Meaningの論理削除、Trash一覧、復元、完全削除
 - Meaningへの複数Tag付与、一覧・検索のTag絞り込み
 - Term・正式名称・説明の複数語検索、対象指定、関連度順、一致理由
 - 対話／非対話での解決と編集

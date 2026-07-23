@@ -25,7 +25,10 @@ tk [--json] <command> [options]
 | `meanings` | Meaning一覧 | `--tag` |
 | `alias` | Meaningへ別名を追加 | `meaning_id`, `keyword` |
 | `unalias` | Meaningから別名を削除 | `meaning_id`, `keyword` |
-| `delete` | Meaningを削除 | `meaning_id` |
+| `delete` | MeaningをTrashへ移動 | `meaning_id` |
+| `trash` | 論理削除済みMeaning一覧 | なし |
+| `restore` | TrashからMeaningを復元 | `meaning_id` |
+| `purge` | Trash内Meaningを完全削除 | `meaning_id` |
 | `merge` | Meaningを別のMeaningへ統合 | `source_id`, `target_id`, `--dry-run` |
 | `tag` | Meaningへタグを追加 | `meaning_id`, `name` |
 | `untag` | Meaningからタグを削除 | `meaning_id`, `name` |
@@ -86,6 +89,15 @@ tk merge SOURCE_ID TARGET_ID [--dry-run]
 変更を保存しない。
 統合元と統合先に同じIDは指定できない。
 
+### `tk delete` / `tk trash` / `tk restore` / `tk purge`
+
+`delete`は`deleted_at`と`deleted_by_id`を記録する論理削除で、Term・Tag・Occurrence・Inboxとの
+関連は保持する。削除済みMeaningは通常の取得、一覧、検索、Term照合、CSV Exportから除外する。
+
+`restore`はMeaningを再び有効にする。削除中に同じTermがInboxへ再捕捉されていた場合、その
+InboxをClosedへ遷移し、Occurrenceを復元Meaningへ関連付ける。`purge`はTrash内のMeaningだけを
+完全削除し、TermとMeaningTagはCASCADE、OccurrenceとInboxのMeaning参照はSET NULLとする。
+
 ### `tk tag` / `tk untag` / `tk tags`
 
 Tag名はNFKC正規化と大文字小文字の統一により一意に管理する。同じTagの追加は冪等で、
@@ -123,6 +135,7 @@ public_id,full_name,description,terms,tags,created_at,updated_at
 
 空の`full_name`、不正UUID、ファイル内の重複UUIDをissueとして扱う。DB更新中の例外は
 全件ロールバックする。結果は`created`、`updated`、`skipped`、`dry_run`、`issues`を含む。
+論理削除済みMeaningのUUIDはissueとし、明示的な`restore`を要求する。
 
 ### `tk config`
 

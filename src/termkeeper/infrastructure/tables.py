@@ -30,8 +30,10 @@ class Meaning(SQLModel, table=True):
     description: str | None = None
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
+    deleted_at: datetime | None = Field(default=None, index=True)
     created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
     updated_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
+    deleted_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
 
 
 class Inbox(SQLModel, table=True):

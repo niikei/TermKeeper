@@ -66,12 +66,23 @@ def remove_term(session: Session, meaning_id: int, keyword: str) -> bool:
     return True
 
 
-def get(session: Session, meaning_id: int) -> Meaning | None:
-    return session.get(Meaning, meaning_id)
+def get(session: Session, meaning_id: int, *, include_deleted: bool = False) -> Meaning | None:
+    statement = select(Meaning).where(Meaning.meaning_id == meaning_id)
+    if not include_deleted:
+        statement = statement.where(col(Meaning.deleted_at).is_(None))
+    return session.exec(statement).first()
 
 
-def get_by_public_id(session: Session, public_id: UUID) -> Meaning | None:
-    return session.exec(select(Meaning).where(Meaning.public_id == public_id)).first()
+def get_by_public_id(
+    session: Session,
+    public_id: UUID,
+    *,
+    include_deleted: bool = False,
+) -> Meaning | None:
+    statement = select(Meaning).where(Meaning.public_id == public_id)
+    if not include_deleted:
+        statement = statement.where(col(Meaning.deleted_at).is_(None))
+    return session.exec(statement).first()
 
 
 def get_terms(session: Session, meaning_id: int) -> list[Term]:
@@ -104,7 +115,10 @@ def find_registered(session: Session, keyword: str) -> Meaning | None:
     statement = (
         select(Meaning)
         .join(Term)
-        .where(Term.keyword_norm == normalize_keyword(keyword))
+        .where(
+            Term.keyword_norm == normalize_keyword(keyword),
+            col(Meaning.deleted_at).is_(None),
+        )
         .order_by(col(Meaning.meaning_id))
     )
     return session.exec(statement).first()
@@ -119,7 +133,7 @@ def search(
     statement = (
         select(Meaning)
         .outerjoin(Term)
-        .where(or_(*token_conditions))
+        .where(or_(*token_conditions), col(Meaning.deleted_at).is_(None))
         .distinct()
         .order_by(col(Meaning.meaning_id))
     )
@@ -159,8 +173,38 @@ def touch(session: Session, record: Meaning, user_id: int | None) -> None:
 
 
 def list_all(session: Session) -> list[Meaning]:
-    return list(session.exec(select(Meaning).order_by(col(Meaning.updated_at).desc())).all())
+    statement = (
+        select(Meaning)
+        .where(col(Meaning.deleted_at).is_(None))
+        .order_by(col(Meaning.updated_at).desc())
+    )
+    return list(session.exec(statement).all())
 
 
-def delete(session: Session, record: Meaning) -> None:
+def list_deleted(session: Session) -> list[Meaning]:
+    statement = (
+        select(Meaning)
+        .where(col(Meaning.deleted_at).is_not(None))
+        .order_by(col(Meaning.deleted_at).desc())
+    )
+    return list(session.exec(statement).all())
+
+
+def soft_delete(session: Session, record: Meaning, user_id: int | None) -> None:
+    record.deleted_at = utc_now()
+    record.deleted_by_id = user_id
+    record.updated_at = record.deleted_at
+    record.updated_by_id = user_id
+    session.add(record)
+
+
+def restore(session: Session, record: Meaning, user_id: int | None) -> None:
+    record.deleted_at = None
+    record.deleted_by_id = None
+    record.updated_at = utc_now()
+    record.updated_by_id = user_id
+    session.add(record)
+
+
+def purge(session: Session, record: Meaning) -> None:
     session.delete(record)

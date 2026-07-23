@@ -23,29 +23,51 @@ class ImportUseCases:
             raise ValidationError(message)
         with UnitOfWork() as uow:
             actor_id = user_id(settings_repository.get_profile(uow.session))
-            created = updated = 0
+            all_issues = list(issues)
+            planned: list[tuple[ImportRow, UUID | None, int | None]] = []
             for row, public_id in valid_rows:
                 existing = (
-                    meaning_repository.get_by_public_id(uow.session, public_id)
+                    meaning_repository.get_by_public_id(
+                        uow.session,
+                        public_id,
+                        include_deleted=True,
+                    )
                     if public_id is not None
                     else None
                 )
-                if existing is None:
+                if existing is not None and existing.deleted_at is not None:
+                    all_issues.append(
+                        ImportIssue(
+                            row.row_number,
+                            "public_id belongs to a deleted meaning; restore it before import",
+                        ),
+                    )
+                    continue
+                meaning_id = required_id(existing.meaning_id) if existing is not None else None
+                planned.append((row, public_id, meaning_id))
+            if strict and len(all_issues) > len(issues):
+                message = "; ".join(
+                    f"row {issue.row_number}: {issue.message}" for issue in all_issues
+                )
+                raise ValidationError(message)
+            created = updated = 0
+            for row, public_id, meaning_id in planned:
+                if meaning_id is None:
                     created += 1
                     if not dry_run:
                         _create(uow, row, public_id, actor_id)
                 else:
                     updated += 1
                     if not dry_run:
-                        _update(uow, row, required_id(existing.meaning_id), actor_id)
+                        _update(uow, row, meaning_id, actor_id)
             if not dry_run:
                 uow.commit()
             return ImportResult(
                 created=created,
                 updated=updated,
-                skipped=len(issues),
+                skipped=len(all_issues),
                 dry_run=dry_run,
-                issues=issues,
+                issues=tuple(all_issues),
             )
 
 
