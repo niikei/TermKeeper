@@ -91,7 +91,8 @@ def print_stats(stats: StatsSummary) -> None:
 
 
 def print_meaning(item: Meaning) -> None:
-    print(f"[{item.meaning_id}] {item.full_name}")
+    marker = "★ " if item.is_favorite else ""
+    print(f"[{item.meaning_id}] {marker}{item.full_name}")
     if item.description:
         print(item.description)
     if item.terms:

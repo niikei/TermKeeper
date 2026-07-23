@@ -205,6 +205,30 @@ def test_tag_commands_and_filters(capsys: pytest.CaptureFixture[str]) -> None:
     assert "Removed tag 'sap' from meaning #1." in capsys.readouterr().out
 
 
+def test_favorite_commands_and_filters(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["add", "ERP"]) == 0
+    assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
+    capsys.readouterr()
+
+    assert main(["favorite", "1"]) == 0
+    assert "Favorited meaning #1." in capsys.readouterr().out
+    assert main(["meanings", "--favorite"]) == 0
+    assert "★ Enterprise Resource Planning" in capsys.readouterr().out
+    assert main(["search", "ERP", "--favorite"]) == 0
+    assert "1 match(es)" in capsys.readouterr().out
+
+    assert main(["unfavorite", "1"]) == 0
+    assert "Unfavorited meaning #1." in capsys.readouterr().out
+    assert main(["--json", "favorite", "1"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["is_favorite"] is True
+    assert main(["--json", "unfavorite", "1"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["is_favorite"] is False
+    assert main(["meanings", "--favorite"]) == 0
+    assert capsys.readouterr().out == ""
+
+
 def test_search_suggestions_human_json_and_disabled(
     capsys: pytest.CaptureFixture[str],
 ) -> None:

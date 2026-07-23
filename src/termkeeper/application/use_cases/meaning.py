@@ -68,7 +68,12 @@ class MeaningUseCases:
             message = "Suggestion limit must be between 0 and 10."
             raise ValidationError(message)
         with UnitOfWork() as uow:
-            records = meaning_repository.search(uow.session, tokens, query.field)
+            records = meaning_repository.search(
+                uow.session,
+                tokens,
+                query.field,
+                favorite_only=query.favorite_only,
+            )
             meanings = _filter_tag(
                 [to_meaning(uow.session, row) for row in records],
                 query.tag,
@@ -77,7 +82,13 @@ class MeaningUseCases:
             if hits or query.suggestion_limit == 0:
                 return SearchResult(tuple(hits))
             all_meanings = _filter_tag(
-                [to_meaning(uow.session, row) for row in meaning_repository.list_all(uow.session)],
+                [
+                    to_meaning(uow.session, row)
+                    for row in meaning_repository.list_all(
+                        uow.session,
+                        favorite_only=query.favorite_only,
+                    )
+                ],
                 query.tag,
             )
             return SearchResult(
@@ -85,10 +96,19 @@ class MeaningUseCases:
                 tuple(rank_suggestions(all_meanings, query)),
             )
 
-    def meanings(self, tag: str | None = None) -> list[Meaning]:
+    def meanings(
+        self,
+        tag: str | None = None,
+        *,
+        favorite_only: bool = False,
+    ) -> list[Meaning]:
         with UnitOfWork() as uow:
             meanings = [
-                to_meaning(uow.session, row) for row in meaning_repository.list_all(uow.session)
+                to_meaning(uow.session, row)
+                for row in meaning_repository.list_all(
+                    uow.session,
+                    favorite_only=favorite_only,
+                )
             ]
             if not tag:
                 return meanings
@@ -98,6 +118,15 @@ class MeaningUseCases:
                 for meaning in meanings
                 if any(normalize_keyword(name) == tag_norm for name in meaning.tags)
             ]
+
+    def set_favorite(self, meaning_id: int, favorite: bool) -> Meaning:
+        with UnitOfWork() as uow:
+            meaning = get_meaning(uow, meaning_id)
+            actor_id = user_id(settings_repository.get_profile(uow.session))
+            meaning_repository.set_favorite(uow.session, meaning, favorite, actor_id)
+            result = to_meaning(uow.session, meaning)
+            uow.commit()
+            return result
 
     def add_alias(self, meaning_id: int, keyword: str) -> Meaning:
         if not keyword.strip():

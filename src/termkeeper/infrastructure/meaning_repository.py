@@ -128,6 +128,8 @@ def search(
     session: Session,
     tokens: tuple[str, ...],
     field: SearchField,
+    *,
+    favorite_only: bool = False,
 ) -> list[Meaning]:
     token_conditions = [_search_condition(token, field) for token in tokens]
     statement = (
@@ -137,6 +139,8 @@ def search(
         .distinct()
         .order_by(col(Meaning.meaning_id))
     )
+    if favorite_only:
+        statement = statement.where(Meaning.is_favorite)
     return list(session.exec(statement).all())
 
 
@@ -172,12 +176,24 @@ def touch(session: Session, record: Meaning, user_id: int | None) -> None:
     session.add(record)
 
 
-def list_all(session: Session) -> list[Meaning]:
+def set_favorite(
+    session: Session,
+    record: Meaning,
+    favorite: bool,
+    user_id: int | None,
+) -> None:
+    record.is_favorite = favorite
+    touch(session, record, user_id)
+
+
+def list_all(session: Session, *, favorite_only: bool = False) -> list[Meaning]:
     statement = (
         select(Meaning)
         .where(col(Meaning.deleted_at).is_(None))
         .order_by(col(Meaning.updated_at).desc())
     )
+    if favorite_only:
+        statement = statement.where(Meaning.is_favorite)
     return list(session.exec(statement).all())
 
 

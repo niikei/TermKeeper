@@ -44,6 +44,7 @@ def to_meaning(session: Session, record: Meaning) -> MeaningDto:
         created_at=record.created_at,
         updated_at=record.updated_at,
         deleted_at=record.deleted_at,
+        is_favorite=record.is_favorite,
         terms=terms,
         tags=tuple(tag_repository.get_names(session, required_id(record.meaning_id))),
         created_by_id=record.created_by_id,

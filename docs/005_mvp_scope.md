@@ -15,6 +15,7 @@
 - Meaning統合のDry Run、Term・Occurrence・Inbox移動
 - Meaningの論理削除、Trash一覧、復元、完全削除
 - Meaningへの複数Tag付与、一覧・検索のTag絞り込み
+- Meaningのお気に入り登録、一覧・検索の絞り込み
 - Term・正式名称・説明の複数語検索、対象指定、関連度順、一致理由
 - 検索0件時の類似候補、候補数指定、候補無効化
 - 対話／非対話での解決と編集
@@ -37,7 +38,6 @@
 - Power Automate、SharePoint、Dataverse連携
 - カテゴリ、関連用語
 - URL、添付ファイル
-- お気に入り
 - Webダッシュボード
 - 同期、複数ユーザー、認証・認可
 

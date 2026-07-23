@@ -36,6 +36,7 @@ erDiagram
         uuid public_id UK
         text full_name
         text description "nullable"
+        boolean is_favorite
         datetime created_at "UTC"
         datetime updated_at "UTC"
         datetime deleted_at "nullable"
@@ -106,6 +107,7 @@ erDiagram
 - Occurrenceの `keyword_norm` は履歴検索に使用する。
 - Inbox・Occurrence編集時は`updated_at`と`updated_by_id`を記録する。
 - Meaningは外部連携用の安定したUUID `public_id` を持つ。
+- Meaningの`is_favorite`は重要な用語の一覧・検索フィルターに使用する。
 - Meaning削除は`deleted_at`と`deleted_by_id`による論理削除とし、Term・Tag・履歴を保持する。
 - 開いているInboxの `keyword_norm` は部分一意制約で重複を防ぐ。
 - Termの `(keyword_norm, meaning_id)` は一意で、同じMeaningへの別表記の重複を防ぐ。
@@ -123,6 +125,7 @@ erDiagram
 | `ix_occurrence_occurred_at` | `occurrence.occurred_at` | 期間検索と新しい順の表示 |
 | `ix_tag_name_norm` | `tag.name_norm` | タグの正規化検索 |
 | `ix_meaning_deleted_at` | `meaning.deleted_at` | 通常データとTrashの分離 |
+| `ix_meaning_is_favorite` | `meaning.is_favorite` | お気に入りの絞り込み |
 
 ## TERM
 

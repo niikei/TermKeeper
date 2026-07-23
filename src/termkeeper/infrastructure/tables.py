@@ -28,6 +28,7 @@ class Meaning(SQLModel, table=True):
     public_id: UUID = Field(default_factory=uuid4, unique=True, index=True)
     full_name: str
     description: str | None = None
+    is_favorite: bool = Field(default=False, index=True)
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
     deleted_at: datetime | None = Field(default=None, index=True)

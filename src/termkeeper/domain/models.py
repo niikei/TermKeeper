@@ -37,6 +37,7 @@ class Meaning:
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = None
+    is_favorite: bool = False
     terms: tuple[str, ...] = ()
     tags: tuple[str, ...] = ()
     created_by_id: int | None = None

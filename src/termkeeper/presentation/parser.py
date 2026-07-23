@@ -71,6 +71,7 @@ def _add_meaning_commands(sub: _Subparsers) -> None:
     )
     search.add_argument("--limit", type=int, default=20)
     search.add_argument("--tag")
+    search.add_argument("--favorite", action="store_true", dest="favorite_only")
     suggestions = search.add_mutually_exclusive_group()
     suggestions.add_argument("--suggestions", type=int, default=3, dest="suggestion_limit")
     suggestions.add_argument(
@@ -105,6 +106,10 @@ def _add_meaning_commands(sub: _Subparsers) -> None:
     untag.add_argument("meaning_id", type=int)
     untag.add_argument("name")
     sub.add_parser("tags", help="List tags")
+    favorite = sub.add_parser("favorite", help="Mark a meaning as favorite")
+    favorite.add_argument("meaning_id", type=int)
+    unfavorite = sub.add_parser("unfavorite", help="Remove a meaning from favorites")
+    unfavorite.add_argument("meaning_id", type=int)
 
     edit = sub.add_parser("edit", help="Edit a meaning")
     edit.add_argument("meaning_id", type=int)
@@ -112,6 +117,7 @@ def _add_meaning_commands(sub: _Subparsers) -> None:
     edit.add_argument("--description", help="New description")
     meanings = sub.add_parser("meanings", help="List meanings")
     meanings.add_argument("--tag")
+    meanings.add_argument("--favorite", action="store_true", dest="favorite_only")
 
 
 def _add_config_and_transfer_commands(

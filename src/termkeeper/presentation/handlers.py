@@ -140,6 +140,7 @@ def handle_search(args: argparse.Namespace, service: TermKeeperService) -> Searc
         field=args.search_field,
         limit=args.limit,
         tag=args.tag,
+        favorite_only=args.favorite_only,
         suggestion_limit=args.suggestion_limit,
     )
     result = service.search(query)
@@ -245,6 +246,20 @@ def handle_tags(args: argparse.Namespace, service: TermKeeperService) -> list[Ta
     return result
 
 
+def handle_favorite(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
+    result = service.set_favorite(args.meaning_id, True)
+    if not args.json:
+        print(f"Favorited meaning #{args.meaning_id}.")
+    return result
+
+
+def handle_unfavorite(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
+    result = service.set_favorite(args.meaning_id, False)
+    if not args.json:
+        print(f"Unfavorited meaning #{args.meaning_id}.")
+    return result
+
+
 def handle_edit(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
     current = service.get_meaning(args.meaning_id)
     name = args.name
@@ -261,7 +276,7 @@ def handle_edit(args: argparse.Namespace, service: TermKeeperService) -> Meaning
 
 
 def handle_meanings(args: argparse.Namespace, service: TermKeeperService) -> list[Meaning]:
-    result = service.meanings(args.tag)
+    result = service.meanings(args.tag, favorite_only=args.favorite_only)
     if not args.json:
         for item in result:
             print_meaning(item)
@@ -344,6 +359,8 @@ HANDLERS: dict[str, CommandHandler] = {
     "tag": handle_tag,
     "untag": handle_untag,
     "tags": handle_tags,
+    "favorite": handle_favorite,
+    "unfavorite": handle_unfavorite,
     "edit": handle_edit,
     "meanings": handle_meanings,
     "config": handle_config,

@@ -26,6 +26,7 @@ CSVファイルの読み取りはPresentationで`ImportRow`へ変換し、検証
 Meaning Repositoryの通常取得は`deleted_at IS NULL`を共通条件とする。Trash操作だけが
 削除済みMeaningを明示的に取得する。Meaning統合は参照移動後に統合元を完全削除するが、
 利用者による通常削除は必ず論理削除とする。
+お気に入りはMeaningの属性として保持し、一覧・検索の絞り込みはRepositoryで行う。
 
 検索はRepositoryで部分一致候補を取得し、Applicationで関連度を計算する。通常ヒットが0件の
 場合だけ有効Meaningを読み込み、`SearchSuggestion`を生成する。Presentationは候補ロジックを
@@ -40,7 +41,7 @@ Repositoryへ閉じ込め、Applicationからは`StatsSummary`として返す。
 
 APIやMCPを追加するときは `TermKeeperService` を再利用し、SQLやCLIの標準出力を直接
 呼ばない。MCPツールはまず `add`, `inbox`, `occurrences`, `resolve`, `search`, `show`,
-`merge`, `tag`, `untag`, `tags`, `stats` を1対1で公開する。
+`merge`, `tag`, `untag`, `tags`, `favorite`, `unfavorite`, `stats` を1対1で公開する。
 
 ## 時刻
 

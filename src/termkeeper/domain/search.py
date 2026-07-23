@@ -21,6 +21,7 @@ class SearchQuery:
     field: SearchField = SearchField.ALL
     limit: int = 20
     tag: str | None = None
+    favorite_only: bool = False
     suggestion_limit: int = 3
 
 

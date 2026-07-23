@@ -91,14 +91,17 @@ tk search "planning document" --any --in description --limit 10
 tk search ERP --tag SAP
 tk search ERPP --suggestions 3
 tk search ERPP --no-suggestions
+tk search ERP --favorite
 tk show 1
 tk meanings --tag SAP
+tk meanings --favorite
 ```
 
 検索は完全一致、前方一致、部分一致の順に関連度を付け、一致理由とともに表示します。
 複数語は標準ですべての語に一致するMeaningを探します。`--any`でいずれかの語、
 `--in term|name|description|all`で検索対象、`--limit`で最大件数を指定できます。
 `--tag`を指定すると、そのタグを持つMeaningだけに絞り込みます。
+`--favorite`を指定すると、お気に入りのMeaningだけに絞り込みます。
 検索結果がない場合は、Term・正式名称などの類似度から候補を表示します。候補数は
 `--suggestions`、無効化は`--no-suggestions`で指定できます。
 
@@ -111,6 +114,8 @@ tk edit 1 --name "Intercompany Matching and Reconciliation"
 tk tag 1 SAP
 tk untag 1 SAP
 tk tags
+tk favorite 1
+tk unfavorite 1
 tk merge 2 1 --dry-run
 tk merge 2 1
 tk delete 1
