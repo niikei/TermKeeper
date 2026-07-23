@@ -795,6 +795,59 @@ def test_add_output_stays_compact(capsys: pytest.CaptureFixture[str]) -> None:
     assert output == "Captured occurrence #1: ERP\n"
 
 
+def test_list_is_a_compact_meaning_overview_with_filters(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["list"]) == 0
+    assert capsys.readouterr().out == "No meanings found.\n"
+
+    assert main(["scope", "add", "SAP"]) == 0
+    assert main(["add", "ERP"]) == 0
+    assert (
+        main(
+            [
+                "resolve",
+                "1",
+                "--name",
+                "Enterprise Resource Planning",
+                "--scope",
+                "SAP",
+            ],
+        )
+        == 0
+    )
+    assert main(["tag", "add", "1", "Core"]) == 0
+    assert main(["meaning", "favorite", "1"]) == 0
+    capsys.readouterr()
+
+    assert main(["list", "--color", "always"]) == 0
+    output = capsys.readouterr().out
+    assert "Meaning" in output
+    assert "Enterprise Resource Planning" in output
+    assert "\033[35mSAP" in output
+    assert "ERP" in output
+    assert "★" in output
+
+    assert main(["list", "--scope", "General"]) == 0
+    assert capsys.readouterr().out == "No meanings found.\n"
+    assert main(["list", "--scope", "SAP", "--tag", "core", "--favorite"]) == 0
+    assert "Enterprise Resource Planning" in capsys.readouterr().out
+
+
+def test_list_json_returns_active_meanings(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["add", "ERP"]) == 0
+    assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
+    capsys.readouterr()
+
+    assert main(["list", "--json"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert len(result) == 1
+    assert result[0]["full_name"] == "Enterprise Resource Planning"
+    assert "\033[" not in json.dumps(result)
+
+
 def test_add_can_assign_a_single_candidate_immediately(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

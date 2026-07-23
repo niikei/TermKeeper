@@ -52,6 +52,7 @@ ANSI制御文字を含めない。`completion`と`--version`もプレーンテ�
 | `init` | DBを最新Alembic Revisionへ更新・再作成 | `--reset`, `--yes` |
 | `add` | 遭遇を捕捉 | `keyword`, `--memo`, `--source`, `--meaning`, `--no-prompt` |
 | `inbox` | Pending Occurrence一覧 | `--offset`, `--limit` |
+| `list` | Active Meaningのコンパクト一覧 | `--tag`, `--scope`, `--favorite` |
 | `resolve` | 新規・既存Meaningへ分類 | `occurrence_id`, `--meaning`または`--name`, `--scope`, `--description` |
 | `search` | Meaning検索 | query、field、tag、scope、favorite、suggestion |
 | `show` | Meaning詳細 | Meaning ID |
@@ -68,6 +69,14 @@ ANSI制御文字を含めない。`completion`と`--version`もプレーンテ�
 | `config` | user.name / user.email | key、value、list、unset |
 | `doctor` | DB・Schema・設定診断 | なし |
 | `completion` | bash/zsh/fish補完生成 | shell |
+
+## `tk list`
+
+Active Meaningを更新日時の新しい順に、`ID / Meaning / Scope / Aliases`の表で表示する。
+favoriteは名称の前に`★`を表示する。`--scope`、`--tag`、`--favorite`は組み合わせ可能。
+人間向けの空一覧は`No meanings found.`を表示し、JSONではMeaningオブジェクトの配列を返す。
+
+`tk meaning list`は説明、Tag、作成・更新日時を含む詳細・管理用表示として維持する。
 
 ## `tk add`
 

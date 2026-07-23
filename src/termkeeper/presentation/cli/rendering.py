@@ -71,6 +71,23 @@ def print_meaning_candidates(
         print(f"  {meaning_id} {scope} {candidate.full_name}")
 
 
+def print_meaning_list(items: Sequence[Meaning]) -> None:
+    """Print a compact daily-use overview of active meanings."""
+    if not items:
+        print(muted("No meanings found."))
+        return
+    print(heading(f"{'ID':>4}  {'Meaning':<34} {'Scope':<16} Aliases"))
+    for item in items:
+        meaning_id = identifier(f"{item.meaning_id:>4}")
+        favorite = warning("★ ") if item.is_favorite else "  "
+        name = heading(f"{item.full_name:<32.32}")
+        scope = scope_label(f"{item.scope:<16.16}")
+        aliases = ", ".join(
+            term for term in item.terms if term.casefold() != item.full_name.casefold()
+        )
+        print(f"{meaning_id}  {favorite}{name} {scope} {aliases or '-'}")
+
+
 def _print_json_value(value: object) -> None:
     print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
 

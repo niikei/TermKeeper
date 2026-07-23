@@ -101,6 +101,9 @@ scopeはMeaningの識別境界であり、Tagとは異なる。同じ正式名�
 ## 8. Meaningを検索・整理する
 
 ```bash
+tk list
+tk list --scope SAP --tag Core
+tk list --favorite
 tk search "enterprise planning" --match-all
 tk search ERP --tag Core --scope SAP
 tk show 1
@@ -110,7 +113,8 @@ tk tag add 1 Core
 tk meaning favorite 1
 ```
 
-検索はTerm、正式名称、説明を関連度順に返す。Tag、scope、お気に入りで絞り込める。
+`tk list`はActive Meaningをコンパクトに見渡す日常用ビュー。検索はTerm、正式名称、説明を
+関連度順に返す。どちらもTag、scope、お気に入りで絞り込める。
 
 ## 9. Meaningを統合する
 

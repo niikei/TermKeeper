@@ -7,6 +7,7 @@ from termkeeper.domain import Meaning, MergeResult, SearchQuery, SearchResult
 from termkeeper.presentation.cli.handlers.common import confirm_destructive
 from termkeeper.presentation.cli.rendering import (
     print_meaning,
+    print_meaning_list,
     print_search_hit,
     print_search_suggestion,
 )
@@ -40,6 +41,20 @@ def handle_show(args: argparse.Namespace, service: TermKeeperService) -> Meaning
     result = service.get_meaning(args.meaning_id)
     if not args.json:
         print_meaning(result)
+    return result
+
+
+def handle_term_list(
+    args: argparse.Namespace,
+    service: TermKeeperService,
+) -> list[Meaning]:
+    result = service.meanings(
+        args.tag,
+        scope=args.scope,
+        favorite_only=args.favorite_only,
+    )
+    if not args.json:
+        print_meaning_list(result)
     return result
 
 

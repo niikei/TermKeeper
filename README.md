@@ -86,6 +86,18 @@ PendingのままInboxへ残します。JSON、パイプ入力、`--no-prompt`で
 `--color=auto|always|never`で制御でき、`auto`がデフォルトです。常に無効にする場合は
 `NO_COLOR=1 tk add TERM`のようにも指定できます。JSONと非TTY出力は通常プレーンテキストです。
 
+### 登録済み用語の一覧
+
+```bash
+tk list
+tk list --scope SAP
+tk list --tag Core
+tk list --favorite
+```
+
+`list`はActive Meaningを`ID / Meaning / Scope / Aliases`のコンパクトな表で表示する日常用ビュー
+です。作成日時や説明を含む詳細表示・管理操作には`tk meaning list`と`tk show ID`を使います。
+
 ### 未処理項目の確認
 
 ```bash

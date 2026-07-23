@@ -23,6 +23,7 @@ from termkeeper.presentation.cli.handlers.meaning import (
     handle_restore,
     handle_search,
     handle_show,
+    handle_term_list,
     handle_trash,
     handle_unalias,
 )
@@ -73,6 +74,7 @@ HANDLERS: dict[str, CommandHandler] = {
     "discard": handle_discard,
     "reopen": handle_reopen,
     "show": handle_show,
+    "term-list": handle_term_list,
     "alias": handle_alias,
     "unalias": handle_unalias,
     "delete": handle_delete,

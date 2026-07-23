@@ -32,6 +32,16 @@ def add_primary_commands(commands: Commands) -> None:
     inbox = commands.add("inbox", "Show pending occurrences", handler="inbox")
     add_pagination_arguments(inbox)
 
+    list_ = commands.add("list", "Show active meanings", handler="term-list")
+    list_.add_argument("--tag", help="Filter by tag")
+    list_.add_argument("--scope", help="Filter by registered scope name")
+    list_.add_argument(
+        "--favorite",
+        action="store_true",
+        dest="favorite_only",
+        help="Show only favorite meanings",
+    )
+
     resolve = commands.add(
         "resolve",
         "Classify an occurrence",

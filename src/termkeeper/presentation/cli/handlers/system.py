@@ -16,7 +16,7 @@ from termkeeper.presentation.cli.style import (
 )
 
 _ROOT_COMMANDS = (
-    "add inbox resolve search show history stats occurrence meaning tag reference "
+    "add inbox list resolve search show history stats occurrence meaning tag reference "
     "scope data config doctor completion init --help --version --json --debug --color"
 )
 _GROUP_COMMANDS = {
@@ -55,8 +55,8 @@ def handle_dashboard(
         print()
         print(heading("Next:"))
         print(f"  {command('tk inbox')}")
+        print(f"  {command('tk list')}")
         print(f"  {command('tk add TERM')}")
-        print(f"  {command('tk search QUERY')}")
         print()
         print(muted("Run 'tk --help' for all commands."))
     return result
