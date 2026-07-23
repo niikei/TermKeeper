@@ -1,0 +1,163 @@
+# TermKeeper Development Guide
+
+TermKeeperを開発・保守する人向けのガイドです。利用方法は
+[README.md](README.md)、設計の詳細は
+[アーキテクチャと拡張方針](docs/006_architecture.md)を参照してください。
+
+## 必要環境
+
+- Python 3.12以上
+- [uv](https://docs.astral.sh/uv/)
+- Git
+
+## 開発環境の構築
+
+```bash
+git clone <repository-url>
+cd TermKeeper
+uv sync --extra dev
+uv run tk init
+```
+
+`--extra dev`は実行時依存に加え、pytest、Ruff、Mypy、Pyrightをインストールします。
+TermKeeperを利用するだけなら`uv sync`で十分です。
+
+作業用DBを明示すると、通常利用するDBとの混在を避けられます。
+
+```bash
+export TERMKEEPER_DB="$PWD/data/development.db"
+uv run tk init
+```
+
+現在のスキーマは旧DBとの互換性や自動マイグレーションを持ちません。スキーマ変更を試す際は、
+使い捨ての新規DBを使用してください。
+
+## ディレクトリ構成
+
+```text
+src/termkeeper/
+├── domain/                 # DTO、Enum
+├── application/
+│   ├── service.py          # 公開ファサード
+│   ├── use_cases/          # inbox、meaning、configのユースケース
+│   ├── mapping.py          # SQLModelレコードからDTOへの変換
+│   ├── support.py          # Application層の共有処理
+│   └── errors.py           # Application層の例外
+├── infrastructure/         # SQLModelテーブル、Repository、Unit of Work
+├── presentation/           # CLI、表示、CSV
+└── config.py               # 実行時設定
+```
+
+依存方向は次のとおりです。
+
+```text
+Presentation / API / MCP → Application → Infrastructure
+                  Domain ← Application
+```
+
+外部アダプターはRepositoryやSQLModelテーブルを直接操作せず、`TermKeeperService`を呼び出します。
+
+## 開発コマンド
+
+### テスト
+
+```bash
+uv run pytest
+```
+
+pytestはカバレッジも計測します。全体カバレッジが90%未満になると失敗します。
+
+特定のテストだけを実行する場合:
+
+```bash
+uv run pytest tests/test_service.py
+uv run pytest tests/test_cli.py::test_json_workflow
+```
+
+### フォーマットとLint
+
+```bash
+uv run ruff format .
+uv run ruff check .
+```
+
+変更せずにフォーマット差分だけ確認する場合:
+
+```bash
+uv run ruff format --check .
+```
+
+### 型検査
+
+```bash
+uv run pyright
+uv run mypy src
+```
+
+### パッケージビルド
+
+```bash
+uv build
+```
+
+## 変更時の推奨チェック
+
+コミット前に次を実行します。
+
+```bash
+uv run ruff format --check .
+uv run ruff check .
+uv run pyright
+uv run mypy src
+uv run pytest
+uv build
+git diff --check
+```
+
+Ruffの警告は原則としてコード側で解消します。ルール除外は、フレームワークの制約やテストで
+一般的な記法など、理由を説明できる場合に限定します。
+
+## 実装方針
+
+- 1つの更新ユースケースを1つのUnit of Workで完結させる
+- Repository内では`commit()`しない
+- 遭遇は毎回Occurrenceとして保存し、memoやsourceを上書きしない
+- DB内部IDを外部連携の識別子にせず、Meaningの`public_id`を使用する
+- CLI固有の処理をApplication層へ持ち込まない
+- APIやMCPを追加するときも既存のApplicationユースケースを再利用する
+- `service.py`を肥大化させず、機能別の`use_cases/`へ実装する
+- 互換レイヤーは追加せず、必要になった時点で明示的なマイグレーションを設計する
+
+## テスト方針
+
+変更内容に応じて、適切な境界でテストします。
+
+- Application: ユースケース、入力検証、トランザクションのロールバック
+- Infrastructure: DB制約、Repository固有の契約
+- Presentation: CLI終了コード、通常表示、JSON、CSV
+
+単に100%へ近づけるためのテストではなく、利用者に影響する分岐、外部連携境界、データ整合性を
+優先します。
+
+テストは一時DBを使用します。ローカルの`data/termkeeper.db`は変更しません。
+
+## 新しい機能を追加するとき
+
+1. DTOや状態が必要なら`domain/`へ追加する
+2. 永続化が必要ならSQLModelテーブルとRepositoryを更新する
+3. トランザクションを含む操作を`application/use_cases/`へ追加する
+4. CLIはApplicationのメソッドを呼ぶ薄いHandlerとして実装する
+5. Applicationと外部境界のテストを追加する
+6. ER図、CLI仕様、ユースケース文書を更新する
+
+DBスキーマを変更した場合は、少なくとも
+[ドメインモデル](docs/003_domain_model.md)のER図も更新してください。
+
+## 関連ドキュメント
+
+- [概要](docs/001_overview.md)
+- [ユースケース](docs/002_use_cases.md)
+- [ドメインモデル・ER図](docs/003_domain_model.md)
+- [CLI仕様](docs/004_cli_spec.md)
+- [MVPスコープ](docs/005_mvp_scope.md)
+- [アーキテクチャと拡張方針](docs/006_architecture.md)

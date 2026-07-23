@@ -8,6 +8,9 @@
 
 完璧な用語集を作ることではなく、知らない言葉を取りこぼさないことを重視します。
 
+開発環境の構築や品質チェックについては
+[開発者ガイド](README_DEV.md)を参照してください。
+
 ## 必要環境
 
 - Python 3.12以上
@@ -18,7 +21,7 @@
 ```bash
 python -m venv .venv
 . .venv/bin/activate
-pip install -e '.[dev]'
+pip install -e .
 tk init
 ```
 
@@ -36,7 +39,7 @@ TERMKEEPER_DB=~/Documents/terms.db tk inbox
 tk add ICMR --memo "月次決算会議" --source "Teams"
 ```
 
-同じ未解決語を再度登録した場合、重複行は作成せず、出現回数と最終確認日時を更新します。
+同じ未解決語を再度登録した場合、Inboxの重複行は作成せず、新しい遭遇履歴を記録します。
 既にMeaningへ解決済みの場合は、登録済みのMeaningを表示します。
 
 ### 未処理項目の確認
@@ -155,12 +158,6 @@ TermKeeper/
 
 ## 開発
 
-```bash
-pytest
-ruff check .
-ruff format --check .
-```
-
-`pytest` はカバレッジも計測し、90%を下回ると失敗します。
-
-アーキテクチャの詳細は [アーキテクチャと拡張方針](docs/006_architecture.md) を参照してください。
+セットアップ、テスト、Lint、型検査、実装方針は
+[開発者ガイド](README_DEV.md)を参照してください。アーキテクチャの詳細は
+[アーキテクチャと拡張方針](docs/006_architecture.md)に記載しています。
