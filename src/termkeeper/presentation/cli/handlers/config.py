@@ -17,8 +17,11 @@ def handle_config(args: argparse.Namespace, service: TermKeeperService) -> dict[
     if args.list_config or args.key is None:
         result = service.list_config()
         if not args.json:
-            for key, value in result.items():
-                print(f"{key}={value}")
+            if result:
+                for key, value in result.items():
+                    print(f"{key}={value}")
+            else:
+                print("No configuration is set.")
         return result
     if args.value is None:
         setting = service.get_config(args.key)

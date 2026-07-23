@@ -37,7 +37,7 @@ def get_scope(uow: UnitOfWork, scope_id: int) -> Scope:
 def get_scope_by_name(uow: UnitOfWork, name: str) -> Scope:
     record = scope_repository.get_by_name(uow.session, name)
     if record is None:
-        message = f"Scope '{name}' was not found. Create it with 'tk scope-add'."
+        message = f"Scope '{name}' was not found. Create it with 'tk scope add'."
         raise NotFoundError(message)
     return record
 

@@ -27,19 +27,19 @@ Inboxは永続エンティティではなく、`Pending`状態のOccurrenceを�
 ## 3. 遭遇履歴を確認・修正する
 
 ```bash
-tk occurrences
-tk occurrences --meaning 1
-tk occurrences --status Pending
-tk occurrences --keyword MDM --source Slack
-tk occurrences --since 2026-07-01 --limit 20
-tk occurrences --offset 20 --limit 20
-tk occurrence-edit 3 --keyword ERP --memo "訂正" --source Teams
-tk occurrence-edit 3 --clear-memo --clear-source
+tk occurrence list
+tk occurrence list --meaning 1
+tk occurrence list --status Pending
+tk occurrence list --keyword MDM --source Slack
+tk occurrence list --since 2026-07-01 --limit 20
+tk occurrence list --offset 20 --limit 20
+tk occurrence edit 3 --keyword ERP --memo "訂正" --source Teams
+tk occurrence edit 3 --clear-memo --clear-source
 ```
 
 Occurrenceのraw keyword、memo、source、日時、分類状態、Meaningを表示する。編集は対象Occurrence
 だけに作用し、他の遭遇やMeaningのTermは暗黙に変更しない。
-`inbox`、`history`、`occurrences`はDB側でページングし、500件を超える履歴も取得できる。
+`inbox`、`occurrence history`、`occurrence list`はDB側でページングし、500件を超える履歴も取得できる。
 
 ## 4. 新しいMeaningとして解決する
 
@@ -57,20 +57,20 @@ Meaning、正式名称と遭遇語のTermを作成し、対象Occurrenceだけ�
 
 ```bash
 tk resolve 1 --meaning 12
-tk unresolve 1
+tk occurrence unresolve 1
 ```
 
 既存Meaningへの分類はIDを明示する。分類済みOccurrenceへ別Meaningを指定した場合は再分類する。
-`unresolve`はMeaning参照を外して`Pending`へ戻す。
+`occurrence unresolve`はMeaning参照を外して`Pending`へ戻す。
 
 ## 6. 不要な遭遇を破棄・再開する
 
 ```bash
-tk discard 1
-tk reopen 1
+tk occurrence discard 1
+tk occurrence reopen 1
 ```
 
-`discard`はPendingからDiscarded、`reopen`はDiscardedからPendingへ遷移する。Discardedを直接
+`occurrence discard`はPendingからDiscarded、`occurrence reopen`はDiscardedからPendingへ遷移する。Discardedを直接
 Meaningへ分類することはできない。
 
 ## 7. scopeで概念を区別する
@@ -78,9 +78,9 @@ Meaningへ分類することはできない。
 Scopeは独立して管理し、Meaning作成前に登録する。`General`だけはDB初期化時に用意される。
 
 ```bash
-tk scope-add SAP
-tk scope-add Radio
-tk scopes
+tk scope add SAP
+tk scope add Radio
+tk scope list
 ```
 
 同じ表記でも、製品や業務領域が異なれば別Meaningとして管理する。
@@ -92,7 +92,7 @@ ERP [Radio] → Effective Radiated Power
 
 ```bash
 tk search ERP --scope SAP
-tk meanings --scope SAP
+tk meaning list --scope SAP
 ```
 
 scopeはMeaningの識別境界であり、Tagとは異なる。同じ正式名称は別scopeなら許可し、同一scope
@@ -101,13 +101,13 @@ scopeはMeaningの識別境界であり、Tagとは異なる。同じ正式名�
 ## 8. Meaningを検索・整理する
 
 ```bash
-tk search "enterprise planning" --all
+tk search "enterprise planning" --match-all
 tk search ERP --tag Core --scope SAP
 tk show 1
-tk edit 1 --name "Enterprise Resource Planning" --scope "SAP S/4HANA"
-tk alias 1 ERP
-tk tag 1 Core
-tk favorite 1
+tk meaning edit 1 --name "Enterprise Resource Planning" --scope "SAP S/4HANA"
+tk meaning alias-add 1 ERP
+tk tag add 1 Core
+tk meaning favorite 1
 ```
 
 検索はTerm、正式名称、説明を関連度順に返す。Tag、scope、お気に入りで絞り込める。
@@ -115,8 +115,8 @@ tk favorite 1
 ## 9. Meaningを統合する
 
 ```bash
-tk merge 2 1 --dry-run
-tk merge 2 1
+tk meaning merge 2 1 --dry-run
+tk meaning merge 2 1 --yes
 ```
 
 統合元のTerm、Tag、Occurrence、Reference、Relationを統合先へ移し、統合元を削除する。
@@ -126,14 +126,14 @@ tk merge 2 1
 ## 10. Meaningを削除・復元する
 
 ```bash
-tk delete 1
-tk trash
-tk restore 1
-tk purge 1
+tk meaning delete 1
+tk meaning trash
+tk meaning restore 1
+tk meaning purge 1 --yes
 ```
 
 通常削除は論理削除。Occurrenceの分類履歴は維持する。Occurrenceから参照されるMeaningの
-完全削除は拒否し、再分類または`unresolve`を先に要求する。復元時に同じTermのPending
+完全削除は拒否し、再分類または`occurrence unresolve`を先に要求する。復元時に同じTermのPending
 Occurrenceを自動分類しない。
 
 ## 11. CSVで一括入出力する

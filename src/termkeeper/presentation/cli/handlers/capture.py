@@ -112,6 +112,9 @@ def handle_resolve(
     service: TermKeeperService,
 ) -> Meaning | OccurrenceItem:
     if args.meaning_id is not None:
+        if args.scope is not None or args.description is not None:
+            message = "--scope and --description cannot be used with --meaning."
+            raise ValidationError(message)
         assigned = service.assign(args.occurrence_id, args.meaning_id)
         if not args.json:
             print(
@@ -125,7 +128,12 @@ def handle_resolve(
             message = "--name is required with --json when creating a meaning."
             raise ValidationError(message)
         name, description = _prompt_for_resolution(args, service)
-    meaning = service.resolve(args.occurrence_id, name, description, args.scope)
+    meaning = service.resolve(
+        args.occurrence_id,
+        name,
+        description,
+        args.scope or "General",
+    )
     if not args.json:
         print(f"Created meaning #{meaning.meaning_id}: {meaning.full_name}")
     return meaning

@@ -1,222 +1,52 @@
-"""Argument parser construction for the CLI."""
+"""Top-level argument parser assembly."""
 
 import argparse
-from datetime import datetime
 
 from termkeeper import __version__
-from termkeeper.domain import OccurrenceStatus, SearchField
-
-
-class _Subparsers:
-    def __init__(self, parser: argparse.ArgumentParser) -> None:
-        self._action = parser.add_subparsers(dest="command", required=True)
-
-    def add(self, name: str, help_text: str) -> argparse.ArgumentParser:
-        return self._action.add_parser(name, help=help_text)
+from termkeeper.presentation.cli.parser_builders.admin import (
+    add_config_and_transfer_commands,
+)
+from termkeeper.presentation.cli.parser_builders.common import (
+    Commands,
+    HelpFormatter,
+    add_runtime_options,
+)
+from termkeeper.presentation.cli.parser_builders.meaning import add_meaning_commands
+from termkeeper.presentation.cli.parser_builders.metadata import (
+    add_reference_commands,
+    add_scope_commands,
+    add_tag_commands,
+)
+from termkeeper.presentation.cli.parser_builders.occurrence import add_occurrence_commands
+from termkeeper.presentation.cli.parser_builders.primary import add_primary_commands
 
 
 def create_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="tk", description="Capture now, understand later.")
+    parser = argparse.ArgumentParser(
+        prog="tk",
+        description="Capture now, understand later.",
+        epilog=(
+            "Quick start:\n"
+            "  tk add ERP --source meeting\n"
+            "  tk inbox\n"
+            "  tk resolve 1 --name \"Enterprise Resource Planning\"\n"
+            "  tk search ERP"
+        ),
+        formatter_class=HelpFormatter,
+    )
     parser.add_argument(
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
     )
-    parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
-    parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Show technical details when an unexpected error occurs",
-    )
-    sub = _Subparsers(parser)
-    sub.add("init", "Initialize or migrate the database")
-    _add_capture_commands(sub)
-    _add_meaning_commands(sub)
-    _add_scope_commands(sub)
-    _add_config_and_transfer_commands(sub)
+    add_runtime_options(parser)
+    commands = Commands(parser, dest="root_command")
+    commands.add("init", "Initialize or migrate the database", handler="init")
+    add_primary_commands(commands)
+    add_occurrence_commands(commands.group("occurrence", "Manage occurrence history"))
+    add_meaning_commands(commands.group("meaning", "Manage meanings"))
+    add_tag_commands(commands.group("tag", "Manage meaning tags"))
+    add_reference_commands(commands.group("reference", "Manage reference URLs"))
+    add_scope_commands(commands.group("scope", "Manage meaning scopes"))
+    add_config_and_transfer_commands(commands)
     return parser
-
-
-def _add_capture_commands(sub: _Subparsers) -> None:
-    add = sub.add("add", "Add a term to the inbox")
-    add.add_argument("keyword")
-    add.add_argument("--memo", help="Context or a short reminder")
-    add.add_argument("--source", help="Where the term was encountered")
-    add.add_argument("--meaning", type=int, dest="meaning_id", help="Explicit meaning ID")
-    inbox = sub.add("inbox", "Show unresolved items")
-    _add_pagination_arguments(inbox)
-    history = sub.add("history", "Show all captured items")
-    _add_pagination_arguments(history)
-    occurrences = sub.add("occurrences", "Show occurrence history")
-    occurrences.add_argument("--meaning", type=int, dest="meaning_id")
-    occurrences.add_argument(
-        "--status",
-        choices=tuple(OccurrenceStatus),
-        type=OccurrenceStatus,
-    )
-    occurrences.add_argument("--keyword")
-    occurrences.add_argument("--source")
-    occurrences.add_argument("--since", type=_parse_datetime)
-    _add_pagination_arguments(occurrences)
-    occurrence_edit = sub.add("occurrence-edit", "Edit occurrence context")
-    occurrence_edit.add_argument("occurrence_id", type=int)
-    occurrence_edit.add_argument("--keyword")
-    occurrence_edit.add_argument("--memo")
-    occurrence_edit.add_argument("--source")
-    occurrence_edit.add_argument("--clear-memo", action="store_true")
-    occurrence_edit.add_argument("--clear-source", action="store_true")
-    stats = sub.add("stats", "Show occurrence analytics and rankings")
-    stats.add_argument("--limit", type=int, default=10)
-    resolve = sub.add("resolve", "Classify an occurrence")
-    resolve.add_argument("occurrence_id", type=int)
-    resolve.add_argument("--meaning", type=int, dest="meaning_id")
-    resolve.add_argument("--name", help="Create a new meaning with this full name")
-    resolve.add_argument("--scope", default="General")
-    resolve.add_argument("--description", help="Description")
-    unresolve = sub.add("unresolve", "Return a resolved occurrence to the inbox")
-    unresolve.add_argument("occurrence_id", type=int)
-    discard = sub.add("discard", "Discard a pending occurrence")
-    discard.add_argument("occurrence_id", type=int)
-    reopen = sub.add("reopen", "Return a discarded occurrence to the inbox")
-    reopen.add_argument("occurrence_id", type=int)
-
-
-def _add_meaning_commands(sub: _Subparsers) -> None:
-    _add_search_command(sub)
-    _add_meaning_lifecycle_commands(sub)
-    _add_meaning_metadata_commands(sub)
-
-
-def _add_pagination_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--offset", type=int, default=0)
-    parser.add_argument("--limit", type=int, default=50)
-
-
-def _add_search_command(sub: _Subparsers) -> None:
-    search = sub.add("search", "Search terms and descriptions")
-    search.add_argument("keyword")
-    mode = search.add_mutually_exclusive_group()
-    mode.add_argument("--all", action="store_true", dest="match_all", default=True)
-    mode.add_argument("--any", action="store_false", dest="match_all")
-    search.add_argument(
-        "--in",
-        choices=tuple(SearchField),
-        default=SearchField.ALL,
-        dest="search_field",
-        type=SearchField,
-    )
-    search.add_argument("--limit", type=int, default=20)
-    search.add_argument("--tag")
-    search.add_argument("--scope")
-    search.add_argument("--favorite", action="store_true", dest="favorite_only")
-    suggestions = search.add_mutually_exclusive_group()
-    suggestions.add_argument("--suggestions", type=int, default=3, dest="suggestion_limit")
-    suggestions.add_argument(
-        "--no-suggestions",
-        action="store_const",
-        const=0,
-        dest="suggestion_limit",
-    )
-
-
-def _add_meaning_lifecycle_commands(sub: _Subparsers) -> None:
-    show = sub.add("show", "Show a meaning")
-    show.add_argument("meaning_id", type=int)
-    alias = sub.add("alias", "Add an alias to a meaning")
-    alias.add_argument("meaning_id", type=int)
-    alias.add_argument("keyword")
-    unalias = sub.add("unalias", "Remove an alias from a meaning")
-    unalias.add_argument("meaning_id", type=int)
-    unalias.add_argument("keyword")
-    delete = sub.add("delete", "Move a meaning to trash")
-    delete.add_argument("meaning_id", type=int)
-    sub.add("trash", "List deleted meanings")
-    restore = sub.add("restore", "Restore a deleted meaning")
-    restore.add_argument("meaning_id", type=int)
-    purge = sub.add("purge", "Permanently delete a trashed meaning")
-    purge.add_argument("meaning_id", type=int)
-    merge = sub.add("merge", "Merge one meaning into another")
-    merge.add_argument("source_id", type=int)
-    merge.add_argument("target_id", type=int)
-    merge.add_argument("--dry-run", action="store_true")
-    edit = sub.add("edit", "Edit a meaning")
-    edit.add_argument("meaning_id", type=int)
-    edit.add_argument("--name", help="New full name")
-    edit.add_argument("--scope", help="New meaning scope")
-    edit.add_argument("--description", help="New description")
-    meanings = sub.add("meanings", "List meanings")
-    meanings.add_argument("--tag")
-    meanings.add_argument("--scope")
-    meanings.add_argument("--favorite", action="store_true", dest="favorite_only")
-
-
-def _add_meaning_metadata_commands(sub: _Subparsers) -> None:
-    tag = sub.add("tag", "Add a tag to a meaning")
-    tag.add_argument("meaning_id", type=int)
-    tag.add_argument("name")
-    untag = sub.add("untag", "Remove a tag from a meaning")
-    untag.add_argument("meaning_id", type=int)
-    untag.add_argument("name")
-    sub.add("tags", "List tags")
-    favorite = sub.add("favorite", "Mark a meaning as favorite")
-    favorite.add_argument("meaning_id", type=int)
-    unfavorite = sub.add("unfavorite", "Remove a meaning from favorites")
-    unfavorite.add_argument("meaning_id", type=int)
-    relate = sub.add("relate", "Relate two meanings")
-    relate.add_argument("meaning_id", type=int)
-    relate.add_argument("related_id", type=int)
-    unrelate = sub.add("unrelate", "Remove a meaning relationship")
-    unrelate.add_argument("meaning_id", type=int)
-    unrelate.add_argument("related_id", type=int)
-    related = sub.add("related", "List related meanings")
-    related.add_argument("meaning_id", type=int)
-    reference_add = sub.add("reference-add", "Add a reference URL")
-    reference_add.add_argument("meaning_id", type=int)
-    reference_add.add_argument("url")
-    reference_add.add_argument("--title")
-    reference_edit = sub.add("reference-edit", "Edit a reference URL")
-    reference_edit.add_argument("reference_id", type=int)
-    reference_edit.add_argument("--url")
-    reference_edit.add_argument("--title")
-    reference_edit.add_argument("--clear-title", action="store_true")
-    reference_remove = sub.add("reference-remove", "Remove a reference URL")
-    reference_remove.add_argument("reference_id", type=int)
-    references = sub.add("references", "List reference URLs")
-    references.add_argument("meaning_id", type=int)
-
-
-def _add_scope_commands(sub: _Subparsers) -> None:
-    scope_add = sub.add("scope-add", "Create a meaning scope")
-    scope_add.add_argument("name")
-    scope_add.add_argument("--description")
-    sub.add("scopes", "List meaning scopes")
-    scope_edit = sub.add("scope-edit", "Edit a meaning scope")
-    scope_edit.add_argument("scope_id", type=int)
-    scope_edit.add_argument("--name")
-    scope_edit.add_argument("--description")
-    scope_delete = sub.add("scope-delete", "Delete an unused meaning scope")
-    scope_delete.add_argument("scope_id", type=int)
-
-
-def _add_config_and_transfer_commands(
-    sub: _Subparsers,
-) -> None:
-    config = sub.add("config", "Get or set user configuration")
-    config.add_argument("key", nargs="?", choices=("user.name", "user.email"))
-    config.add_argument("value", nargs="?")
-    config.add_argument("--list", action="store_true", dest="list_config")
-    config.add_argument("--unset", action="store_true")
-    export = sub.add("export", "Export meanings to CSV")
-    export.add_argument("path", nargs="?", default="termkeeper_export.csv")
-    import_ = sub.add("import", "Import meanings from CSV")
-    import_.add_argument("path")
-    import_.add_argument("--dry-run", action="store_true")
-    import_.add_argument("--strict", action="store_true")
-
-
-def _parse_datetime(value: str) -> datetime:
-    try:
-        return datetime.fromisoformat(value)
-    except ValueError as exc:
-        message = f"invalid ISO 8601 date or datetime: {value}"
-        raise argparse.ArgumentTypeError(message) from exc

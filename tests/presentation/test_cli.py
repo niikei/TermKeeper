@@ -32,7 +32,7 @@ def test_version(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 def test_json_workflow(capsys: pytest.CaptureFixture[str]) -> None:
-    assert main(["--json", "scope-add", "Finance"]) == 0
+    assert main(["scope", "add", "Finance", "--json"]) == 0
     capsys.readouterr()
     assert main(["--json", "add", "ICMR", "--memo", "monthly close"]) == 0
     added = json.loads(capsys.readouterr().out)
@@ -63,7 +63,7 @@ def test_json_workflow(capsys: pytest.CaptureFixture[str]) -> None:
     assert meaning["scope"] == "Finance"
     assert "ICMR" in meaning["terms"]
 
-    assert main(["--json", "search", "ICMR", "--in", "term", "--limit", "1"]) == 0
+    assert main(["search", "ICMR", "--field", "term", "--limit", "1", "--json"]) == 0
     matches = json.loads(capsys.readouterr().out)
     assert matches["hits"][0]["meaning"]["meaning_id"] == meaning["meaning_id"]
     assert matches["hits"][0]["matched_field"] == "term"
@@ -121,36 +121,47 @@ def test_human_readable_management_commands(
     assert main(["add", "ERP", "--source", "meeting"]) == 0
     assert main(["inbox"]) == 0
     assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
-    assert main(["alias", "1", "enterprise planning"]) == 0
+    assert main(["meaning", "alias-add", "1", "enterprise planning"]) == 0
     assert (
-        main(["edit", "1", "--name", "Enterprise Resource Planning", "--description", "suite"]) == 0
+        main(
+            [
+                "meaning",
+                "edit",
+                "1",
+                "--name",
+                "Enterprise Resource Planning",
+                "--description",
+                "suite",
+            ],
+        )
+        == 0
     )
     assert main(["search", "suite"]) == 0
     assert main(["show", "1"]) == 0
-    assert main(["meanings"]) == 0
-    assert main(["history"]) == 0
-    assert main(["unalias", "1", "enterprise planning"]) == 0
-    assert main(["delete", "1"]) == 0
+    assert main(["meaning", "list"]) == 0
+    assert main(["occurrence", "history"]) == 0
+    assert main(["meaning", "alias-remove", "1", "enterprise planning"]) == 0
+    assert main(["meaning", "delete", "1"]) == 0
     output = capsys.readouterr().out
     assert "Enterprise Resource Planning" in output
 
 
 def test_scope_management_commands(capsys: pytest.CaptureFixture[str]) -> None:
-    assert main(["--json", "scope-add", "SAP", "--description", "Enterprise"]) == 0
+    assert main(["scope", "add", "SAP", "--description", "Enterprise", "--json"]) == 0
     created = json.loads(capsys.readouterr().out)
     scope_id = created["scope_id"]
 
-    assert main(["--json", "scopes"]) == 0
+    assert main(["scope", "list", "--json"]) == 0
     assert any(item["name"] == "SAP" for item in json.loads(capsys.readouterr().out))
-    assert main(["scope-edit", str(scope_id), "--name", "SAP S/4HANA"]) == 0
+    assert main(["scope", "edit", str(scope_id), "--name", "SAP S/4HANA"]) == 0
     assert "Updated scope" in capsys.readouterr().out
-    assert main(["scope-delete", str(scope_id)]) == 0
+    assert main(["scope", "delete", str(scope_id), "--yes"]) == 0
     assert "Deleted scope" in capsys.readouterr().out
 
 
 def test_discard_and_empty_inbox(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["add", "remove-me"]) == 0
-    assert main(["discard", "1"]) == 0
+    assert main(["occurrence", "discard", "1"]) == 0
     assert main(["inbox"]) == 0
     assert "Inbox is empty" in capsys.readouterr().out
 
@@ -165,7 +176,7 @@ def test_interactive_resolve_and_edit(
     assert main(["resolve", "1"]) == 0
     answers = iter(["", "updated description"])
     monkeypatch.setattr("builtins.input", lambda _prompt: next(answers))
-    assert main(["edit", "1"]) == 0
+    assert main(["meaning", "edit", "1"]) == 0
     assert "Updated meaning" in capsys.readouterr().out
 
 
@@ -222,21 +233,21 @@ def test_edit_only_prompts_when_no_values_are_provided(
 
     monkeypatch.setattr("builtins.input", fail_input)
 
-    assert main(["--json", "edit", "1", "--description", "Updated"]) == 0
+    assert main(["meaning", "edit", "1", "--description", "Updated", "--json"]) == 0
     updated = json.loads(capsys.readouterr().out)
     assert updated["full_name"] == "Enterprise Resource Planning"
     assert updated["description"] == "Updated"
 
-    assert main(["scope-add", "SAP"]) == 0
+    assert main(["scope", "add", "SAP"]) == 0
     capsys.readouterr()
-    assert main(["edit", "1", "--scope", "SAP"]) == 0
+    assert main(["meaning", "edit", "1", "--scope", "SAP"]) == 0
     capsys.readouterr()
     assert main(["--json", "show", "1"]) == 0
     scoped = json.loads(capsys.readouterr().out)
     assert scoped["scope"] == "SAP"
     assert scoped["description"] == "Updated"
 
-    assert main(["--json", "edit", "1"]) == 2
+    assert main(["meaning", "edit", "1", "--json"]) == 2
     error = json.loads(capsys.readouterr().out)
     assert error["error"] == "ValidationError"
     assert "required with --json" in error["message"]
@@ -278,12 +289,12 @@ def test_occurrence_history_human_and_json(capsys: pytest.CaptureFixture[str]) -
     assert main(["add", "ERP", "--memo", "meeting", "--source", "Teams"]) == 0
     capsys.readouterr()
 
-    assert main(["occurrences", "--source", "teams", "--keyword", "erp"]) == 0
+    assert main(["occurrence", "list", "--source", "teams", "--keyword", "erp"]) == 0
     output = capsys.readouterr().out
     assert "ERP" in output
     assert "memo: meeting" in output
 
-    assert main(["--json", "occurrences", "--status", "Pending", "--limit", "1"]) == 0
+    assert main(["occurrence", "list", "--status", "Pending", "--limit", "1", "--json"]) == 0
     occurrences = json.loads(capsys.readouterr().out)
     assert occurrences["items"][0]["keyword"] == "ERP"
     assert occurrences["items"][0]["status"] == "Pending"
@@ -292,7 +303,7 @@ def test_occurrence_history_human_and_json(capsys: pytest.CaptureFixture[str]) -
 
     assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
     capsys.readouterr()
-    assert main(["occurrences"]) == 0
+    assert main(["occurrence", "list"]) == 0
     assert "meaning: 1" in capsys.readouterr().out
 
 
@@ -317,9 +328,9 @@ def test_occurrence_edit_and_classification_commands(capsys: pytest.CaptureFixtu
     assert main(["add", "ERPP", "--memo", "typo", "--source", "Meeting"]) == 0
     capsys.readouterr()
 
-    assert main(["occurrence-edit", "1", "--keyword", "ERP"]) == 0
+    assert main(["occurrence", "edit", "1", "--keyword", "ERP"]) == 0
     assert "Updated occurrence #1." in capsys.readouterr().out
-    assert main(["--json", "occurrence-edit", "1", "--clear-memo", "--source", "Teams"]) == 0
+    assert main(["occurrence", "edit", "1", "--clear-memo", "--source", "Teams", "--json"]) == 0
     occurrence = json.loads(capsys.readouterr().out)
     assert occurrence["keyword"] == "ERP"
     assert occurrence["memo"] is None
@@ -327,17 +338,17 @@ def test_occurrence_edit_and_classification_commands(capsys: pytest.CaptureFixtu
     assert occurrence["updated_at"]
 
     assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
-    assert main(["unresolve", "1"]) == 0
+    assert main(["occurrence", "unresolve", "1"]) == 0
     assert "Returned occurrence #1 to the inbox." in capsys.readouterr().out
-    assert main(["discard", "1"]) == 0
-    assert main(["reopen", "1"]) == 0
+    assert main(["occurrence", "discard", "1"]) == 0
+    assert main(["occurrence", "reopen", "1"]) == 0
     assert "Reopened occurrence #1." in capsys.readouterr().out
     assert main(["resolve", "1", "--meaning", "1"]) == 0
     assert "Assigned occurrence #1 to meaning #1." in capsys.readouterr().out
 
 
 def test_empty_occurrence_history(capsys: pytest.CaptureFixture[str]) -> None:
-    assert main(["occurrences", "--since", "2099-01-01"]) == 0
+    assert main(["occurrence", "list", "--since", "2099-01-01"]) == 0
     assert "No occurrences found." in capsys.readouterr().out
 
 
@@ -366,12 +377,12 @@ def test_merge_dry_run_and_json_apply(capsys: pytest.CaptureFixture[str]) -> Non
     assert main(["resolve", "2", "--name", "Target Meaning"]) == 0
     capsys.readouterr()
 
-    assert main(["merge", "1", "2", "--dry-run"]) == 0
+    assert main(["meaning", "merge", "1", "2", "--dry-run"]) == 0
     assert "Would merge meaning #1 into #2" in capsys.readouterr().out
     assert main(["show", "1"]) == 0
     capsys.readouterr()
 
-    assert main(["--json", "merge", "1", "2"]) == 0
+    assert main(["meaning", "merge", "1", "2", "--yes", "--json"]) == 0
     result = json.loads(capsys.readouterr().out)
     assert result["applied"] is True
     assert result["source_meaning_id"] == 1
@@ -381,20 +392,20 @@ def test_merge_dry_run_and_json_apply(capsys: pytest.CaptureFixture[str]) -> Non
 def test_tag_commands_and_filters(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["add", "ERP"]) == 0
     assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
-    assert main(["tag", "1", "SAP"]) == 0
+    assert main(["tag", "add", "1", "SAP"]) == 0
     assert "Tagged meaning #1" in capsys.readouterr().out
 
-    assert main(["tags"]) == 0
+    assert main(["tag", "list"]) == 0
     assert "SAP (1)" in capsys.readouterr().out
-    assert main(["meanings", "--tag", "sap"]) == 0
+    assert main(["meaning", "list", "--tag", "sap"]) == 0
     assert "Tags: SAP" in capsys.readouterr().out
     assert main(["search", "ERP", "--tag", "SAP"]) == 0
     assert "Enterprise Resource Planning" in capsys.readouterr().out
 
-    assert main(["--json", "tags"]) == 0
+    assert main(["tag", "list", "--json"]) == 0
     tags = json.loads(capsys.readouterr().out)
     assert tags == [{"meaning_count": 1, "name": "SAP"}]
-    assert main(["untag", "1", "sap"]) == 0
+    assert main(["tag", "remove", "1", "sap"]) == 0
     assert "Removed tag 'sap' from meaning #1." in capsys.readouterr().out
 
 
@@ -403,23 +414,23 @@ def test_favorite_commands_and_filters(capsys: pytest.CaptureFixture[str]) -> No
     assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
     capsys.readouterr()
 
-    assert main(["favorite", "1"]) == 0
+    assert main(["meaning", "favorite", "1"]) == 0
     assert "Favorited meaning #1." in capsys.readouterr().out
-    assert main(["meanings", "--favorite"]) == 0
+    assert main(["meaning", "list", "--favorite"]) == 0
     assert "★ Enterprise Resource Planning" in capsys.readouterr().out
     assert main(["search", "ERP", "--favorite"]) == 0
     assert "1 match(es)" in capsys.readouterr().out
 
-    assert main(["unfavorite", "1"]) == 0
+    assert main(["meaning", "unfavorite", "1"]) == 0
     assert "Unfavorited meaning #1." in capsys.readouterr().out
-    assert main(["--json", "favorite", "1"]) == 0
+    assert main(["meaning", "favorite", "1", "--json"]) == 0
     result = json.loads(capsys.readouterr().out)
     assert result["is_favorite"] is True
-    assert main(["--json", "unfavorite", "1"]) == 0
+    assert main(["meaning", "unfavorite", "1", "--json"]) == 0
     result = json.loads(capsys.readouterr().out)
     assert result["is_favorite"] is False
-    assert main(["meanings", "--favorite"]) == 0
-    assert capsys.readouterr().out == ""
+    assert main(["meaning", "list", "--favorite"]) == 0
+    assert capsys.readouterr().out == "No meanings found.\n"
 
 
 def test_related_meaning_commands(capsys: pytest.CaptureFixture[str]) -> None:
@@ -429,14 +440,14 @@ def test_related_meaning_commands(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["resolve", "2", "--name", "Material Requirements Planning"]) == 0
     capsys.readouterr()
 
-    assert main(["relate", "1", "2"]) == 0
+    assert main(["meaning", "relate", "1", "2"]) == 0
     assert "Related meaning #1 to #2." in capsys.readouterr().out
-    assert main(["related", "2"]) == 0
+    assert main(["meaning", "related", "2"]) == 0
     assert "Enterprise Resource Planning" in capsys.readouterr().out
-    assert main(["--json", "related", "1"]) == 0
+    assert main(["meaning", "related", "1", "--json"]) == 0
     related = json.loads(capsys.readouterr().out)
     assert related[0]["meaning_id"] == 2
-    assert main(["unrelate", "2", "1"]) == 0
+    assert main(["meaning", "unrelate", "2", "1"]) == 0
     assert "Unrelated meaning #2 from #1." in capsys.readouterr().out
 
 
@@ -448,7 +459,8 @@ def test_reference_commands(capsys: pytest.CaptureFixture[str]) -> None:
     assert (
         main(
             [
-                "reference-add",
+            "reference",
+            "add",
                 "1",
                 "https://example.com/erp",
                 "--title",
@@ -458,17 +470,17 @@ def test_reference_commands(capsys: pytest.CaptureFixture[str]) -> None:
         == 0
     )
     assert "Added reference #1" in capsys.readouterr().out
-    assert main(["--json", "reference-add", "1", "https://example.com/erp"]) == 0
+    assert main(["reference", "add", "1", "https://example.com/erp", "--json"]) == 0
     reference = json.loads(capsys.readouterr().out)
     assert reference["reference_id"] == 1
 
-    assert main(["references", "1"]) == 0
+    assert main(["reference", "list", "1"]) == 0
     output = capsys.readouterr().out
     assert "ERP guide" in output
     assert "https://example.com/erp" in output
-    assert main(["reference-edit", "1", "--clear-title"]) == 0
+    assert main(["reference", "edit", "1", "--clear-title"]) == 0
     assert "Updated reference #1." in capsys.readouterr().out
-    assert main(["reference-remove", "1"]) == 0
+    assert main(["reference", "remove", "1"]) == 0
     assert "Removed reference #1." in capsys.readouterr().out
 
 
@@ -498,18 +510,18 @@ def test_search_suggestions_human_json_and_disabled(
 def test_trash_restore_and_purge_commands(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["add", "ERP"]) == 0
     assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
-    assert main(["delete", "1"]) == 0
+    assert main(["meaning", "delete", "1"]) == 0
     assert "Moved meaning #1 to trash" in capsys.readouterr().out
 
-    assert main(["trash"]) == 0
+    assert main(["meaning", "trash"]) == 0
     assert "Deleted:" in capsys.readouterr().out
-    assert main(["restore", "1"]) == 0
+    assert main(["meaning", "restore", "1"]) == 0
     assert "Restored meaning #1" in capsys.readouterr().out
 
-    assert main(["delete", "1"]) == 0
+    assert main(["meaning", "delete", "1"]) == 0
     capsys.readouterr()
-    assert main(["unresolve", "1"]) == 0
-    assert main(["purge", "1"]) == 0
+    assert main(["occurrence", "unresolve", "1"]) == 0
+    assert main(["meaning", "purge", "1", "--yes"]) == 0
     assert "Permanently deleted meaning #1." in capsys.readouterr().out
 
 
@@ -588,7 +600,118 @@ def test_invalid_occurrence_datetime_is_rejected(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     with pytest.raises(SystemExit) as exc_info:
-        main(["occurrences", "--since", "not-a-date"])
+        main(["occurrence", "list", "--since", "not-a-date"])
 
     assert exc_info.value.code == 2
     assert "invalid ISO 8601 date or datetime" in capsys.readouterr().err
+
+
+def test_runtime_options_work_at_each_command_level(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["--json", "scope", "list"]) == 0
+    assert json.loads(capsys.readouterr().out)[0]["name"] == "General"
+
+    assert main(["scope", "--json", "list"]) == 0
+    assert json.loads(capsys.readouterr().out)[0]["name"] == "General"
+
+    assert main(["scope", "list", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out)[0]["name"] == "General"
+
+
+def test_resolve_rejects_conflicting_target_arguments(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["resolve", "1", "--meaning", "1", "--scope", "SAP"]) == 2
+    assert "cannot be used with --meaning" in capsys.readouterr().err
+
+    with pytest.raises(SystemExit) as exc_info:
+        main(["resolve", "1", "--meaning", "1", "--name", "Conflicting"])
+    assert exc_info.value.code == 2
+
+
+def test_destructive_commands_require_confirmation(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["scope", "add", "Temporary"]) == 0
+    capsys.readouterr()
+
+    assert main(["scope", "delete", "2", "--json"]) == 2
+    error = json.loads(capsys.readouterr().out)
+    assert "--yes is required" in error["message"]
+
+    monkeypatch.setattr("builtins.input", lambda _prompt: "n")
+    assert main(["scope", "delete", "2"]) == 2
+    assert "cancelled" in capsys.readouterr().err.lower()
+
+    assert main(["scope", "delete", "2", "--yes"]) == 0
+    assert "Deleted scope #2." in capsys.readouterr().out
+
+
+def test_descriptions_can_be_cleared_explicitly(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["scope", "add", "SAP", "--description", "Platform"]) == 0
+    assert main(["add", "ERP"]) == 0
+    assert (
+        main(
+            [
+                "resolve",
+                "1",
+                "--name",
+                "Enterprise Resource Planning",
+                "--description",
+                "Suite",
+                "--scope",
+                "SAP",
+            ],
+        )
+        == 0
+    )
+    capsys.readouterr()
+
+    assert main(["scope", "edit", "2", "--clear-description", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out)["description"] is None
+    assert main(["meaning", "edit", "1", "--clear-description", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out)["description"] is None
+
+
+def test_empty_human_outputs_are_explicit(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["config"]) == 0
+    assert capsys.readouterr().out == "No configuration is set.\n"
+    assert main(["meaning", "list"]) == 0
+    assert capsys.readouterr().out == "No meanings found.\n"
+    assert main(["meaning", "trash"]) == 0
+    assert capsys.readouterr().out == "Trash is empty.\n"
+    assert main(["tag", "list"]) == 0
+    assert capsys.readouterr().out == "No tags found.\n"
+
+
+def test_help_is_grouped_and_contains_examples(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--help"])
+    assert exc_info.value.code == 0
+    root_help = capsys.readouterr().out
+    assert "Quick start:" in root_help
+    assert "occurrence" in root_help
+    assert "scope-add" not in root_help
+
+    with pytest.raises(SystemExit):
+        main(["scope", "add", "--help"])
+    scope_help = capsys.readouterr().out
+    assert "tk scope add SAP" in scope_help
+
+
+def test_search_human_output_is_compact(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["add", "ERP"]) == 0
+    assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
+    capsys.readouterr()
+
+    assert main(["search", "ERP"]) == 0
+    output = capsys.readouterr().out
+    assert "[1] Enterprise Resource Planning [General]" in output
+    assert "score 100" in output
+    assert "Created:" not in output

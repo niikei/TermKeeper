@@ -123,8 +123,12 @@ def print_meaning(item: Meaning) -> None:
 
 
 def print_search_hit(hit: SearchHit) -> None:
-    print_meaning(hit.meaning)
-    print(f"Match: {hit.matched_field} {hit.matched_text!r} (score: {hit.score})")
+    marker = "★ " if hit.meaning.is_favorite else ""
+    print(
+        f"[{hit.meaning.meaning_id}] {marker}{hit.meaning.full_name} "
+        f"[{hit.meaning.scope}]",
+    )
+    print(f"    {hit.matched_field}: {hit.matched_text!r} · score {hit.score}")
 
 
 def print_search_suggestion(suggestion: SearchSuggestion) -> None:

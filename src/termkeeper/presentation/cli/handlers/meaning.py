@@ -4,6 +4,7 @@ import argparse
 
 from termkeeper.application import TermKeeperService, ValidationError
 from termkeeper.domain import Meaning, MergeResult, SearchQuery, SearchResult
+from termkeeper.presentation.cli.handlers.common import confirm_destructive
 from termkeeper.presentation.cli.rendering import (
     print_meaning,
     print_search_hit,
@@ -65,8 +66,11 @@ def handle_delete(args: argparse.Namespace, service: TermKeeperService) -> dict[
 def handle_trash(args: argparse.Namespace, service: TermKeeperService) -> list[Meaning]:
     result = service.trash()
     if not args.json:
-        for item in result:
-            print_meaning(item)
+        if result:
+            for item in result:
+                print_meaning(item)
+        else:
+            print("Trash is empty.")
     return result
 
 
@@ -78,6 +82,10 @@ def handle_restore(args: argparse.Namespace, service: TermKeeperService) -> Mean
 
 
 def handle_purge(args: argparse.Namespace, service: TermKeeperService) -> dict[str, int]:
+    confirm_destructive(
+        args,
+        f"Permanently delete trashed meaning #{args.meaning_id}?",
+    )
     service.purge_meaning(args.meaning_id)
     if not args.json:
         print(f"Permanently deleted meaning #{args.meaning_id}.")
@@ -85,6 +93,11 @@ def handle_purge(args: argparse.Namespace, service: TermKeeperService) -> dict[s
 
 
 def handle_merge(args: argparse.Namespace, service: TermKeeperService) -> MergeResult:
+    if not args.dry_run:
+        confirm_destructive(
+            args,
+            f"Merge meaning #{args.source_id} into #{args.target_id}?",
+        )
     result = service.merge_meanings(args.source_id, args.target_id, dry_run=args.dry_run)
     if not args.json:
         action = "Would merge" if args.dry_run else "Merged"
@@ -105,7 +118,11 @@ def handle_edit(args: argparse.Namespace, service: TermKeeperService) -> Meaning
     current = service.get_meaning(args.meaning_id)
     if _has_edit_values(args):
         name = args.name if args.name is not None else current.full_name
-        description = args.description if args.description is not None else current.description
+        description = (
+            None
+            if args.clear_description
+            else args.description if args.description is not None else current.description
+        )
     else:
         if args.json:
             message = "At least one of --name, --scope, or --description is required with --json."
@@ -118,13 +135,11 @@ def handle_edit(args: argparse.Namespace, service: TermKeeperService) -> Meaning
 
 
 def _has_edit_values(args: argparse.Namespace) -> bool:
-    return any(
-        value is not None
-        for value in (
-            args.name,
-            args.scope,
-            args.description,
-        )
+    return (
+        args.name is not None
+        or args.scope is not None
+        or args.description is not None
+        or args.clear_description
     )
 
 
@@ -141,6 +156,9 @@ def handle_meanings(args: argparse.Namespace, service: TermKeeperService) -> lis
         favorite_only=args.favorite_only,
     )
     if not args.json:
-        for item in result:
-            print_meaning(item)
+        if result:
+            for item in result:
+                print_meaning(item)
+        else:
+            print("No meanings found.")
     return result

@@ -76,20 +76,21 @@ Inboxは独立したテーブルではなく、未分類（Pending）のOccurren
 ### 遭遇履歴
 
 ```bash
-tk occurrences
-tk occurrences --meaning 1
-tk occurrences --status Pending
-tk occurrences --keyword MDM --source Slack
-tk occurrences --since 2026-07-01 --limit 20
-tk occurrences --offset 20 --limit 20
-tk occurrence-edit 3 --memo "訂正後のメモ" --source Teams
-tk occurrence-edit 3 --clear-memo
+tk occurrence list
+tk occurrence list --meaning 1
+tk occurrence list --status Pending
+tk occurrence list --keyword MDM --source Slack
+tk occurrence list --since 2026-07-01 --limit 20
+tk occurrence list --offset 20 --limit 20
+tk occurrence edit 3 --memo "訂正後のメモ" --source Teams
+tk occurrence edit 3 --clear-memo
 tk stats --limit 10
 ```
 
 遭遇ごとの用語、memo、source、状態、日時、Meaningとの関連を確認できます。
 個別Occurrenceのkeyword・memo・sourceを修正できます。
-`inbox`、`history`、`occurrences`は`--offset`と`--limit`に対応します。一覧はDBでページングされ、
+`inbox`、`occurrence history`、`occurrence list`は`--offset`と`--limit`に対応します。
+一覧はDBでページングされ、
 JSON出力は`items`、`offset`、`limit`、`has_more`を返します。
 `stats`では総遭遇数、未解決数、Meaning数と、頻出語・出典を確認できます。
 
@@ -98,8 +99,8 @@ JSON出力は`items`、`offset`、`limit`、`has_more`を返します。
 Meaningを製品・組織・業務領域で分離する場合は、先にScopeを登録します。
 
 ```bash
-tk scope-add Finance --description "財務・連結領域"
-tk scopes
+tk scope add Finance --description "財務・連結領域"
+tk scope list
 ```
 
 対話形式:
@@ -129,31 +130,31 @@ tk resolve 1 --meaning 12
 分類は後から安全に修正できます。
 
 ```bash
-tk unresolve 1
-tk discard 1
-tk reopen 1
+tk occurrence unresolve 1
+tk occurrence discard 1
+tk occurrence reopen 1
 ```
 
 ### 検索と詳細表示
 
 ```bash
 tk search ICMR
-tk search "enterprise planning" --all
-tk search "planning document" --any --in description --limit 10
+tk search "enterprise planning" --match-all
+tk search "planning document" --match-any --field description --limit 10
 tk search ERP --tag SAP
 tk search ERP --scope SAP
 tk search ERPP --suggestions 3
 tk search ERPP --no-suggestions
 tk search ERP --favorite
 tk show 1
-tk meanings --tag SAP
-tk meanings --scope SAP
-tk meanings --favorite
+tk meaning list --tag SAP
+tk meaning list --scope SAP
+tk meaning list --favorite
 ```
 
 検索は完全一致、前方一致、部分一致の順に関連度を付け、一致理由とともに表示します。
-複数語は標準ですべての語に一致するMeaningを探します。`--any`でいずれかの語、
-`--in term|name|description|all`で検索対象、`--limit`で最大件数を指定できます。
+複数語は標準ですべての語に一致するMeaningを探します。`--match-any`でいずれかの語、
+`--field term|name|description|all`で検索対象、`--limit`で最大件数を指定できます。
 `--tag`を指定すると、そのタグを持つMeaningだけに絞り込みます。
 `--scope`を指定すると、SAP、Oracle、Generalなどの概念境界で絞り込みます。
 `--favorite`を指定すると、お気に入りのMeaningだけに絞り込みます。
@@ -163,49 +164,51 @@ tk meanings --favorite
 ### 整理
 
 ```bash
-tk alias 1 ICMR
-tk unalias 1 ICMR
-tk edit 1 --name "Intercompany Matching and Reconciliation" --scope Finance
-tk tag 1 SAP
-tk untag 1 SAP
-tk tags
-tk favorite 1
-tk unfavorite 1
-tk relate 1 2
-tk related 1
-tk unrelate 1 2
-tk reference-add 1 https://example.com/erp --title "ERP guide"
-tk references 1
-tk reference-edit 1 --title "Official ERP guide"
-tk reference-remove 1
-tk merge 2 1 --dry-run
-tk merge 2 1
-tk delete 1
-tk trash
-tk restore 1
-tk purge 1
-tk discard 2
-tk history
+tk meaning alias-add 1 ICMR
+tk meaning alias-remove 1 ICMR
+tk meaning edit 1 --name "Intercompany Matching and Reconciliation" --scope Finance
+tk meaning edit 1 --clear-description
+tk tag add 1 SAP
+tk tag remove 1 SAP
+tk tag list
+tk meaning favorite 1
+tk meaning unfavorite 1
+tk meaning relate 1 2
+tk meaning related 1
+tk meaning unrelate 1 2
+tk reference add 1 https://example.com/erp --title "ERP guide"
+tk reference list 1
+tk reference edit 1 --title "Official ERP guide"
+tk reference remove 1
+tk meaning merge 2 1 --dry-run
+tk meaning merge 2 1 --yes
+tk meaning delete 1
+tk meaning trash
+tk meaning restore 1
+tk meaning purge 1 --yes
+tk occurrence discard 2
+tk occurrence history
 ```
 
-`edit`は指定した項目だけを更新し、省略した項目は現在値を維持します。引数なしの通常実行では
-対話入力に切り替わりますが、`--json edit`では更新項目を1つ以上指定してください。
+`meaning edit`は指定した項目だけを更新し、省略した項目は現在値を維持します。
+引数なしの通常実行では対話入力に切り替わりますが、JSONモードでは更新項目を1つ以上
+指定してください。説明の削除には`--clear-description`を使います。
 
-`merge SOURCE TARGET`は、統合元のTerm、Tag、Occurrence、Reference、Relationを統合先へ移動し、
+`meaning merge SOURCE TARGET`は、統合元のTerm、Tag、Occurrence、Reference、Relationを統合先へ移動し、
 統合元Meaningを削除します。同一URLのReferenceと同一関連先のRelationは重複排除され、
 sourceとtargetの直接Relationは自己Relationになるため畳み込まれます。`--dry-run`では変更せず、
-移動・重複排除・畳み込み件数を確認できます。
+移動・重複排除・畳み込み件数を確認できます。実行時は確認に応答するか`--yes`を指定します。
 
-`relate A B`は2つのMeaningを双方向に関連付けます。`related ID`で関連Meaningを一覧表示し、
-`unrelate A B`で関連を解除できます。
+`meaning relate A B`は2つのMeaningを双方向に関連付けます。`meaning related ID`で
+関連Meaningを一覧表示し、`meaning unrelate A B`で関連を解除できます。
 
-`reference-add`は調査資料などのHTTP/HTTPS URLをMeaningへ保存します。同じMeaningへの同一URLは
-重複登録されません。`reference-edit`でURL・タイトルを修正し、`--clear-title`でタイトルを
-消去できます。
+`reference add`は調査資料などのHTTP/HTTPS URLをMeaningへ保存します。同じMeaningへの同一URLは
+重複登録されません。`reference edit`でURL・タイトルを修正し、`--clear-title`でタイトルを消去できます。
 
-`delete`はMeaningをTrashへ移す論理削除です。通常の一覧・検索・Term照合・CSV Exportから
-除外されます。`restore`で復元できます。分類履歴を保護するため、Occurrenceから参照される
-Meaningは`purge`できません。先に該当Occurrenceを`unresolve`または再分類してください。
+`meaning delete`はMeaningをTrashへ移す論理削除です。通常の一覧・検索・Term照合・CSV Exportから
+除外されます。`meaning restore`で復元できます。分類履歴を保護するため、Occurrenceから参照される
+Meaningは`meaning purge`できません。先に該当Occurrenceを`occurrence unresolve`または
+再分類してください。完全削除には確認または`--yes`が必要です。
 
 ### CSV入出力
 
@@ -236,11 +239,11 @@ tk config --unset user.email
 
 ## JSON出力
 
-主要コマンドは機械可読なJSONを出力できます。`--json` はサブコマンドより前に指定します。
+主要コマンドは機械可読なJSONを出力できます。`--json`はコマンドの前後どちらにも指定できます。
 
 ```bash
 tk --json search MDM
-tk --json add BTP --source Slack
+tk add BTP --source Slack --json
 ```
 
 JSONモードは完全に非対話で、標準入力を要求せず、標準出力にはJSONだけを出力します。

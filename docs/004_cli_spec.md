@@ -7,7 +7,8 @@ tk [--json] [--debug] COMMAND ...
 tk --version
 ```
 
-共通オプションはサブコマンドより前に置く。Applicationエラー時は終了コード`2`、
+`--json`と`--debug`はトップレベル、コマンドグループ直後、最終サブコマンド直後の
+いずれにも置ける。Applicationエラー時は終了コード`2`、
 DB初期化エラー時は終了コード`1`を返す。内部トレースバックは通常表示せず、
 `--debug`指定時だけ標準エラーへ出力する。
 
@@ -18,24 +19,17 @@ DB初期化エラー時は終了コード`1`を返す。内部トレースバッ
 | `init` | DBを最新Alembic Revisionへ更新 | なし |
 | `add` | 遭遇を捕捉 | `keyword`, `--memo`, `--source`, `--meaning` |
 | `inbox` | Pending Occurrence一覧 | `--offset`, `--limit` |
-| `history` | 全Occurrence履歴 | `--offset`, `--limit` |
-| `occurrences` | 遭遇履歴を絞り込み | filter、`--offset`、`--limit` |
-| `occurrence-edit` | 遭遇情報を修正 | `occurrence_id`, keyword/memo/source更新・clear |
 | `resolve` | 新規・既存Meaningへ分類 | `occurrence_id`, `--meaning`または`--name`, `--scope`, `--description` |
-| `unresolve` | 分類をPendingへ戻す | `occurrence_id` |
-| `discard` | Pendingを破棄 | `occurrence_id` |
-| `reopen` | DiscardedをPendingへ戻す | `occurrence_id` |
 | `search` | Meaning検索 | query、field、tag、scope、favorite、suggestion |
-| `show` / `meanings` | Meaning表示・一覧 | ID、`--tag`, `--scope`, `--favorite` |
-| `edit` | Meaning更新 | ID、`--name`, `--scope`, `--description` |
-| `scope-add` / `scopes` / `scope-edit` / `scope-delete` | Scope管理 | name、description、Scope ID |
-| `alias` / `unalias` | Term追加・削除 | Meaning ID、keyword |
-| `tag` / `untag` / `tags` | Tag管理 | Meaning ID、name |
-| `favorite` / `unfavorite` | お気に入り | Meaning ID |
-| `relate` / `unrelate` / `related` | Meaning関連 | Meaning ID |
-| `reference-*` / `references` | 参考URL管理 | Meaning・Reference ID |
-| `merge` | Meaning統合 | source、target、`--dry-run` |
-| `delete` / `trash` / `restore` / `purge` | Meaning lifecycle | Meaning ID |
+| `show` | Meaning詳細 | Meaning ID |
+| `stats` | 遭遇統計 | `--limit` |
+| `occurrence list/history/edit/unresolve/discard/reopen` | Occurrence管理 | filter、ID、ページング |
+| `meaning list/edit/alias-*/favorite/unfavorite` | Meaning管理 | Meaning ID、更新値 |
+| `meaning relate/unrelate/related` | Meaning関連 | Meaning ID |
+| `meaning merge/delete/trash/restore/purge` | Meaning lifecycle | Meaning ID、`--dry-run`, `--yes` |
+| `scope add/list/edit/delete` | Scope管理 | name、description、Scope ID |
+| `tag add/remove/list` | Tag管理 | Meaning ID、name |
+| `reference add/edit/remove/list` | 参考URL管理 | Meaning・Reference ID |
 | `export` / `import` | CSV入出力 | path、dry-run、strict |
 | `config` | user.name / user.email | key、value、list、unset |
 
@@ -67,20 +61,23 @@ tk resolve OCCURRENCE_ID --meaning MEANING_ID
 指定し、省略時は`General`を使う。新規作成では同じ`scope_id`と
 `full_name_norm`を持つ有効Meaningを拒否する。既存Meaning指定はResolvedの再分類にも利用できる。
 
-## `tk edit`
+`--meaning`と`--name`は排他的である。`--meaning`指定時に`--scope`または`--description`を
+併用した場合も、曖昧な入力として拒否する。
+
+## `tk meaning edit`
 
 `--name`、`--scope`、`--description`のうち指定した項目だけを更新し、省略した項目は現在値を
 維持する。通常モードで更新項目を1つも指定しない場合だけ対話入力する。JSONモードでは入力待ちを
-行わず、更新項目を1つ以上必須とする。
+行わず、更新項目を1つ以上必須とする。説明を削除する場合は`--clear-description`を使う。
 
 ## 分類状態
 
-- `unresolve`: Resolved → Pending
-- `discard`: Pending → Discarded
-- `reopen`: Discarded → Pending
+- `occurrence unresolve`: Resolved → Pending
+- `occurrence discard`: Pending → Discarded
+- `occurrence reopen`: Discarded → Pending
 - Discardedはreopenするまで分類不可
 
-## `tk occurrences`
+## `tk occurrence list`
 
 Occurrenceを`occurred_at`の新しい順で表示する。
 
@@ -98,20 +95,24 @@ source、status、meaning_id、各日時・監査列を含む。
 
 ## `tk search`
 
-完全一致、前方一致、部分一致の順で採点する。複数語は標準でAND、`--any`でOR。
-`--in term|name|description|all`、`--tag`、`--scope`、`--favorite`で絞り込む。
+完全一致、前方一致、部分一致の順で採点する。複数語は標準でAND、`--match-any`でOR。
+`--field term|name|description|all`、`--tag`、`--scope`、`--favorite`で絞り込む。
 通常ヒットがない場合だけ類似候補を返す。
 Term、正式名称、説明はNFKC＋casefoldで比較し、全角／半角や`Straße`／`STRASSE`の差を
-吸収する。レスポンスの一致文字列は正規化前の原文を返す。
+吸収する。レスポンスの一致文字列は正規化前の原文を返す。人間向け出力はID、正式名称、
+Scope、一致箇所、スコアに絞り、詳細は`tk show`で確認する。
 
 ## Meaning lifecycle
 
 Meaningは`full_name`、Scope参照、説明、Term、Tagを持つ。有効MeaningのScope・正規化正式名称の組は
-一意。`merge`はTerm、Tag、Occurrence、Reference、Relationを移動する。同一URLと同一関連先は
+一意。`meaning merge`はTerm、Tag、Occurrence、Reference、Relationを移動する。同一URLと同一関連先は
 統合先を優先して重複排除し、統合元と統合先の直接Relationは畳み込む。
 
-`delete`は論理削除し、Occurrence参照を維持する。`restore`はPending Occurrenceを自動分類しない。
-`purge`は参照OccurrenceがないTrash内Meaningだけを完全削除できる。
+`meaning delete`は論理削除し、Occurrence参照を維持する。`meaning restore`はPending Occurrenceを
+自動分類しない。`meaning purge`は参照OccurrenceがないTrash内Meaningだけを完全削除できる。
+
+`meaning purge`、実更新する`meaning merge`、`scope delete`は人間向け実行で確認を求める。
+自動化とJSONモードでは`--yes`を必須とし、入力待ちを行わない。
 
 ## CSV
 

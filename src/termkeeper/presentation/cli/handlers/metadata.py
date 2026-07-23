@@ -24,8 +24,11 @@ def handle_untag(args: argparse.Namespace, service: TermKeeperService) -> Meanin
 def handle_tags(args: argparse.Namespace, service: TermKeeperService) -> list[TagSummary]:
     result = service.tags()
     if not args.json:
-        for tag in result:
-            print(f"{tag.name} ({tag.meaning_count})")
+        if result:
+            for tag in result:
+                print(f"{tag.name} ({tag.meaning_count})")
+        else:
+            print("No tags found.")
     return result
 
 
@@ -60,8 +63,11 @@ def handle_unrelate(args: argparse.Namespace, service: TermKeeperService) -> lis
 def handle_related(args: argparse.Namespace, service: TermKeeperService) -> list[Meaning]:
     result = service.related(args.meaning_id)
     if not args.json:
-        for item in result:
-            print_meaning(item)
+        if result:
+            for item in result:
+                print_meaning(item)
+        else:
+            print("No related meanings found.")
     return result
 
 
@@ -106,5 +112,8 @@ def handle_references(
 ) -> list[ReferenceLink]:
     result = service.references(args.meaning_id)
     if not args.json:
-        print_references(result)
+        if result:
+            print_references(result)
+        else:
+            print("No references found.")
     return result
