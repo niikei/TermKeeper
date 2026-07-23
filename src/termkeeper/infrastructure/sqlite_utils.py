@@ -16,5 +16,6 @@ def now() -> str:
 def inserted_id(cursor: sqlite3.Cursor) -> int:
     row_id = cursor.lastrowid
     if row_id is None:
-        raise RuntimeError("SQLite did not return an ID for the inserted row.")
+        message = "SQLite did not return an ID for the inserted row."
+        raise RuntimeError(message)
     return row_id

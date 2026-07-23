@@ -40,9 +40,9 @@ __all__ = [
     "list_meanings",
     "list_meanings_for_export",
     "meaning_exists",
-    "search_term",
-    "touch_inbox",
     "normalize_keyword",
     "now",
+    "search_term",
+    "touch_inbox",
     "update_meaning",
 ]

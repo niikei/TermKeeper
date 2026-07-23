@@ -3,12 +3,10 @@
 import sqlite3
 
 from termkeeper.infrastructure.connection import get_connection
-from termkeeper.infrastructure.sqlite_utils import normalize_keyword, now
+from termkeeper.infrastructure.sqlite_utils import inserted_id, normalize_keyword, now
 
 
 def add_inbox(keyword: str, memo: str | None = None, source: str | None = None) -> int:
-    from termkeeper.infrastructure.sqlite_utils import inserted_id
-
     stamp = now()
     with get_connection() as connection:
         cursor = connection.execute(

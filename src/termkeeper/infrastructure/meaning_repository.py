@@ -38,7 +38,8 @@ def add_term(meaning_id: int, keyword: str) -> bool:
 def get_meaning(meaning_id: int) -> sqlite3.Row | None:
     with get_connection() as connection:
         return connection.execute(
-            "SELECT * FROM meaning WHERE meaning_id = ?", (meaning_id,)
+            "SELECT * FROM meaning WHERE meaning_id = ?",
+            (meaning_id,),
         ).fetchone()
 
 
