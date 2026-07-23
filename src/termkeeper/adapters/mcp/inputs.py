@@ -16,11 +16,19 @@ type Offset = Annotated[
 type Limit = Annotated[int, Field(ge=1, le=100, description="Maximum items to return")]
 type SearchText = Annotated[
     str,
-    Field(min_length=1, description="Case-insensitive text to find; SQL wildcards are literal"),
+    Field(
+        min_length=1,
+        pattern=r".*\S.*",
+        description="Non-blank case-insensitive text to find; SQL wildcards are literal",
+    ),
 ]
 type NonEmptyText = Annotated[
     str,
-    Field(min_length=1, description="Non-empty text; surrounding whitespace is normalized"),
+    Field(
+        min_length=1,
+        pattern=r".*\S.*",
+        description="Non-blank text; surrounding whitespace is normalized",
+    ),
 ]
 
 

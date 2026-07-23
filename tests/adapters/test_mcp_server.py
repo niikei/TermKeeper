@@ -96,9 +96,11 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
     assert definitions["search_scopes"]["$defs"]["ScopeSearchFilters"]["required"] == ["text"]
     search_definitions = definitions["search_meanings"]["$defs"]
     assert search_definitions["SearchText"]["minLength"] == 1
+    assert search_definitions["SearchText"]["pattern"] == r".*\S.*"
     assert "next page" in search_definitions["Offset"]["description"]
     create_definitions = definitions["create_meaning"]["$defs"]
     assert create_definitions["NonEmptyText"]["minLength"] == 1
+    assert create_definitions["NonEmptyText"]["pattern"] == r".*\S.*"
     assert create_definitions["MeaningCreateInput"]["properties"]["full_name"] == {
         "$ref": "#/$defs/NonEmptyText"
     }
