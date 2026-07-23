@@ -1,5 +1,6 @@
 """Domain models for TermKeeper."""
 
+from termkeeper.domain.analytics import Frequency, StatsSummary
 from termkeeper.domain.importing import ImportIssue, ImportResult, ImportRow
 from termkeeper.domain.merge import MergeResult
 from termkeeper.domain.models import AddResult, InboxItem, Meaning
@@ -16,6 +17,7 @@ from termkeeper.domain.tag import TagSummary
 
 __all__ = [
     "AddResult",
+    "Frequency",
     "InboxItem",
     "InboxStatus",
     "ImportIssue",
@@ -31,5 +33,6 @@ __all__ = [
     "SearchQuery",
     "SearchResult",
     "SearchSuggestion",
+    "StatsSummary",
     "TagSummary",
 ]

@@ -46,6 +46,8 @@ def _add_capture_commands(sub: _Subparsers) -> None:
     occurrence_edit.add_argument("--source")
     occurrence_edit.add_argument("--clear-memo", action="store_true")
     occurrence_edit.add_argument("--clear-source", action="store_true")
+    stats = sub.add_parser("stats", help="Show occurrence analytics and rankings")
+    stats.add_argument("--limit", type=int, default=10)
     resolve = sub.add_parser("resolve", help="Turn an inbox item into a meaning")
     resolve.add_argument("inbox_id", type=int)
     resolve.add_argument("--name", help="Full name (omit for an interactive prompt)")

@@ -59,10 +59,12 @@ tk occurrences --keyword MDM --source Slack
 tk occurrences --since 2026-07-01 --limit 20
 tk occurrence-edit 3 --memo "訂正後のメモ" --source Teams
 tk occurrence-edit 3 --clear-memo
+tk stats --limit 10
 ```
 
 遭遇ごとの用語、memo、source、日時、Inbox／Meaningとの関連を確認できます。
 未解決Inboxのkeywordと、個別Occurrenceのkeyword・memo・sourceを修正できます。
+`stats`では総遭遇数、未解決数、Meaning数と、頻出語・出典を確認できます。
 
 ### 解決
 

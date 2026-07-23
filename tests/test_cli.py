@@ -148,6 +148,24 @@ def test_empty_occurrence_history(capsys: pytest.CaptureFixture[str]) -> None:
     assert "No occurrences found." in capsys.readouterr().out
 
 
+def test_stats_human_and_json(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["add", "ERP", "--source", "Teams"]) == 0
+    assert main(["add", "erp", "--source", "teams"]) == 0
+    capsys.readouterr()
+
+    assert main(["stats", "--limit", "1"]) == 0
+    output = capsys.readouterr().out
+    assert "Occurrences: 2" in output
+    assert "ERP: 2" in output
+    assert "Teams: 2" in output
+
+    assert main(["--json", "stats", "--limit", "1"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["total_occurrences"] == 2
+    assert result["top_terms"][0]["count"] == 2
+    assert result["top_sources"][0]["value"] == "Teams"
+
+
 def test_merge_dry_run_and_json_apply(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["add", "SRC"]) == 0
     assert main(["resolve", "1", "--name", "Source Meaning"]) == 0

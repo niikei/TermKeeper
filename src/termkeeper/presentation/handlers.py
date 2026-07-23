@@ -14,6 +14,7 @@ from termkeeper.domain import (
     OccurrenceUpdate,
     SearchQuery,
     SearchResult,
+    StatsSummary,
     TagSummary,
 )
 from termkeeper.presentation.csv_io import export_meanings, import_meanings
@@ -23,6 +24,7 @@ from termkeeper.presentation.rendering import (
     print_occurrences,
     print_search_hit,
     print_search_suggestion,
+    print_stats,
 )
 from termkeeper.presentation.types import CommandHandler
 
@@ -106,6 +108,13 @@ def handle_occurrence_edit(
     result = service.edit_occurrence(args.occurrence_id, update)
     if not args.json:
         print(f"Updated occurrence #{args.occurrence_id}.")
+    return result
+
+
+def handle_stats(args: argparse.Namespace, service: TermKeeperService) -> StatsSummary:
+    result = service.stats(args.limit)
+    if not args.json:
+        print_stats(result)
     return result
 
 
@@ -320,6 +329,7 @@ HANDLERS: dict[str, CommandHandler] = {
     "inbox-edit": handle_inbox_edit,
     "occurrences": handle_occurrences,
     "occurrence-edit": handle_occurrence_edit,
+    "stats": handle_stats,
     "resolve": handle_resolve,
     "search": handle_search,
     "discard": handle_discard,

@@ -12,6 +12,7 @@ from termkeeper.domain import (
     SearchHit,
     SearchResult,
     SearchSuggestion,
+    StatsSummary,
 )
 from termkeeper.presentation.types import CommandResult
 
@@ -19,7 +20,16 @@ from termkeeper.presentation.types import CommandResult
 def print_json(value: CommandResult) -> None:
     if isinstance(
         value,
-        (AddResult, ImportResult, InboxItem, Meaning, MergeResult, OccurrenceItem, SearchResult),
+        (
+            AddResult,
+            ImportResult,
+            InboxItem,
+            Meaning,
+            MergeResult,
+            OccurrenceItem,
+            SearchResult,
+            StatsSummary,
+        ),
     ):
         _print_json_value(value.to_dict())
         return
@@ -65,6 +75,19 @@ def print_occurrences(items: list[OccurrenceItem]) -> None:
             details.append(f"meaning: {item.meaning_id}")
         if details:
             print("      " + " / ".join(details))
+
+
+def print_stats(stats: StatsSummary) -> None:
+    print(
+        f"Occurrences: {stats.total_occurrences}  Open inbox: {stats.open_inbox_items}  "
+        f"Meanings: {stats.active_meanings}",
+    )
+    print("Top terms:")
+    for item in stats.top_terms:
+        print(f"  {item.value}: {item.count} (last seen: {item.last_seen_at})")
+    print("Top sources:")
+    for item in stats.top_sources:
+        print(f"  {item.value}: {item.count} (last seen: {item.last_seen_at})")
 
 
 def print_meaning(item: Meaning) -> None:

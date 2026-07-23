@@ -9,6 +9,7 @@
 - 遭遇ごとのsource・memo・時刻を保持するOccurrence履歴
 - Meaning・Inbox・keyword・source・期間によるOccurrence履歴の絞り込み
 - 未解決Inboxと個別Occurrenceの編集、更新監査
+- 総遭遇数と頻出語・出典の分析、ランキング
 - Meaningの作成、編集、一覧、詳細表示
 - Termと別名の管理
 - Meaning統合のDry Run、Term・Occurrence・Inbox移動
@@ -37,7 +38,7 @@
 - カテゴリ、関連用語
 - URL、添付ファイル
 - お気に入り
-- 出現回数を利用した分析・ランキング・ダッシュボード
+- Webダッシュボード
 - 同期、複数ユーザー、認証・認可
 
 ## 拡張順序

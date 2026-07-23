@@ -15,7 +15,7 @@ Applicationの各更新ユースケースはUnit of Workを使用し、1つのSe
 完結する。Repositoryはcommitせず、トランザクション境界をApplicationへ集約する。
 `TermKeeperService` 自体は薄いファサードとし、実装は `use_cases/inbox.py`、
 `use_cases/meaning.py`、`use_cases/merge.py`、`use_cases/occurrence.py`、
-`use_cases/tag.py`、`use_cases/config.py` に分割する。
+`use_cases/analytics.py`、`use_cases/tag.py`、`use_cases/config.py` に分割する。
 共有するレコード取得とDTO変換だけを`support.py` と `mapping.py` に置き、機能間の
 直接呼び出しは避ける。
 
@@ -35,9 +35,12 @@ InboxとOccurrenceの編集はApplicationで状態・重複・入力競合を検
 更新監査列を同時に変更する。InboxとOccurrenceは別の履歴境界として扱い、一方の編集を他方へ
 暗黙に波及させない。
 
+出現分析はOccurrence、Inbox、Meaningに対する読み取り専用の集約として実装する。集計SQLは
+Repositoryへ閉じ込め、Applicationからは`StatsSummary`として返す。
+
 APIやMCPを追加するときは `TermKeeperService` を再利用し、SQLやCLIの標準出力を直接
 呼ばない。MCPツールはまず `add`, `inbox`, `occurrences`, `resolve`, `search`, `show`,
-`merge`, `tag`, `untag`, `tags` を1対1で公開する。
+`merge`, `tag`, `untag`, `tags`, `stats` を1対1で公開する。
 
 ## 時刻
 

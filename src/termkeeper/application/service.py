@@ -1,6 +1,7 @@
 """Public application facade for CLI, HTTP, and MCP adapters."""
 
 from termkeeper.application.use_cases import (
+    AnalyticsUseCases,
     ConfigUseCases,
     ImportUseCases,
     InboxUseCases,
@@ -13,6 +14,7 @@ from termkeeper.infrastructure.schema import init_db
 
 
 class TermKeeperService(
+    AnalyticsUseCases,
     InboxUseCases,
     ImportUseCases,
     MeaningUseCases,
