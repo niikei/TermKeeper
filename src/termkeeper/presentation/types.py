@@ -19,8 +19,10 @@ from termkeeper.domain import (
 type CommandResult = (
     AddResult
     | ImportResult
+    | InboxItem
     | Meaning
     | MergeResult
+    | OccurrenceItem
     | SearchResult
     | list[InboxItem]
     | list[Meaning]

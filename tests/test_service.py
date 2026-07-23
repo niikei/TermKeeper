@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import func, select
 
 from termkeeper.application import NotFoundError, TermKeeperService, ValidationError
-from termkeeper.domain import OccurrenceQuery, SearchField, SearchQuery
+from termkeeper.domain import OccurrenceQuery, OccurrenceUpdate, SearchField, SearchQuery
 from termkeeper.infrastructure.connection import get_session
 from termkeeper.infrastructure.tables import Inbox, Occurrence
 from termkeeper.infrastructure.tables import Meaning as MeaningRecord
@@ -23,6 +23,27 @@ def test_capture_duplicate_increments_occurrence_count() -> None:
     assert second.inbox.occurrence_count == 2
     assert second.inbox.memo == "meeting"
     assert second.inbox.source == "chat"
+
+
+def test_edit_open_inbox_validates_state_and_duplicates() -> None:
+    service = TermKeeperService()
+    service.set_config("user.name", "Editor")
+    first = service.add("ERPP")
+    second = service.add("CRM")
+    assert first.inbox is not None
+    assert second.inbox is not None
+
+    edited = service.edit_inbox(first.inbox.inbox_id, " ERP ")
+
+    assert edited.keyword == "ERP"
+    assert edited.updated_by_id is not None
+    assert service.occurrences(OccurrenceQuery(inbox_id=first.inbox.inbox_id))[0].keyword == "ERPP"
+    with pytest.raises(ValidationError):
+        service.edit_inbox(second.inbox.inbox_id, "ERP")
+    meaning = service.resolve(first.inbox.inbox_id, "Enterprise Resource Planning")
+    assert "ERP" in meaning.terms
+    with pytest.raises(ValidationError):
+        service.edit_inbox(first.inbox.inbox_id, "ERP updated")
 
 
 def test_resolve_creates_searchable_meaning_and_closes_inbox() -> None:
@@ -285,6 +306,54 @@ def test_occurrence_history_validates_limit() -> None:
         service.occurrences(OccurrenceQuery(limit=0))
     with pytest.raises(ValidationError):
         service.occurrences(OccurrenceQuery(limit=501))
+
+
+def test_edit_occurrence_updates_context_audit_and_normalized_search() -> None:
+    service = TermKeeperService()
+    service.set_config("user.name", "Editor")
+    service.add("ERPP", memo="typo", source="Meeting")
+    occurrence = service.occurrences()[0]
+
+    updated = service.edit_occurrence(
+        occurrence.occurrence_id,
+        OccurrenceUpdate(keyword=" ERP ", memo=" corrected ", source=" Teams "),
+    )
+
+    assert updated.keyword == "ERP"
+    assert updated.memo == "corrected"
+    assert updated.source == "Teams"
+    assert updated.updated_at.replace(tzinfo=None) >= occurrence.updated_at.replace(tzinfo=None)
+    assert updated.updated_by_id is not None
+    assert service.occurrences(OccurrenceQuery(keyword="erp"))[0].occurrence_id == (
+        occurrence.occurrence_id
+    )
+
+    cleared = service.edit_occurrence(
+        occurrence.occurrence_id,
+        OccurrenceUpdate(clear_memo=True, clear_source=True),
+    )
+    assert cleared.memo is None
+    assert cleared.source is None
+
+
+def test_edit_occurrence_validation_and_missing_record() -> None:
+    service = TermKeeperService()
+    service.add("ERP")
+    occurrence_id = service.occurrences()[0].occurrence_id
+
+    invalid_updates = (
+        OccurrenceUpdate(),
+        OccurrenceUpdate(keyword=" "),
+        OccurrenceUpdate(memo=" "),
+        OccurrenceUpdate(source=" "),
+        OccurrenceUpdate(memo="memo", clear_memo=True),
+        OccurrenceUpdate(source="source", clear_source=True),
+    )
+    for update in invalid_updates:
+        with pytest.raises(ValidationError):
+            service.edit_occurrence(occurrence_id, update)
+    with pytest.raises(NotFoundError):
+        service.edit_occurrence(999, OccurrenceUpdate(memo="missing"))
 
 
 def test_user_profile_is_recorded_in_audit_columns() -> None:

@@ -79,6 +79,7 @@ erDiagram
         datetime updated_at "UTC"
         datetime closed_at "nullable"
         integer created_by_id FK "nullable"
+        integer updated_by_id FK "nullable"
     }
 
     OCCURRENCE {
@@ -90,7 +91,9 @@ erDiagram
         text memo "nullable"
         text source "nullable"
         datetime occurred_at "UTC"
+        datetime updated_at "UTC"
         integer created_by_id FK "nullable"
+        integer updated_by_id FK "nullable"
     }
 ```
 
@@ -101,6 +104,7 @@ erDiagram
 - Inboxは未解決・破棄状態ではMeaningを持たず、解決後に1つのMeaningを参照する。
 - 用語への遭遇は毎回Occurrenceとして保存し、sourceやmemoを上書きしない。
 - Occurrenceの `keyword_norm` は履歴検索に使用する。
+- Inbox・Occurrence編集時は`updated_at`と`updated_by_id`を記録する。
 - Meaningは外部連携用の安定したUUID `public_id` を持つ。
 - Meaning削除は`deleted_at`と`deleted_by_id`による論理削除とし、Term・Tag・履歴を保持する。
 - 開いているInboxの `keyword_norm` は部分一意制約で重複を防ぐ。

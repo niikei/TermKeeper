@@ -27,6 +27,7 @@ def to_inbox(session: Session, record: Inbox) -> InboxItem:
         closed_at=record.closed_at,
         resolved_meaning_id=record.resolved_meaning_id,
         created_by_id=record.created_by_id,
+        updated_by_id=record.updated_by_id,
     )
 
 
@@ -58,7 +59,9 @@ def to_occurrence(record: Occurrence) -> OccurrenceItem:
         memo=record.memo,
         source=record.source,
         occurred_at=record.occurred_at,
+        updated_at=record.updated_at,
         inbox_id=record.inbox_id,
         meaning_id=record.meaning_id,
         created_by_id=record.created_by_id,
+        updated_by_id=record.updated_by_id,
     )

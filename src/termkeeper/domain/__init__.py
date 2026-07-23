@@ -3,7 +3,7 @@
 from termkeeper.domain.importing import ImportIssue, ImportResult, ImportRow
 from termkeeper.domain.merge import MergeResult
 from termkeeper.domain.models import AddResult, InboxItem, Meaning
-from termkeeper.domain.occurrence import OccurrenceItem, OccurrenceQuery
+from termkeeper.domain.occurrence import OccurrenceItem, OccurrenceQuery, OccurrenceUpdate
 from termkeeper.domain.search import (
     SearchField,
     SearchHit,
@@ -25,6 +25,7 @@ __all__ = [
     "MergeResult",
     "OccurrenceItem",
     "OccurrenceQuery",
+    "OccurrenceUpdate",
     "SearchField",
     "SearchHit",
     "SearchQuery",

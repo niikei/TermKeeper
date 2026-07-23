@@ -6,7 +6,7 @@ from datetime import datetime
 from sqlalchemy import func
 from sqlmodel import Session, col, select
 
-from termkeeper.domain import OccurrenceQuery
+from termkeeper.domain import OccurrenceQuery, OccurrenceUpdate
 from termkeeper.domain.status import InboxStatus
 from termkeeper.infrastructure.sqlite_utils import normalize_keyword
 from termkeeper.infrastructure.tables import Inbox, Occurrence, utc_now
@@ -48,6 +48,32 @@ def add_occurrence(
     )
     session.add(occurrence)
     return occurrence
+
+
+def get_occurrence(session: Session, occurrence_id: int) -> Occurrence | None:
+    return session.get(Occurrence, occurrence_id)
+
+
+def update_occurrence(
+    session: Session,
+    record: Occurrence,
+    update: OccurrenceUpdate,
+    user_id: int | None,
+) -> None:
+    if update.keyword is not None:
+        record.keyword = update.keyword.strip()
+        record.keyword_norm = normalize_keyword(update.keyword)
+    if update.clear_memo:
+        record.memo = None
+    elif update.memo is not None:
+        record.memo = update.memo.strip()
+    if update.clear_source:
+        record.source = None
+    elif update.source is not None:
+        record.source = update.source.strip()
+    record.updated_at = utc_now()
+    record.updated_by_id = user_id
+    session.add(record)
 
 
 def list_occurrences(session: Session, query: OccurrenceQuery) -> list[Occurrence]:
@@ -102,6 +128,19 @@ def find_open_inbox(session: Session, keyword: str) -> Inbox | None:
         Inbox.status == InboxStatus.NEW,
     )
     return session.exec(statement).first()
+
+
+def update_inbox(
+    session: Session,
+    record: Inbox,
+    keyword: str,
+    user_id: int | None,
+) -> None:
+    record.keyword = keyword.strip()
+    record.keyword_norm = normalize_keyword(keyword)
+    record.updated_at = utc_now()
+    record.updated_by_id = user_id
+    session.add(record)
 
 
 def occurrence_summary(

@@ -122,6 +122,34 @@ def test_occurrence_history_human_and_json(capsys: pytest.CaptureFixture[str]) -
     assert occurrences[0]["inbox_id"] == 1
 
 
+def test_inbox_and_occurrence_edit_commands(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["add", "ERPP", "--memo", "typo", "--source", "Meeting"]) == 0
+    capsys.readouterr()
+
+    assert main(["inbox-edit", "1", "--keyword", "ERP"]) == 0
+    assert "Updated inbox #1: ERP" in capsys.readouterr().out
+    assert (
+        main(
+            [
+                "--json",
+                "occurrence-edit",
+                "1",
+                "--keyword",
+                "ERP",
+                "--clear-memo",
+                "--source",
+                "Teams",
+            ],
+        )
+        == 0
+    )
+    occurrence = json.loads(capsys.readouterr().out)
+    assert occurrence["keyword"] == "ERP"
+    assert occurrence["memo"] is None
+    assert occurrence["source"] == "Teams"
+    assert occurrence["updated_at"]
+
+
 def test_empty_occurrence_history(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["occurrences", "--since", "2099-01-01"]) == 0
     assert "No occurrences found." in capsys.readouterr().out

@@ -60,6 +60,7 @@ class Inbox(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=utc_now)
     closed_at: datetime | None = None
     created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
+    updated_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
 
 
 class Term(SQLModel, table=True):
@@ -110,4 +111,6 @@ class Occurrence(SQLModel, table=True):
     memo: str | None = None
     source: str | None = None
     occurred_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now)
     created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
+    updated_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")

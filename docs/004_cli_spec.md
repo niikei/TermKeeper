@@ -17,8 +17,10 @@ tk [--json] <command> [options]
 | `init` | DBを初期化・更新 | なし |
 | `add` | Inboxへ捕捉 | `keyword`, `--memo`, `--source` |
 | `inbox` | 未解決Inbox一覧 | なし |
+| `inbox-edit` | 未解決Inboxのkeyword修正 | `inbox_id`, `--keyword` |
 | `history` | 全Inbox履歴 | なし |
 | `occurrences` | 遭遇履歴を表示・絞り込み | `--meaning`, `--inbox`, `--keyword`, `--source`, `--since`, `--limit` |
+| `occurrence-edit` | 個別Occurrenceを修正 | `occurrence_id`, `--keyword`, `--memo`, `--source`, `--clear-memo`, `--clear-source` |
 | `resolve` | InboxをMeaningへ解決 | `inbox_id`, `--name`, `--description` |
 | `search` | 関連度検索と類似候補 | `keyword`, `--all`, `--any`, `--in`, `--limit`, `--tag`, `--suggestions`, `--no-suggestions` |
 | `show` | Meaning詳細 | `meaning_id` |
@@ -66,7 +68,18 @@ Occurrenceを`occurred_at`の新しい順で表示する。
 
 複数の条件を指定した場合はすべてを満たすOccurrenceを返す。JSON結果は
 `occurrence_id`、`keyword`、`memo`、`source`、`occurred_at`、`inbox_id`、
-`meaning_id`、`created_by_id`を含む。
+`meaning_id`、`created_by_id`、`updated_at`、`updated_by_id`を含む。
+
+### `tk inbox-edit` / `tk occurrence-edit`
+
+`inbox-edit`は`New`状態のInboxだけを編集し、keywordとkeyword_norm、更新日時、更新者を更新する。
+別の未解決Inboxと正規化keywordが重複する変更、Closed・Discardedの編集は拒否する。Inboxの
+修正では、遭遇時のrawデータであるOccurrence keywordは変更しない。
+
+`occurrence-edit`は指定Occurrenceのkeyword・memo・sourceを個別に編集する。keyword変更時は
+keyword_normも更新する。`--clear-memo`と`--clear-source`は値をNULLへ戻す。同じフィールドへの
+値指定とclear指定の併用、変更項目なし、空文字の値は拒否する。Inboxや他のOccurrenceは
+変更しない。
 
 ### `tk edit`
 

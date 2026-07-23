@@ -8,6 +8,7 @@
 - 同一未解決語の出現回数と最終確認日時
 - 遭遇ごとのsource・memo・時刻を保持するOccurrence履歴
 - Meaning・Inbox・keyword・source・期間によるOccurrence履歴の絞り込み
+- 未解決Inboxと個別Occurrenceの編集、更新監査
 - Meaningの作成、編集、一覧、詳細表示
 - Termと別名の管理
 - Meaning統合のDry Run、Term・Occurrence・Inbox移動

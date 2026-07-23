@@ -11,6 +11,7 @@ from termkeeper.domain import (
     MergeResult,
     OccurrenceItem,
     OccurrenceQuery,
+    OccurrenceUpdate,
     SearchQuery,
     SearchResult,
     TagSummary,
@@ -66,6 +67,13 @@ def handle_history(args: argparse.Namespace, service: TermKeeperService) -> list
     return result
 
 
+def handle_inbox_edit(args: argparse.Namespace, service: TermKeeperService) -> InboxItem:
+    result = service.edit_inbox(args.inbox_id, args.keyword)
+    if not args.json:
+        print(f"Updated inbox #{args.inbox_id}: {result.keyword}")
+    return result
+
+
 def handle_occurrences(
     args: argparse.Namespace,
     service: TermKeeperService,
@@ -81,6 +89,23 @@ def handle_occurrences(
     result = service.occurrences(query)
     if not args.json:
         print_occurrences(result)
+    return result
+
+
+def handle_occurrence_edit(
+    args: argparse.Namespace,
+    service: TermKeeperService,
+) -> OccurrenceItem:
+    update = OccurrenceUpdate(
+        keyword=args.keyword,
+        memo=args.memo,
+        source=args.source,
+        clear_memo=args.clear_memo,
+        clear_source=args.clear_source,
+    )
+    result = service.edit_occurrence(args.occurrence_id, update)
+    if not args.json:
+        print(f"Updated occurrence #{args.occurrence_id}.")
     return result
 
 
@@ -292,7 +317,9 @@ HANDLERS: dict[str, CommandHandler] = {
     "add": handle_add,
     "inbox": handle_inbox,
     "history": handle_history,
+    "inbox-edit": handle_inbox_edit,
     "occurrences": handle_occurrences,
+    "occurrence-edit": handle_occurrence_edit,
     "resolve": handle_resolve,
     "search": handle_search,
     "discard": handle_discard,

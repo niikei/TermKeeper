@@ -46,6 +46,7 @@ tk add ICMR --memo "月次決算会議" --source "Teams"
 
 ```bash
 tk inbox
+tk inbox-edit 1 --keyword ERP
 ```
 
 ### 遭遇履歴
@@ -56,9 +57,12 @@ tk occurrences --meaning 1
 tk occurrences --inbox 2
 tk occurrences --keyword MDM --source Slack
 tk occurrences --since 2026-07-01 --limit 20
+tk occurrence-edit 3 --memo "訂正後のメモ" --source Teams
+tk occurrence-edit 3 --clear-memo
 ```
 
 遭遇ごとの用語、memo、source、日時、Inbox／Meaningとの関連を確認できます。
+未解決Inboxのkeywordと、個別Occurrenceのkeyword・memo・sourceを修正できます。
 
 ### 解決
 

@@ -31,6 +31,10 @@ Meaning Repositoryの通常取得は`deleted_at IS NULL`を共通条件とする
 場合だけ有効Meaningを読み込み、`SearchSuggestion`を生成する。Presentationは候補ロジックを
 持たず、`SearchResult`を表示・JSON化する。
 
+InboxとOccurrenceの編集はApplicationで状態・重複・入力競合を検証し、Repositoryで正規化列と
+更新監査列を同時に変更する。InboxとOccurrenceは別の履歴境界として扱い、一方の編集を他方へ
+暗黙に波及させない。
+
 APIやMCPを追加するときは `TermKeeperService` を再利用し、SQLやCLIの標準出力を直接
 呼ばない。MCPツールはまず `add`, `inbox`, `occurrences`, `resolve`, `search`, `show`,
 `merge`, `tag`, `untag`, `tags` を1対1で公開する。

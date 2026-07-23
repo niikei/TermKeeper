@@ -16,15 +16,26 @@ class OccurrenceQuery:
 
 
 @dataclass(frozen=True)
+class OccurrenceUpdate:
+    keyword: str | None = None
+    memo: str | None = None
+    source: str | None = None
+    clear_memo: bool = False
+    clear_source: bool = False
+
+
+@dataclass(frozen=True)
 class OccurrenceItem:
     occurrence_id: int
     keyword: str
     memo: str | None
     source: str | None
     occurred_at: datetime
+    updated_at: datetime
     inbox_id: int | None = None
     meaning_id: int | None = None
     created_by_id: int | None = None
+    updated_by_id: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

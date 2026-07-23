@@ -23,10 +23,13 @@ Occurrence履歴から算出する。
 
 ```bash
 tk inbox
+tk inbox-edit 1 --keyword ERP
 ```
 
 未解決のInboxを最終確認日時の新しい順で表示する。ID、用語、状態、出現回数、更新日時に
 加えて、登録されていればmemoとsourceも表示する。
+`inbox-edit`は未解決Inboxのkeywordだけを修正する。過去のOccurrence keywordは変更しない。
+正規化後に別の未解決Inboxと重複する変更は拒否する。
 
 ## 4. 遭遇履歴を確認する
 
@@ -36,10 +39,14 @@ tk occurrences --meaning 1
 tk occurrences --inbox 2
 tk occurrences --keyword MDM --source Slack
 tk occurrences --since 2026-07-01 --limit 20
+tk occurrence-edit 3 --keyword ERP --memo "訂正" --source Teams
+tk occurrence-edit 3 --clear-memo --clear-source
 ```
 
 Occurrenceを新しい順に表示する。Meaning、Inbox、正規化キーワード、sourceの完全一致、
 ISO 8601形式の開始日時で絞り込める。標準50件、最大500件まで取得できる。
+`occurrence-edit`は個別履歴のkeyword・memo・sourceを修正する。memoとsourceは明示的な
+clearオプションで削除し、Inboxや他のOccurrenceには影響しない。
 
 ## 5. 用語を解決する
 

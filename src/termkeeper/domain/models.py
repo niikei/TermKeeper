@@ -22,6 +22,7 @@ class InboxItem:
     closed_at: datetime | None = None
     resolved_meaning_id: int | None = None
     created_by_id: int | None = None
+    updated_by_id: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

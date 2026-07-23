@@ -17,7 +17,10 @@ from termkeeper.presentation.types import CommandResult
 
 
 def print_json(value: CommandResult) -> None:
-    if isinstance(value, (AddResult, ImportResult, Meaning, MergeResult, SearchResult)):
+    if isinstance(
+        value,
+        (AddResult, ImportResult, InboxItem, Meaning, MergeResult, OccurrenceItem, SearchResult),
+    ):
         _print_json_value(value.to_dict())
         return
     if isinstance(value, list):
