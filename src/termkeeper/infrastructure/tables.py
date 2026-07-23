@@ -99,6 +99,23 @@ class MeaningTag(SQLModel, table=True):
     created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
 
 
+class MeaningRelation(SQLModel, table=True):
+    __table_args__ = (CheckConstraint("meaning_id_low < meaning_id_high"),)
+
+    meaning_id_low: int = Field(
+        primary_key=True,
+        foreign_key="meaning.meaning_id",
+        ondelete="CASCADE",
+    )
+    meaning_id_high: int = Field(
+        primary_key=True,
+        foreign_key="meaning.meaning_id",
+        ondelete="CASCADE",
+    )
+    created_at: datetime = Field(default_factory=utc_now)
+    created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
+
+
 class Occurrence(SQLModel, table=True):
     occurrence_id: int | None = Field(default=None, primary_key=True)
     keyword: str

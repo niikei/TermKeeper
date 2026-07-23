@@ -260,6 +260,28 @@ def handle_unfavorite(args: argparse.Namespace, service: TermKeeperService) -> M
     return result
 
 
+def handle_relate(args: argparse.Namespace, service: TermKeeperService) -> list[Meaning]:
+    result = service.relate(args.meaning_id, args.related_id)
+    if not args.json:
+        print(f"Related meaning #{args.meaning_id} to #{args.related_id}.")
+    return result
+
+
+def handle_unrelate(args: argparse.Namespace, service: TermKeeperService) -> list[Meaning]:
+    result = service.unrelate(args.meaning_id, args.related_id)
+    if not args.json:
+        print(f"Unrelated meaning #{args.meaning_id} from #{args.related_id}.")
+    return result
+
+
+def handle_related(args: argparse.Namespace, service: TermKeeperService) -> list[Meaning]:
+    result = service.related(args.meaning_id)
+    if not args.json:
+        for item in result:
+            print_meaning(item)
+    return result
+
+
 def handle_edit(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
     current = service.get_meaning(args.meaning_id)
     name = args.name
@@ -361,6 +383,9 @@ HANDLERS: dict[str, CommandHandler] = {
     "tags": handle_tags,
     "favorite": handle_favorite,
     "unfavorite": handle_unfavorite,
+    "relate": handle_relate,
+    "unrelate": handle_unrelate,
+    "related": handle_related,
     "edit": handle_edit,
     "meanings": handle_meanings,
     "config": handle_config,

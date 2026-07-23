@@ -229,6 +229,24 @@ def test_favorite_commands_and_filters(capsys: pytest.CaptureFixture[str]) -> No
     assert capsys.readouterr().out == ""
 
 
+def test_related_meaning_commands(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["add", "ERP"]) == 0
+    assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
+    assert main(["add", "MRP"]) == 0
+    assert main(["resolve", "2", "--name", "Material Requirements Planning"]) == 0
+    capsys.readouterr()
+
+    assert main(["relate", "1", "2"]) == 0
+    assert "Related meaning #1 to #2." in capsys.readouterr().out
+    assert main(["related", "2"]) == 0
+    assert "Enterprise Resource Planning" in capsys.readouterr().out
+    assert main(["--json", "related", "1"]) == 0
+    related = json.loads(capsys.readouterr().out)
+    assert related[0]["meaning_id"] == 2
+    assert main(["unrelate", "2", "1"]) == 0
+    assert "Unrelated meaning #2 from #1." in capsys.readouterr().out
+
+
 def test_search_suggestions_human_json_and_disabled(
     capsys: pytest.CaptureFixture[str],
 ) -> None:

@@ -116,6 +116,9 @@ tk untag 1 SAP
 tk tags
 tk favorite 1
 tk unfavorite 1
+tk relate 1 2
+tk related 1
+tk unrelate 1 2
 tk merge 2 1 --dry-run
 tk merge 2 1
 tk delete 1
@@ -128,6 +131,9 @@ tk history
 
 `merge SOURCE TARGET`は、統合元のTerm、Tag、Occurrence、解決済みInboxを統合先へ移動し、
 統合元Meaningを削除します。`--dry-run`では変更せず、移動件数だけを確認できます。
+
+`relate A B`は2つのMeaningを双方向に関連付けます。`related ID`で関連Meaningを一覧表示し、
+`unrelate A B`で関連を解除できます。
 
 `delete`はMeaningをTrashへ移す論理削除です。通常の一覧・検索・Term照合・CSV Exportから
 除外されます。`restore`で復元し、`purge`でTrash内のMeaningを完全削除できます。

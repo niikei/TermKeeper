@@ -15,7 +15,8 @@ Applicationの各更新ユースケースはUnit of Workを使用し、1つのSe
 完結する。Repositoryはcommitせず、トランザクション境界をApplicationへ集約する。
 `TermKeeperService` 自体は薄いファサードとし、実装は `use_cases/inbox.py`、
 `use_cases/meaning.py`、`use_cases/merge.py`、`use_cases/occurrence.py`、
-`use_cases/analytics.py`、`use_cases/tag.py`、`use_cases/config.py` に分割する。
+`use_cases/analytics.py`、`use_cases/relation.py`、`use_cases/tag.py`、
+`use_cases/config.py` に分割する。
 共有するレコード取得とDTO変換だけを`support.py` と `mapping.py` に置き、機能間の
 直接呼び出しは避ける。
 
@@ -27,6 +28,7 @@ Meaning Repositoryの通常取得は`deleted_at IS NULL`を共通条件とする
 削除済みMeaningを明示的に取得する。Meaning統合は参照移動後に統合元を完全削除するが、
 利用者による通常削除は必ず論理削除とする。
 お気に入りはMeaningの属性として保持し、一覧・検索の絞り込みはRepositoryで行う。
+Meaning間の関連は小さいIDを先にした対称ペアとして正規化し、同一ペアを一意に保つ。
 
 検索はRepositoryで部分一致候補を取得し、Applicationで関連度を計算する。通常ヒットが0件の
 場合だけ有効Meaningを読み込み、`SearchSuggestion`を生成する。Presentationは候補ロジックを
@@ -41,7 +43,8 @@ Repositoryへ閉じ込め、Applicationからは`StatsSummary`として返す。
 
 APIやMCPを追加するときは `TermKeeperService` を再利用し、SQLやCLIの標準出力を直接
 呼ばない。MCPツールはまず `add`, `inbox`, `occurrences`, `resolve`, `search`, `show`,
-`merge`, `tag`, `untag`, `tags`, `favorite`, `unfavorite`, `stats` を1対1で公開する。
+`merge`, `tag`, `untag`, `tags`, `favorite`, `unfavorite`, `relate`, `unrelate`,
+`related`, `stats` を1対1で公開する。
 
 ## 時刻
 

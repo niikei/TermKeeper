@@ -16,6 +16,8 @@ erDiagram
 
     MEANING ||--o{ TERM : "has aliases"
     MEANING ||--o{ MEANINGTAG : "classified by"
+    MEANING ||--o{ MEANINGRELATION : "related as low id"
+    MEANING ||--o{ MEANINGRELATION : "related as high id"
     TAG ||--o{ MEANINGTAG : "assigned through"
     MEANING o|--o{ INBOX : "resolves captures"
     INBOX o|--o{ OCCURRENCE : "records encounters"
@@ -70,6 +72,13 @@ erDiagram
         integer created_by_id FK "nullable"
     }
 
+    MEANINGRELATION {
+        integer meaning_id_low PK, FK
+        integer meaning_id_high PK, FK
+        datetime created_at "UTC"
+        integer created_by_id FK "nullable"
+    }
+
     INBOX {
         integer inbox_id PK
         text keyword
@@ -112,6 +121,7 @@ erDiagram
 - 開いているInboxの `keyword_norm` は部分一意制約で重複を防ぐ。
 - Termの `(keyword_norm, meaning_id)` は一意で、同じMeaningへの別表記の重複を防ぐ。
 - Tagの `name_norm` は一意で、MeaningTagによりMeaningと多対多で関連付ける。
+- MeaningRelationは小さいMeaning IDを`meaning_id_low`へ格納し、対称な関連を一意に保つ。
 - `keyword_norm` はNFKC正規化と大文字・小文字の統一後の検索値を保持する。
 
 ### インデックス
