@@ -1,7 +1,7 @@
 """User configuration use cases."""
 
 from termkeeper.application.errors import NotFoundError, ValidationError
-from termkeeper.infrastructure import settings_repository
+from termkeeper.infrastructure.repositories import settings_repository
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
 

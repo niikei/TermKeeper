@@ -3,7 +3,7 @@
 from termkeeper.application.errors import ValidationError
 from termkeeper.application.support import get_meaning, user_id
 from termkeeper.domain import MergeResult
-from termkeeper.infrastructure import (
+from termkeeper.infrastructure.repositories import (
     inbox_repository,
     meaning_repository,
     settings_repository,

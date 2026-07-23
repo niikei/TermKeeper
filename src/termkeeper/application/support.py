@@ -1,7 +1,7 @@
 """Shared persistence helpers for application use cases."""
 
 from termkeeper.application.errors import NotFoundError
-from termkeeper.infrastructure import inbox_repository, meaning_repository
+from termkeeper.infrastructure.repositories import inbox_repository, meaning_repository
 from termkeeper.infrastructure.tables import Inbox, Meaning, UserProfile
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
 

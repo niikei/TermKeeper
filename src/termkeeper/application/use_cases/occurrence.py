@@ -6,7 +6,7 @@ from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_occurrence
 from termkeeper.application.support import user_id
 from termkeeper.domain import OccurrenceItem, OccurrenceQuery, OccurrenceUpdate
-from termkeeper.infrastructure import inbox_repository, settings_repository
+from termkeeper.infrastructure.repositories import inbox_repository, settings_repository
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
 

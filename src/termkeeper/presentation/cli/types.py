@@ -1,4 +1,4 @@
-"""Shared types used by presentation adapters."""
+"""Shared types used by CLI presentation components."""
 
 import argparse
 from collections.abc import Callable, Mapping

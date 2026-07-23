@@ -247,9 +247,12 @@ TermKeeper/
 ├── src/termkeeper/
 │   ├── domain/          # DTOとドメインモデル
 │   ├── application/     # ユースケース
-│   ├── infrastructure/  # SQLModel tables・Session・repository
+│   ├── infrastructure/  # SQLModel tables・Session
+│   │   └── repositories/ # 機能別Repository
 │   ├── adapters/        # MCPなどの外部プロトコル
-│   ├── presentation/    # CLI・表示・CSV
+│   ├── presentation/
+│   │   ├── cli/         # CLI構築・表示・機能別Handler
+│   │   └── csv_io.py    # CSV境界
 │   └── config.py        # 実行時設定
 ├── tests/
 ├── data/

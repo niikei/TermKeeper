@@ -2,7 +2,7 @@
 
 from termkeeper.application.errors import ValidationError
 from termkeeper.domain import Frequency, StatsSummary
-from termkeeper.infrastructure import analytics_repository
+from termkeeper.infrastructure.repositories import analytics_repository
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
 

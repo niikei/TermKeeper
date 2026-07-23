@@ -4,7 +4,7 @@ from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_meaning
 from termkeeper.application.support import get_meaning, user_id
 from termkeeper.domain import Meaning, TagSummary
-from termkeeper.infrastructure import settings_repository, tag_repository
+from termkeeper.infrastructure.repositories import settings_repository, tag_repository
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
 

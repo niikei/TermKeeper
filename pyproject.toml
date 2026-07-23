@@ -28,7 +28,7 @@ dev = [
 ]
 
 [project.scripts]
-tk = "termkeeper.presentation.main:main"
+tk = "termkeeper.presentation.cli.main:main"
 tk-api = "termkeeper.adapters.http_api:main"
 tk-mcp = "termkeeper.adapters.mcp_server:main"
 

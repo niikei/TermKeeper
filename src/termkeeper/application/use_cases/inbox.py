@@ -4,7 +4,11 @@ from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_inbox, to_meaning
 from termkeeper.application.support import get_inbox, required_id, user_id
 from termkeeper.domain import AddResult, InboxItem, InboxStatus, Meaning
-from termkeeper.infrastructure import inbox_repository, meaning_repository, settings_repository
+from termkeeper.infrastructure.repositories import (
+    inbox_repository,
+    meaning_repository,
+    settings_repository,
+)
 from termkeeper.infrastructure.tables import Meaning as MeaningRecord
 from termkeeper.infrastructure.tables import utc_now
 from termkeeper.infrastructure.unit_of_work import UnitOfWork

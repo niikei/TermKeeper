@@ -5,7 +5,11 @@ from sqlmodel import Session
 from termkeeper.application.support import required_id
 from termkeeper.domain import InboxItem, OccurrenceItem
 from termkeeper.domain import Meaning as MeaningDto
-from termkeeper.infrastructure import inbox_repository, meaning_repository, tag_repository
+from termkeeper.infrastructure.repositories import (
+    inbox_repository,
+    meaning_repository,
+    tag_repository,
+)
 from termkeeper.infrastructure.tables import Inbox, Meaning, Occurrence
 
 

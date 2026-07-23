@@ -6,7 +6,7 @@ import pytest
 from sqlmodel import Session
 
 from termkeeper.application import TermKeeperService, ValidationError
-from termkeeper.infrastructure import tag_repository
+from termkeeper.infrastructure.repositories import tag_repository
 from termkeeper.presentation.csv_io import export_meanings, import_meanings, split_terms
 
 

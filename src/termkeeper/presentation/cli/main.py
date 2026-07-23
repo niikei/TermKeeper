@@ -4,9 +4,9 @@ import sys
 from collections.abc import Sequence
 
 from termkeeper.application import NotFoundError, TermKeeperService, ValidationError
-from termkeeper.presentation.handlers import HANDLERS
-from termkeeper.presentation.parser import create_parser
-from termkeeper.presentation.rendering import print_json
+from termkeeper.presentation.cli.handlers.registry import HANDLERS
+from termkeeper.presentation.cli.parser import create_parser
+from termkeeper.presentation.cli.rendering import print_json
 
 
 def main(argv: Sequence[str] | None = None) -> int:

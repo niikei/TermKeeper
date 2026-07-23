@@ -7,7 +7,11 @@ from termkeeper.application.mapping import to_meaning
 from termkeeper.application.search import rank_search, rank_suggestions, search_tokens
 from termkeeper.application.support import get_meaning, required_id, user_id
 from termkeeper.domain import InboxStatus, Meaning, SearchQuery, SearchResult
-from termkeeper.infrastructure import inbox_repository, meaning_repository, settings_repository
+from termkeeper.infrastructure.repositories import (
+    inbox_repository,
+    meaning_repository,
+    settings_repository,
+)
 from termkeeper.infrastructure.sqlite_utils import normalize_keyword
 from termkeeper.infrastructure.tables import Meaning as MeaningRecord
 from termkeeper.infrastructure.unit_of_work import UnitOfWork

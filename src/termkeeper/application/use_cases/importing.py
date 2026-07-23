@@ -5,7 +5,11 @@ from uuid import UUID
 from termkeeper.application.errors import ValidationError
 from termkeeper.application.support import required_id, user_id
 from termkeeper.domain import ImportIssue, ImportResult, ImportRow
-from termkeeper.infrastructure import meaning_repository, settings_repository, tag_repository
+from termkeeper.infrastructure.repositories import (
+    meaning_repository,
+    settings_repository,
+    tag_repository,
+)
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
 

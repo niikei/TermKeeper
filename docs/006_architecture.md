@@ -5,8 +5,12 @@
 
 - `domain/`: 外部境界でも使えるシリアライズ可能なDTO
 - `application/`: 公開Serviceファサード、機能別ユースケース、DTO変換、アプリケーション例外
-- `infrastructure/`: SQLModelテーブル、Engine／Session、スキーマ作成、リポジトリ
-- `presentation/`: CLI引数、コマンド処理、表示、CSV入出力
+- `infrastructure/`: SQLModelテーブル、Engine／Session、スキーマ作成
+  - `repositories/`: Analytics、Inbox、Meaningなど機能単位の永続化処理
+- `presentation/`: 利用者との入出力境界
+  - `cli/`: CLI引数、表示、CLI固有型
+  - `cli/handlers/`: Capture、Meaning、Metadata、Config、Transfer単位のコマンド処理
+  - `csv_io.py`: CSV入出力
 - `adapters/`: MCPなど外部プロトコルからApplication Serviceへの変換
 
 各アダプターはレイヤーの公開モジュールを直接使用し、旧構成向けの互換モジュールは持たない。
@@ -14,12 +18,18 @@ CRUD、検索、スキーマ作成はSQLModelを使用する。旧SQLiteスキ�
 持たないため、本版は新規データベースを前提とする。
 Applicationの各更新ユースケースはUnit of Workを使用し、1つのSessionとトランザクションで
 完結する。Repositoryはcommitせず、トランザクション境界をApplicationへ集約する。
+Repositoryは`infrastructure/repositories/`へ集約し、テーブル・接続・Unit of Workとは
+ディレクトリ上でも責務を分ける。
 `TermKeeperService` 自体は薄いファサードとし、実装は `use_cases/inbox.py`、
 `use_cases/meaning.py`、`use_cases/merge.py`、`use_cases/occurrence.py`、
 `use_cases/analytics.py`、`use_cases/relation.py`、`use_cases/reference.py`、`use_cases/tag.py`、
 `use_cases/config.py` に分割する。
 共有するレコード取得とDTO変換だけを`support.py` と `mapping.py` に置き、機能間の
 直接呼び出しは避ける。
+
+CLIの`main.py`はパース、Service初期化、エラー処理、JSON出力だけを担当する。
+各コマンドの入出力変換は`presentation/cli/handlers/`へユースケース単位で配置し、
+`registry.py`だけがコマンド名とHandlerの対応を管理する。
 
 CSVファイルの読み取りはPresentationで`ImportRow`へ変換し、検証、Dry Run、既存UUIDの判定、
 一括更新は`use_cases/importing.py`で行う。Import中のRepository操作は同じUnit of Workを

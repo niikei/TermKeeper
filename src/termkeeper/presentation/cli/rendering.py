@@ -15,7 +15,7 @@ from termkeeper.domain import (
     SearchSuggestion,
     StatsSummary,
 )
-from termkeeper.presentation.types import CommandResult
+from termkeeper.presentation.cli.types import CommandResult
 
 
 def print_json(value: CommandResult) -> None:

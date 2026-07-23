@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from termkeeper.presentation.main import main
+from termkeeper.presentation.cli.main import main
 
 
 def test_json_workflow(capsys: pytest.CaptureFixture[str]) -> None:

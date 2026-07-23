@@ -5,7 +5,7 @@ from urllib.parse import urlsplit
 from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.support import get_meaning, required_id, user_id
 from termkeeper.domain import ReferenceLink, ReferenceUpdate
-from termkeeper.infrastructure import (
+from termkeeper.infrastructure.repositories import (
     meaning_repository,
     reference_repository,
     settings_repository,
