@@ -20,9 +20,10 @@ def test_json_workflow(capsys: pytest.CaptureFixture[str]) -> None:
     assert meaning["full_name"] == "Intercompany Matching"
     assert "ICMR" in meaning["terms"]
 
-    assert main(["--json", "search", "ICMR"]) == 0
+    assert main(["--json", "search", "ICMR", "--in", "term", "--limit", "1"]) == 0
     matches = json.loads(capsys.readouterr().out)
-    assert matches[0]["meaning_id"] == meaning["meaning_id"]
+    assert matches[0]["meaning"]["meaning_id"] == meaning["meaning_id"]
+    assert matches[0]["matched_field"] == "term"
 
 
 def test_cli_error_has_nonzero_exit_code(capsys: pytest.CaptureFixture[str]) -> None:

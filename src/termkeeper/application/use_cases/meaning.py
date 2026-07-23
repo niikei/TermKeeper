@@ -4,8 +4,9 @@ from uuid import UUID
 
 from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_meaning
+from termkeeper.application.search import rank_search, search_tokens
 from termkeeper.application.support import get_meaning, required_id, user_id
-from termkeeper.domain import Meaning
+from termkeeper.domain import Meaning, SearchField, SearchHit, SearchQuery
 from termkeeper.infrastructure import meaning_repository, settings_repository
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
@@ -49,15 +50,26 @@ class MeaningUseCases:
             uow.commit()
             return result
 
-    def search(self, keyword: str) -> list[Meaning]:
-        if not keyword.strip():
+    def search(
+        self,
+        keyword: str,
+        *,
+        match_all: bool = True,
+        field: SearchField = SearchField.ALL,
+        limit: int = 20,
+    ) -> list[SearchHit]:
+        query = SearchQuery(keyword, match_all, field, limit)
+        tokens = search_tokens(query.text)
+        if not tokens:
             message = "Search keyword must not be empty."
             raise ValidationError(message)
+        if not 1 <= query.limit <= 100:
+            message = "Search limit must be between 1 and 100."
+            raise ValidationError(message)
         with UnitOfWork() as uow:
-            return [
-                to_meaning(uow.session, row)
-                for row in meaning_repository.search(uow.session, keyword)
-            ]
+            records = meaning_repository.search(uow.session, tokens, query.field)
+            meanings = [to_meaning(uow.session, row) for row in records]
+            return rank_search(meanings, query)
 
     def meanings(self) -> list[Meaning]:
         with UnitOfWork() as uow:

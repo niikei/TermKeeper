@@ -49,7 +49,7 @@ def test_import_creates_meaning_and_aliases(tmp_path: Path) -> None:
     result = import_meanings(str(path), TermKeeperService())
 
     assert result == {"created": 1, "updated": 0, "skipped": 0}
-    assert TermKeeperService().search("MDM")[0].description == "governance"
+    assert TermKeeperService().search("MDM")[0].meaning.description == "governance"
 
 
 def test_import_preserves_unknown_public_id(tmp_path: Path) -> None:

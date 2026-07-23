@@ -3,9 +3,9 @@
 import argparse
 
 from termkeeper.application import TermKeeperService
-from termkeeper.domain import AddResult, InboxItem, Meaning
+from termkeeper.domain import AddResult, InboxItem, Meaning, SearchHit
 from termkeeper.presentation.csv_io import export_meanings, import_meanings
-from termkeeper.presentation.rendering import print_inbox, print_meaning
+from termkeeper.presentation.rendering import print_inbox, print_meaning, print_search_hit
 from termkeeper.presentation.types import CommandHandler
 
 
@@ -64,12 +64,17 @@ def handle_resolve(args: argparse.Namespace, service: TermKeeperService) -> Mean
     return result
 
 
-def handle_search(args: argparse.Namespace, service: TermKeeperService) -> list[Meaning]:
-    result = service.search(args.keyword)
+def handle_search(args: argparse.Namespace, service: TermKeeperService) -> list[SearchHit]:
+    result = service.search(
+        args.keyword,
+        match_all=args.match_all,
+        field=args.search_field,
+        limit=args.limit,
+    )
     if not args.json:
         print(f"{len(result)} match(es)")
         for item in result:
-            print_meaning(item)
+            print_search_hit(item)
     return result
 
 

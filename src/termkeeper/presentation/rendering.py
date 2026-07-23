@@ -2,7 +2,7 @@
 
 import json
 
-from termkeeper.domain import AddResult, InboxItem, Meaning
+from termkeeper.domain import AddResult, InboxItem, Meaning, SearchHit
 from termkeeper.presentation.types import CommandResult
 
 
@@ -42,3 +42,8 @@ def print_meaning(item: Meaning) -> None:
     if item.terms:
         print("Aliases: " + ", ".join(item.terms))
     print(f"Created: {item.created_at}  Updated: {item.updated_at}")
+
+
+def print_search_hit(hit: SearchHit) -> None:
+    print_meaning(hit.meaning)
+    print(f"Match: {hit.matched_field} {hit.matched_text!r} (score: {hit.score})")

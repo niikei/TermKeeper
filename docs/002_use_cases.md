@@ -60,11 +60,15 @@ Meaningへ直接関連付けたOccurrenceとして保存する。
 
 ```bash
 tk search ICMR
+tk search "enterprise planning" --all
+tk search "planning document" --any --in description --limit 10
 tk show 1
 tk meanings
 ```
 
-検索はTerm、正式名称、説明の部分一致で行う。詳細表示では別名と作成・更新日時も表示する。
+検索はTerm、正式名称、説明を対象に、完全一致、前方一致、部分一致の順で関連度を付ける。
+複数語は標準ですべての語に一致する結果を返し、`--any`でいずれかの語に切り替える。
+結果にはスコア、一致フィールド、一致文字列を含む。詳細表示では別名と作成・更新日時も表示する。
 
 ## 7. Meaningを整理する
 

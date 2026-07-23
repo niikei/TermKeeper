@@ -123,6 +123,7 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 - Repository内では`commit()`しない
 - 遭遇は毎回Occurrenceとして保存し、memoやsourceを上書きしない
 - DB内部IDを外部連携の識別子にせず、Meaningの`public_id`を使用する
+- 検索条件と結果は`SearchQuery`／`SearchHit`で表現し、CLI固有の型を持ち込まない
 - CLI固有の処理をApplication層へ持ち込まない
 - APIやMCPを追加するときも既存のApplicationユースケースを再利用する
 - `service.py`を肥大化させず、機能別の`use_cases/`へ実装する

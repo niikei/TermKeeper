@@ -19,7 +19,7 @@ tk [--json] <command> [options]
 | `inbox` | 未解決Inbox一覧 | なし |
 | `history` | 全Inbox履歴 | なし |
 | `resolve` | InboxをMeaningへ解決 | `inbox_id`, `--name`, `--description` |
-| `search` | Term・正式名称・説明を検索 | `keyword` |
+| `search` | Term・正式名称・説明を関連度順で検索 | `keyword`, `--all`, `--any`, `--in`, `--limit` |
 | `show` | Meaning詳細 | `meaning_id` |
 | `meanings` | Meaning一覧 | なし |
 | `alias` | Meaningへ別名を追加 | `meaning_id`, `keyword` |
@@ -49,6 +49,19 @@ keywordと正式名称をTermとして登録する。
 
 `--name` を省略すると対話形式になる。空入力は現在値を維持する。新しい正式名称は検索用
 Termにも追加する。
+
+### `tk search`
+
+空白区切りの複数語に対応し、標準ではすべての語に一致するMeaningを返す。
+
+- `--all`: すべての検索語に一致（標準）
+- `--any`: いずれかの検索語に一致
+- `--in all|term|name|description`: 検索対象。標準は`all`
+- `--limit N`: 最大件数。標準20、指定可能範囲は1〜100
+
+Term完全一致、正式名称完全一致、前方一致、部分一致、説明一致の順に重み付けし、合計スコアの
+降順で返す。同点では正式名称、Meaning IDの順に並べる。結果はMeaningに加えて`score`、
+`matched_field`、`matched_text`を含む。SQLの`%`と`_`はワイルドカードではなく文字として扱う。
 
 ### `tk export` / `tk import`
 

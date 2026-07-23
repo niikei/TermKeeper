@@ -3,8 +3,10 @@
 from uuid import UUID
 
 from sqlalchemy import func, or_
+from sqlalchemy.sql.elements import ColumnElement
 from sqlmodel import Session, col, select
 
+from termkeeper.domain import SearchField
 from termkeeper.infrastructure.sqlite_utils import normalize_keyword
 from termkeeper.infrastructure.tables import Meaning, Term, utc_now
 
@@ -87,22 +89,32 @@ def find_registered(session: Session, keyword: str) -> Meaning | None:
     return session.exec(statement).first()
 
 
-def search(session: Session, keyword: str) -> list[Meaning]:
-    pattern = f"%{normalize_keyword(keyword)}%"
+def search(
+    session: Session,
+    tokens: tuple[str, ...],
+    field: SearchField,
+) -> list[Meaning]:
+    token_conditions = [_search_condition(token, field) for token in tokens]
     statement = (
         select(Meaning)
         .outerjoin(Term)
-        .where(
-            or_(
-                col(Term.keyword_norm).like(pattern),
-                func.lower(Meaning.full_name).like(pattern),
-                func.lower(func.coalesce(Meaning.description, "")).like(pattern),
-            ),
-        )
+        .where(or_(*token_conditions))
         .distinct()
-        .order_by(Meaning.full_name)
+        .order_by(col(Meaning.meaning_id))
     )
     return list(session.exec(statement).all())
+
+
+def _search_condition(token: str, field: SearchField) -> ColumnElement[bool]:
+    conditions: list[ColumnElement[bool]] = []
+    if field in {SearchField.ALL, SearchField.TERM}:
+        conditions.append(col(Term.keyword_norm).contains(token, autoescape=True))
+    if field in {SearchField.ALL, SearchField.NAME}:
+        conditions.append(func.lower(Meaning.full_name).contains(token, autoescape=True))
+    if field in {SearchField.ALL, SearchField.DESCRIPTION}:
+        description = func.lower(func.coalesce(Meaning.description, ""))
+        conditions.append(description.contains(token, autoescape=True))
+    return or_(*conditions)
 
 
 def update(

@@ -9,7 +9,7 @@
 - 遭遇ごとのsource・memo・時刻を保持するOccurrence履歴
 - Meaningの作成、編集、一覧、詳細表示
 - Termと別名の管理
-- Term・正式名称・説明の検索
+- Term・正式名称・説明の複数語検索、対象指定、関連度順、一致理由
 - 対話／非対話での解決と編集
 - CSV Import／Export
 - JSON出力

@@ -3,6 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import func, select
 
 from termkeeper.application import NotFoundError, TermKeeperService, ValidationError
+from termkeeper.domain import SearchField
 from termkeeper.infrastructure.connection import get_session
 from termkeeper.infrastructure.tables import Inbox, Occurrence
 from termkeeper.infrastructure.tables import Meaning as MeaningRecord
@@ -31,7 +32,7 @@ def test_resolve_creates_searchable_meaning_and_closes_inbox() -> None:
 
     assert set(meaning.terms) == {"BTP", "Business Technology Platform"}
     assert service.get_inbox(item.inbox_id).status == "Closed"
-    assert service.search("sap")[0].meaning_id == meaning.meaning_id
+    assert service.search("sap")[0].meaning.meaning_id == meaning.meaning_id
     assert service.add("btp").outcome == "registered"
 
 
@@ -70,7 +71,59 @@ def test_edit_lists_and_searches_meanings() -> None:
     assert edited.description == "suite"
     assert "Enterprise Resource Planning System" in edited.terms
     assert service.meanings()[0].meaning_id == meaning.meaning_id
-    assert service.search("SUITE")[0].meaning_id == meaning.meaning_id
+    assert service.search("SUITE")[0].meaning.meaning_id == meaning.meaning_id
+
+
+def test_search_ranks_matches_and_reports_reason() -> None:
+    service = TermKeeperService()
+    exact = service.create_meaning("Enterprise Resource Planning", terms=("ERP",))
+    prefix = service.create_meaning("ERP Cloud")
+    description = service.create_meaning("Finance Suite", "Supports ERP workflows")
+
+    hits = service.search("ERP")
+
+    assert [hit.meaning.meaning_id for hit in hits] == [
+        exact.meaning_id,
+        prefix.meaning_id,
+        description.meaning_id,
+    ]
+    assert hits[0].score == 100
+    assert hits[0].matched_field == SearchField.TERM
+    assert hits[0].matched_text == "ERP"
+
+
+def test_search_supports_multiple_words_fields_modes_and_limit() -> None:
+    service = TermKeeperService()
+    erp = service.create_meaning(
+        "Enterprise Resource Planning",
+        "Core business planning",
+        ("ERP",),
+    )
+    service.create_meaning("Enterprise Content Management", "Document platform", ("ECM",))
+
+    assert service.search("enterprise planning")[0].meaning.meaning_id == erp.meaning_id
+    assert service.search("enterprise missing") == []
+    assert len(service.search("planning document", match_all=False)) == 2
+    assert (
+        service.search("business", field=SearchField.DESCRIPTION)[0].meaning.meaning_id
+        == erp.meaning_id
+    )
+    assert service.search("enterprise", field=SearchField.DESCRIPTION) == []
+    assert len(service.search("enterprise", limit=1)) == 1
+
+
+def test_search_treats_sql_wildcards_as_text_and_validates_limit() -> None:
+    service = TermKeeperService()
+    percent = service.create_meaning("100% Completion")
+    service.create_meaning("Unrelated")
+
+    hits = service.search("%")
+
+    assert [hit.meaning.meaning_id for hit in hits] == [percent.meaning_id]
+    with pytest.raises(ValidationError):
+        service.search("term", limit=0)
+    with pytest.raises(ValidationError):
+        service.search("term", limit=101)
 
 
 def test_discard_updates_history_and_prevents_repeated_actions() -> None:

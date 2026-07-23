@@ -68,9 +68,15 @@ tk resolve 1 \
 
 ```bash
 tk search ICMR
+tk search "enterprise planning" --all
+tk search "planning document" --any --in description --limit 10
 tk show 1
 tk meanings
 ```
+
+検索は完全一致、前方一致、部分一致の順に関連度を付け、一致理由とともに表示します。
+複数語は標準ですべての語に一致するMeaningを探します。`--any`でいずれかの語、
+`--in term|name|description|all`で検索対象、`--limit`で最大件数を指定できます。
 
 ### 整理
 

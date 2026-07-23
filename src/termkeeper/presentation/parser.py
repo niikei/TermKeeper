@@ -2,6 +2,8 @@
 
 import argparse
 
+from termkeeper.domain import SearchField
+
 
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tk", description="Capture now, understand later.")
@@ -23,6 +25,17 @@ def create_parser() -> argparse.ArgumentParser:
 
     search = sub.add_parser("search", help="Search terms and descriptions")
     search.add_argument("keyword")
+    mode = search.add_mutually_exclusive_group()
+    mode.add_argument("--all", action="store_true", dest="match_all", default=True)
+    mode.add_argument("--any", action="store_false", dest="match_all")
+    search.add_argument(
+        "--in",
+        choices=tuple(SearchField),
+        default=SearchField.ALL,
+        dest="search_field",
+        type=SearchField,
+    )
+    search.add_argument("--limit", type=int, default=20)
     discard = sub.add_parser("discard", help="Discard an inbox item")
     discard.add_argument("inbox_id", type=int)
     show = sub.add_parser("show", help="Show a meaning")
