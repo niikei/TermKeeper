@@ -4,15 +4,35 @@ from uuid import UUID
 
 from termkeeper.adapters.external import (
     ExternalMeaning,
+    ExternalPage,
     ExternalSearchResult,
     meaning_search_query,
 )
-from termkeeper.adapters.mcp.inputs import SearchFilters
+from termkeeper.adapters.mcp.inputs import MeaningFilters, SearchFilters
 from termkeeper.adapters.mcp.tools.context import ToolContext
-from termkeeper.domain import StatsSummary
+from termkeeper.domain import MeaningListQuery, StatsSummary
 
 
 class SearchTools(ToolContext):
+    def list_meanings(
+        self,
+        query: MeaningFilters | None = None,
+    ) -> ExternalPage[ExternalMeaning]:
+        """List known meanings without search text; follow has_more for the next page."""
+        query = query or MeaningFilters()
+        scope = self._scope_name(query.scope_id) if query.scope_id is not None else None
+        return self._mapper.meaning_page(
+            self._service.meaning_page(
+                MeaningListQuery(
+                    tag=query.tag,
+                    scope=scope,
+                    favorite_only=query.favorite_only,
+                    offset=query.offset,
+                    limit=query.limit,
+                ),
+            ),
+        )
+
     def search_meanings(
         self,
         query: SearchFilters,

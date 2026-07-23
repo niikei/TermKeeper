@@ -48,6 +48,21 @@ def list_all(session: Session) -> list[Scope]:
     return list(session.exec(select(Scope).order_by(col(Scope.name_norm))).all())
 
 
+def list_page(
+    session: Session,
+    *,
+    offset: int,
+    limit: int,
+) -> list[Scope]:
+    statement = (
+        select(Scope)
+        .order_by(col(Scope.name_norm), col(Scope.scope_id))
+        .offset(offset)
+        .limit(limit + 1)
+    )
+    return list(session.exec(statement).all())
+
+
 def search(
     session: Session,
     text: str,

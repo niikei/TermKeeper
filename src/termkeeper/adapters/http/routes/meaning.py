@@ -16,6 +16,7 @@ from termkeeper.adapters.external import (
 from termkeeper.adapters.http.common import _local_meaning_id, _scope_name
 from termkeeper.adapters.http.requests import MeaningUpdateRequest, SearchFilters
 from termkeeper.application import TermKeeperService
+from termkeeper.domain import MeaningListQuery
 
 
 def _register_meaning_routes(
@@ -46,17 +47,20 @@ def _register_meaning_routes(
         offset: Annotated[int, Query(ge=0)] = 0,
         limit: Annotated[int, Query(ge=1, le=100)] = 20,
     ) -> ExternalPage[ExternalMeaning]:
-        return page(
-            [
-                mapper.meaning(item)
-                for item in service.meanings(
-                    tag,
-                    scope=_scope_name(service, scope_id) if scope_id is not None else None,
+        return mapper.meaning_page(
+            service.meaning_page(
+                MeaningListQuery(
+                    tag=tag,
+                    scope=(
+                        _scope_name(service, scope_id)
+                        if scope_id is not None
+                        else None
+                    ),
                     favorite_only=favorite_only,
-                )
-            ],
-            offset,
-            limit,
+                    offset=offset,
+                    limit=limit,
+                ),
+            ),
         )
 
     @app.put("/api/v1/meanings/{meaning_id}")

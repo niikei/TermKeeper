@@ -219,6 +219,14 @@ class ExternalMapper:
             candidates=tuple(self.meaning(item) for item in result.candidates),
         )
 
+    def meaning_page(self, result: Page[Meaning]) -> ExternalPage[ExternalMeaning]:
+        return ExternalPage(
+            items=tuple(self.meaning(item) for item in result.items),
+            offset=result.offset,
+            limit=result.limit,
+            has_more=result.has_more,
+        )
+
     def search_result(
         self,
         result: SearchResult,

@@ -371,6 +371,9 @@ Tag、Favorite、関連Meaning、Referenceの操作にも対応しています�
 DB連番を含まず、一覧は`items`、`offset`、`limit`、`has_more`のページ形式です。
 Scopeは`/api/v1/scopes`で管理し、HTTP/MCPからMeaningのScopeを指定するときはScopeの
 `public_id`（UUID）を使用します。
+MCPでは`list_meanings`で検索語なしのMeaning巡回、`search_meanings`で関連度付き検索を
+使い分けます。どちらも`has_more`が真なら、現在の`offset`に返却件数を足して次ページを
+取得します。
 
 検索エンドポイントは`/api/v1/meanings/search`、`/api/v1/occurrences/search`、
 `/api/v1/inbox/search`、`/api/v1/scopes/search`です。

@@ -3,6 +3,7 @@ from datetime import UTC
 
 from termkeeper.adapters.mcp import (
     InboxSearchFilters,
+    MeaningFilters,
     OccurrenceFilters,
     OccurrenceSearchFilters,
     ScopeSearchFilters,
@@ -36,6 +37,7 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
         "get_meaning",
         "get_stats",
         "list_inbox",
+        "list_meanings",
         "list_occurrences",
         "list_references",
         "list_related",
@@ -94,6 +96,7 @@ def test_mcp_tools_delegate_complete_workflow() -> None:
     service = TermKeeperService()
     tools = TermKeeperMcpTools(service)
     sap_scope = tools.create_scope("SAP")
+    assert tools.list_meanings(MeaningFilters()).items == ()
 
     captured = tools.capture_term("ERP", "planning", "Teams")
     occurrence_id = captured.occurrence.public_id

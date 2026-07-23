@@ -5,7 +5,8 @@ from uuid import UUID
 from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_scope
 from termkeeper.application.support import get_scope, user_id
-from termkeeper.domain import Scope
+from termkeeper.application.validation import validate_page
+from termkeeper.domain import Page, PageQuery, Scope
 from termkeeper.infrastructure.repositories import scope_repository, settings_repository
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
@@ -13,6 +14,27 @@ GENERAL_SCOPE_ID = 1
 
 
 class ScopeUseCases:
+    def scope_page(self, query: PageQuery | None = None) -> Page[Scope]:
+        query = query or PageQuery()
+        validate_page(
+            query.offset,
+            query.limit,
+            resource="Scope",
+            max_limit=100,
+        )
+        with UnitOfWork() as uow:
+            records = scope_repository.list_page(
+                uow.session,
+                offset=query.offset,
+                limit=query.limit,
+            )
+            return Page(
+                items=tuple(to_scope(record) for record in records[: query.limit]),
+                offset=query.offset,
+                limit=query.limit,
+                has_more=len(records) > query.limit,
+            )
+
     def create_scope(self, name: str, description: str | None = None) -> Scope:
         _validate_name(name)
         with UnitOfWork() as uow:

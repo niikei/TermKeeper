@@ -9,7 +9,6 @@ from termkeeper.adapters.external import (
     ExternalMapper,
     ExternalPage,
     ExternalScope,
-    page,
     scope_search_query,
 )
 from termkeeper.adapters.http.requests import (
@@ -18,6 +17,7 @@ from termkeeper.adapters.http.requests import (
     ScopeUpdateRequest,
 )
 from termkeeper.application import TermKeeperService
+from termkeeper.domain import PageQuery
 
 
 def _register_scope_routes(
@@ -30,7 +30,7 @@ def _register_scope_routes(
         offset: Annotated[int, Query(ge=0)] = 0,
         limit: Annotated[int, Query(ge=1, le=100)] = 20,
     ) -> ExternalPage[ExternalScope]:
-        return page([mapper.scope(item) for item in service.scopes()], offset, limit)
+        return mapper.scope_page(service.scope_page(PageQuery(offset, limit)))
 
     @app.get("/api/v1/scopes/search")
     def search_scopes(

@@ -61,6 +61,15 @@ class SearchFilters:
 
 
 @dataclass(frozen=True)
+class MeaningFilters:
+    tag: str | None = None
+    scope_id: UUID | None = None
+    favorite_only: bool = False
+    offset: Offset = 0
+    limit: Limit = 20
+
+
+@dataclass(frozen=True)
 class ScopeSearchFilters:
     text: SearchText
     offset: Offset = 0

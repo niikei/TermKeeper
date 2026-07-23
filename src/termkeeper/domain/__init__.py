@@ -3,9 +3,9 @@
 from termkeeper.domain.analytics import Frequency, StatsSummary
 from termkeeper.domain.importing import ImportIssue, ImportResult, ImportRow
 from termkeeper.domain.merge import MergeResult
-from termkeeper.domain.models import CaptureResult, Meaning
+from termkeeper.domain.models import CaptureResult, Meaning, MeaningListQuery
 from termkeeper.domain.occurrence import OccurrenceItem, OccurrenceQuery, OccurrenceUpdate
-from termkeeper.domain.pagination import Page
+from termkeeper.domain.pagination import Page, PageQuery
 from termkeeper.domain.reference import ReferenceLink, ReferenceUpdate
 from termkeeper.domain.scope import GENERAL_SCOPE_PUBLIC_ID, Scope, ScopeSearchQuery
 from termkeeper.domain.search import (
@@ -27,12 +27,14 @@ __all__ = [
     "ImportResult",
     "ImportRow",
     "Meaning",
+    "MeaningListQuery",
     "MergeResult",
     "OccurrenceItem",
     "OccurrenceQuery",
     "OccurrenceStatus",
     "OccurrenceUpdate",
     "Page",
+    "PageQuery",
     "ReferenceLink",
     "ReferenceUpdate",
     "SearchField",

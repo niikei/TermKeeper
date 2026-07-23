@@ -4,6 +4,7 @@ import argparse
 
 from termkeeper.adapters.cli.handlers.common import confirm_destructive
 from termkeeper.adapters.cli.rendering import (
+    print_has_more,
     print_meaning,
     print_meaning_list,
     print_search_has_more,
@@ -12,7 +13,14 @@ from termkeeper.adapters.cli.rendering import (
 )
 from termkeeper.adapters.cli.style import danger, heading, identifier, muted, success, warning
 from termkeeper.application import TermKeeperService, ValidationError
-from termkeeper.domain import Meaning, MergeResult, SearchQuery, SearchResult
+from termkeeper.domain import (
+    Meaning,
+    MeaningListQuery,
+    MergeResult,
+    Page,
+    SearchQuery,
+    SearchResult,
+)
 
 
 def handle_search(args: argparse.Namespace, service: TermKeeperService) -> SearchResult:
@@ -50,14 +58,19 @@ def handle_show(args: argparse.Namespace, service: TermKeeperService) -> Meaning
 def handle_term_list(
     args: argparse.Namespace,
     service: TermKeeperService,
-) -> list[Meaning]:
-    result = service.meanings(
-        args.tag,
-        scope=args.scope,
-        favorite_only=args.favorite_only,
+) -> Page[Meaning]:
+    result = service.meaning_page(
+        MeaningListQuery(
+            tag=args.tag,
+            scope=args.scope,
+            favorite_only=args.favorite_only,
+            offset=args.offset,
+            limit=args.limit,
+        ),
     )
     if not args.json:
-        print_meaning_list(result)
+        print_meaning_list(result.items)
+        print_has_more(result)
     return result
 
 

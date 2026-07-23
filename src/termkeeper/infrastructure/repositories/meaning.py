@@ -9,7 +9,7 @@ from sqlmodel import Session, col, select
 
 from termkeeper.domain import SearchField
 from termkeeper.infrastructure.normalization import normalize_keyword
-from termkeeper.infrastructure.tables import Meaning, Scope, Term, utc_now
+from termkeeper.infrastructure.tables import Meaning, MeaningTag, Scope, Tag, Term, utc_now
 
 
 @dataclass(frozen=True, slots=True)
@@ -244,6 +244,37 @@ def list_all(
         statement = statement.where(Meaning.is_favorite)
     if scope_id is not None:
         statement = statement.where(Meaning.scope_id == scope_id)
+    return list(session.exec(statement).all())
+
+
+def list_page(
+    session: Session,
+    *,
+    scope_id: int | None,
+    favorite_only: bool,
+    tag: str | None,
+    offset: int,
+    limit: int,
+) -> list[Meaning]:
+    statement = select(Meaning).where(col(Meaning.deleted_at).is_(None))
+    if favorite_only:
+        statement = statement.where(Meaning.is_favorite)
+    if scope_id is not None:
+        statement = statement.where(Meaning.scope_id == scope_id)
+    if tag is not None:
+        statement = (
+            statement.join(MeaningTag)
+            .join(Tag)
+            .where(Tag.name_norm == normalize_keyword(tag))
+        )
+    statement = (
+        statement.order_by(
+            col(Meaning.updated_at).desc(),
+            col(Meaning.meaning_id).desc(),
+        )
+        .offset(offset)
+        .limit(limit + 1)
+    )
     return list(session.exec(statement).all())
 
 

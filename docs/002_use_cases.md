@@ -102,6 +102,7 @@ scopeはMeaningの識別境界であり、Tagとは異なる。同じ正式名�
 
 ```bash
 tk list
+tk list --offset 50 --limit 50
 tk list --scope SAP --tag Core
 tk list --favorite
 tk search "enterprise planning" --match-all
@@ -117,7 +118,7 @@ tk tag add 1 Core
 tk meaning favorite 1
 ```
 
-`tk list`はActive Meaningをコンパクトに見渡す日常用ビュー。`tk search`は
+`tk list`はActive Meaningをコンパクトに見渡すページ形式の日常用ビュー。`tk search`は
 `tk meaning search`の短縮形で、Term、正式名称、説明を関連度順に返す。どちらもTag、scope、
 お気に入りで絞り込める。Occurrenceはkeyword・memo・source、Scopeは名前・説明を検索する。
 Inbox検索はOccurrence検索をPendingに限定する。

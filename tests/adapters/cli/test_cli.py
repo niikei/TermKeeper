@@ -924,8 +924,8 @@ def test_list_json_returns_active_meanings(
 
     assert main(["list", "--json"]) == 0
     result = json.loads(capsys.readouterr().out)
-    assert len(result) == 1
-    assert result[0]["full_name"] == "Enterprise Resource Planning"
+    assert len(result["items"]) == 1
+    assert result["items"][0]["full_name"] == "Enterprise Resource Planning"
     assert "\033[" not in json.dumps(result)
 
 

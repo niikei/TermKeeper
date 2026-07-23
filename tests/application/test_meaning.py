@@ -3,6 +3,7 @@ from uuid import uuid4
 import pytest
 
 from termkeeper.application import NotFoundError, TermKeeperService, ValidationError
+from termkeeper.domain import MeaningListQuery
 
 
 def test_validation_and_missing_records_are_explicit() -> None:
@@ -52,6 +53,23 @@ def test_edit_lists_and_searches_meanings() -> None:
     assert "Enterprise Resource Planning System" in edited.terms
     assert service.meanings()[0].meaning_id == meaning.meaning_id
     assert service.search_meanings("SUITE").hits[0].meaning.meaning_id == meaning.meaning_id
+
+
+def test_meaning_page_filters_and_pages_in_storage() -> None:
+    service = TermKeeperService()
+    first = service.create_meaning("Alpha")
+    service.create_meaning("Beta")
+    service.add_tag(first.meaning_id, "Core")
+    service.favorite_meaning(first.meaning_id)
+
+    page = service.meaning_page(MeaningListQuery(limit=1))
+    filtered = service.meaning_page(
+        MeaningListQuery(tag="core", favorite_only=True),
+    )
+
+    assert len(page.items) == 1
+    assert page.has_more is True
+    assert filtered.items == (service.get_meaning(first.meaning_id),)
 
 
 def test_user_profile_is_recorded_in_audit_columns() -> None:

@@ -5,11 +5,11 @@ from uuid import UUID
 from termkeeper.adapters.external import (
     ExternalPage,
     ExternalScope,
-    page,
     scope_search_query,
 )
 from termkeeper.adapters.mcp.inputs import Limit, Offset, ScopeSearchFilters
 from termkeeper.adapters.mcp.tools.context import ToolContext
+from termkeeper.domain import PageQuery
 
 
 class ScopeTools(ToolContext):
@@ -32,7 +32,9 @@ class ScopeTools(ToolContext):
         limit: Limit = 20,
     ) -> ExternalPage[ExternalScope]:
         """List configured meaning scopes."""
-        return page([self._mapper.scope(item) for item in self._service.scopes()], offset, limit)
+        return self._mapper.scope_page(
+            self._service.scope_page(PageQuery(offset, limit)),
+        )
 
     def edit_scope(
         self,

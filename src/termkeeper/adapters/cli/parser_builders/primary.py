@@ -61,6 +61,7 @@ def add_primary_commands(commands: Commands) -> None:
         dest="favorite_only",
         help="Show only favorite meanings",
     )
+    add_pagination_arguments(list_)
 
     resolve = commands.add(
         "resolve",

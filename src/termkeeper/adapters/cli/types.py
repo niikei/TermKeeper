@@ -26,6 +26,7 @@ type CommandResult = (
     | MergeResult
     | OccurrenceItem
     | Page[OccurrenceItem]
+    | Page[Meaning]
     | Page[Scope]
     | ReferenceLink
     | SearchResult

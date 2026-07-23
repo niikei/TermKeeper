@@ -11,7 +11,8 @@ from termkeeper.application.support import (
     required_id,
     user_id,
 )
-from termkeeper.domain import Meaning
+from termkeeper.application.validation import optional_filter, validate_page
+from termkeeper.domain import Meaning, MeaningListQuery, Page
 from termkeeper.infrastructure.normalization import normalize_keyword
 from termkeeper.infrastructure.repositories import (
     meaning_repository,
@@ -23,6 +24,43 @@ from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
 
 class MeaningUseCases:
+    def meaning_page(
+        self,
+        query: MeaningListQuery | None = None,
+    ) -> Page[Meaning]:
+        query = query or MeaningListQuery()
+        validate_page(
+            query.offset,
+            query.limit,
+            resource="Meaning",
+            max_limit=100,
+        )
+        tag = optional_filter(query.tag, name="Tag")
+        scope = optional_filter(query.scope, name="Scope")
+        with UnitOfWork() as uow:
+            selected_scope = get_scope_by_name(uow, scope) if scope else None
+            records = meaning_repository.list_page(
+                uow.session,
+                scope_id=(
+                    required_id(selected_scope.scope_id)
+                    if selected_scope is not None
+                    else None
+                ),
+                favorite_only=query.favorite_only,
+                tag=tag,
+                offset=query.offset,
+                limit=query.limit,
+            )
+            return Page(
+                items=tuple(
+                    to_meaning(uow.session, record)
+                    for record in records[: query.limit]
+                ),
+                offset=query.offset,
+                limit=query.limit,
+                has_more=len(records) > query.limit,
+            )
+
     def get_meaning(self, meaning_id: int) -> Meaning:
         with UnitOfWork() as uow:
             return to_meaning(uow.session, get_meaning(uow, meaning_id))

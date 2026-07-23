@@ -9,6 +9,15 @@ from termkeeper.domain.occurrence import OccurrenceItem
 
 
 @dataclass(frozen=True)
+class MeaningListQuery:
+    tag: str | None = None
+    scope: str | None = None
+    favorite_only: bool = False
+    offset: int = 0
+    limit: int = 50
+
+
+@dataclass(frozen=True)
 class Meaning:
     meaning_id: int
     public_id: UUID

@@ -3,7 +3,7 @@ from uuid import uuid4
 import pytest
 
 from termkeeper.application import NotFoundError, TermKeeperService, ValidationError
-from termkeeper.domain import ScopeSearchQuery
+from termkeeper.domain import PageQuery, ScopeSearchQuery
 
 
 def test_scope_lifecycle_and_stable_identity() -> None:
@@ -68,3 +68,15 @@ def test_scope_search_covers_name_description_pagination_and_validation() -> Non
         service.search_scopes(ScopeSearchQuery("SAP", offset=-1))
     with pytest.raises(ValidationError, match="limit"):
         service.search_scopes(ScopeSearchQuery("SAP", limit=0))
+
+
+def test_scope_page_is_bounded_and_stable() -> None:
+    service = TermKeeperService()
+    service.create_scope("SAP")
+
+    first = service.scope_page(PageQuery(limit=1))
+    second = service.scope_page(PageQuery(offset=1, limit=1))
+
+    assert [item.name for item in first.items] == ["General"]
+    assert first.has_more is True
+    assert [item.name for item in second.items] == ["SAP"]

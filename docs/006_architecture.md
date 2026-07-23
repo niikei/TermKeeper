@@ -94,8 +94,8 @@ OccurrenceやReferenceの一覧変換では、関連Meaningの内部IDから`pub
 
 外部の一覧応答は`items`、`offset`、`limit`、`has_more`を持つ共通ページ形式とする。
 検索応答も同じページ情報を持ち、HTTPとMCPで境界の意味を統一する。
-OccurrenceとInboxはApplication層のPageを共有し、Repositoryで`offset`と`limit + 1`を
-適用する。全件取得後のsliceは行わない。
+Meaning、Scope、Occurrence、InboxはApplication層のPageを共有し、Repositoryで`offset`と
+`limit + 1`を適用する。外部アダプターで全件取得後のsliceは行わない。
 
 HTTPアダプターはFastAPIで`/api/v1`以下へ公開し、PydanticはHTTPリクエストの構文検証だけを
 担当する。業務検証はApplicationへ委譲し、`ValidationError`を422、`NotFoundError`を404の
