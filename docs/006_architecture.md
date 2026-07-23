@@ -11,7 +11,10 @@
   - `cli/`: CLI引数、表示、CLI固有型
   - `cli/handlers/`: Capture、Meaning、Metadata、Config、Transfer単位のコマンド処理
   - `csv_io.py`: CSV入出力
-- `adapters/`: MCPなど外部プロトコルからApplication Serviceへの変換
+- `adapters/`: 外部プロトコルからApplication Serviceへの変換
+  - `external/`: HTTP・MCPで共有する外部DTO、ページング、Domain DTOからの変換
+  - `http/`: FastAPIアプリケーション構築、リクエストモデル、機能別Route
+  - `mcp/`: FastMCPサーバー構築、入力モデル、機能別Tool
 
 各アダプターはレイヤーの公開モジュールを直接使用し、旧構成向けの互換モジュールは持たない。
 CRUD、検索、スキーマ作成はSQLModelを使用する。旧SQLiteスキーマとの自動互換性や移行処理は
@@ -75,6 +78,8 @@ Referenceの編集・削除にもReference自身の`public_id`を使用する。
 HTTPアダプターはFastAPIで`/api/v1`以下へ公開し、PydanticはHTTPリクエストの構文検証だけを
 担当する。業務検証はApplicationへ委譲し、`ValidationError`を422、`NotFoundError`を404の
 一貫したJSONエラーへ変換する。認証・認可を導入するまではlocalhost専用とする。
+RouteとMCP Toolは機能単位のモジュールへ分割し、アプリケーション／サーバーの構築モジュールは
+登録とプロセス起動だけを担当する。
 
 ## 時刻
 

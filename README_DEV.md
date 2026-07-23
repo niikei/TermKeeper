@@ -52,7 +52,12 @@ src/termkeeper/
 │   ├── cli/
 │   │   └── handlers/       # 機能別CLI Handler
 │   └── csv_io.py           # CSV境界
-├── adapters/               # HTTP API、MCP
+├── adapters/
+│   ├── external/           # HTTP・MCP共通の外部DTOと変換
+│   ├── http/
+│   │   └── routes/         # FastAPIの機能別Route
+│   └── mcp/
+│       └── tools/          # MCPの機能別Tool
 └── config.py               # 実行時設定
 ```
 
