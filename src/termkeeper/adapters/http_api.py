@@ -84,6 +84,7 @@ def _register_routes(app: FastAPI, service: TermKeeperService) -> None:
         text: Annotated[str, Query(min_length=1)],
         field: Literal["all", "term", "name", "description"] = "all",
         tag: str | None = None,
+        *,
         favorite_only: bool = False,
         limit: Annotated[int, Query(ge=1, le=100)] = 20,
     ) -> JsonObject:
