@@ -2,12 +2,13 @@
 
 import sys
 import traceback
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 from termkeeper.adapters.cli.handlers.registry import HANDLERS
 from termkeeper.adapters.cli.parser import create_parser
 from termkeeper.adapters.cli.rendering import print_json
 from termkeeper.adapters.cli.style import configure_color, danger
+from termkeeper.adapters.cli.types import CommandResult
 from termkeeper.application import (
     InitializationError,
     NotFoundError,
@@ -38,7 +39,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         if args.json:
             print_json(result)
-        return 0
+        return _exit_code(args.command, result)
+
+
+def _exit_code(command: str, result: CommandResult) -> int:
+    if command == "doctor" and isinstance(result, Mapping) and result.get("status") == "error":
+        return 1
+    return 0
 
 
 def _print_error(exc: Exception, *, json_output: bool) -> None:

@@ -302,6 +302,7 @@ tk completion fish | source
 
 `doctor`はバージョン、資格情報を隠したDB接続先、backend、Alembic Revision、
 `user.name`・`user.email`の設定有無を確認します。
+DB接続またはスキーマに問題がある場合は終了コード`1`を返すため、監視にも利用できます。
 
 ## JSON出力
 

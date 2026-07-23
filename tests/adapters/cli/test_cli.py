@@ -1105,7 +1105,7 @@ def test_schema_drift_is_reported_without_traceback(
     assert "tk init --reset" in captured.err
     assert "Traceback" not in captured.err
 
-    assert main(["doctor", "--json"]) == 0
+    assert main(["doctor", "--json"]) == 1
     diagnosis = json.loads(capsys.readouterr().out)
     assert diagnosis["status"] == "error"
     assert "missing table 'scope'" in diagnosis["schema_issues"]

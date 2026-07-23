@@ -197,6 +197,7 @@ Meaningは`full_name`、Scope参照、説明、Term、Tagを持つ。有効Meani
 `tk doctor`はTermKeeperのバージョン、資格情報を伏せたDB接続先、DB backend、現在と期待する
 Alembic Revision、利用者設定の有無を表示する。DB初期化自体に失敗した場合は通常の初期化エラーと
 `tk --debug doctor`による技術情報を返す。
+DB接続またはスキーマ診断が異常なら終了コード`1`、正常なら`0`を返す。
 
 `tk completion bash|zsh|fish`は標準出力へ補完スクリプトを生成する。JSONモードではshell名と
 スクリプトをJSONオブジェクトとして返す。
