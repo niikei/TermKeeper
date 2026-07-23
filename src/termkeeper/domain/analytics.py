@@ -18,7 +18,7 @@ class Frequency:
 @dataclass(frozen=True)
 class StatsSummary:
     total_occurrences: int
-    open_inbox_items: int
+    pending_occurrences: int
     active_meanings: int
     top_terms: tuple[Frequency, ...]
     top_sources: tuple[Frequency, ...]
@@ -26,7 +26,7 @@ class StatsSummary:
     def to_dict(self) -> dict[str, Any]:
         return {
             "total_occurrences": self.total_occurrences,
-            "open_inbox_items": self.open_inbox_items,
+            "pending_occurrences": self.pending_occurrences,
             "active_meanings": self.active_meanings,
             "top_terms": [item.to_dict() for item in self.top_terms],
             "top_sources": [item.to_dict() for item in self.top_sources],

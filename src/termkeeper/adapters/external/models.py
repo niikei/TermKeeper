@@ -6,11 +6,10 @@ from uuid import UUID
 
 from termkeeper.application import NotFoundError, TermKeeperService
 from termkeeper.domain import (
-    AddResult,
-    InboxItem,
-    InboxStatus,
+    CaptureResult,
     Meaning,
     OccurrenceItem,
+    OccurrenceStatus,
     ReferenceLink,
     SearchField,
     SearchResult,
@@ -39,6 +38,7 @@ def page[T](items: list[T], offset: int, limit: int) -> ExternalPage[T]:
 class ExternalMeaning:
     public_id: UUID
     full_name: str
+    scope: str
     description: str | None
     created_at: datetime
     updated_at: datetime
@@ -49,30 +49,17 @@ class ExternalMeaning:
 
 
 @dataclass(frozen=True)
-class ExternalInbox:
-    public_id: UUID
-    keyword: str
-    status: InboxStatus
-    memo: str | None
-    source: str | None
-    occurrence_count: int
-    created_at: datetime
-    updated_at: datetime
-    last_seen_at: datetime
-    closed_at: datetime | None
-    resolved_meaning_id: UUID | None
-
-
-@dataclass(frozen=True)
 class ExternalOccurrence:
     public_id: UUID
     keyword: str
     memo: str | None
     source: str | None
+    status: OccurrenceStatus
     occurred_at: datetime
     updated_at: datetime
-    inbox_id: UUID | None
     meaning_id: UUID | None
+    resolved_at: datetime | None
+    discarded_at: datetime | None
 
 
 @dataclass(frozen=True)
@@ -86,10 +73,9 @@ class ExternalReference:
 
 
 @dataclass(frozen=True)
-class ExternalAddResult:
-    outcome: str
-    inbox: ExternalInbox | None = None
-    meaning: ExternalMeaning | None = None
+class ExternalCaptureResult:
+    occurrence: ExternalOccurrence
+    candidates: tuple[ExternalMeaning, ...]
 
 
 @dataclass(frozen=True)
@@ -125,6 +111,7 @@ class ExternalMapper:
         return ExternalMeaning(
             public_id=item.public_id,
             full_name=item.full_name,
+            scope=item.scope,
             description=item.description,
             created_at=item.created_at,
             updated_at=item.updated_at,
@@ -134,31 +121,18 @@ class ExternalMapper:
             tags=item.tags,
         )
 
-    def inbox(self, item: InboxItem) -> ExternalInbox:
-        return ExternalInbox(
-            public_id=item.public_id,
-            keyword=item.keyword,
-            status=item.status,
-            memo=item.memo,
-            source=item.source,
-            occurrence_count=item.occurrence_count,
-            created_at=item.created_at,
-            updated_at=item.updated_at,
-            last_seen_at=item.last_seen_at,
-            closed_at=item.closed_at,
-            resolved_meaning_id=self._meaning_public_id(item.resolved_meaning_id),
-        )
-
     def occurrence(self, item: OccurrenceItem) -> ExternalOccurrence:
         return ExternalOccurrence(
             public_id=item.public_id,
             keyword=item.keyword,
             memo=item.memo,
             source=item.source,
+            status=item.status,
             occurred_at=item.occurred_at,
             updated_at=item.updated_at,
-            inbox_id=self._inbox_public_id(item.inbox_id),
             meaning_id=self._meaning_public_id(item.meaning_id),
+            resolved_at=item.resolved_at,
+            discarded_at=item.discarded_at,
         )
 
     def reference(self, item: ReferenceLink) -> ExternalReference:
@@ -175,11 +149,10 @@ class ExternalMapper:
             updated_at=item.updated_at,
         )
 
-    def add_result(self, result: AddResult) -> ExternalAddResult:
-        return ExternalAddResult(
-            outcome=result.outcome,
-            inbox=self.inbox(result.inbox) if result.inbox is not None else None,
-            meaning=self.meaning(result.meaning) if result.meaning is not None else None,
+    def capture_result(self, result: CaptureResult) -> ExternalCaptureResult:
+        return ExternalCaptureResult(
+            occurrence=self.occurrence(result.occurrence),
+            candidates=tuple(self.meaning(item) for item in result.candidates),
         )
 
     def search_result(
@@ -224,8 +197,3 @@ class ExternalMapper:
                 (item.public_id for item in self._service.trash() if item.meaning_id == local_id),
                 None,
             )
-
-    def _inbox_public_id(self, local_id: int | None) -> UUID | None:
-        if local_id is None:
-            return None
-        return self._service.get_inbox(local_id).public_id

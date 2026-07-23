@@ -20,8 +20,11 @@ def test_split_terms_trims_and_ignores_empty_values() -> None:
 def test_csv_round_trip_and_update(tmp_path: Path) -> None:
     service = TermKeeperService()
     captured = service.add("BOM")
-    assert captured.inbox is not None
-    meaning = service.resolve(captured.inbox.inbox_id, "Bill of Materials", "parts")
+    meaning = service.resolve(
+        captured.occurrence.occurrence_id,
+        "Bill of Materials",
+        "parts",
+    )
     service.add_tag(meaning.meaning_id, "Manufacturing")
     path = tmp_path / "terms.csv"
 
@@ -130,6 +133,22 @@ def test_import_skips_duplicate_public_id_in_file(tmp_path: Path) -> None:
     assert (result.created, result.skipped) == (1, 1)
     assert result.issues[0].row_number == 3
     assert service.get_meaning_by_public_id(public_id).full_name == "First Meaning"
+
+
+def test_import_skips_duplicate_name_in_same_scope(tmp_path: Path) -> None:
+    path = tmp_path / "duplicate-scope.csv"
+    path.write_text(
+        "public_id,full_name,scope,description,terms,tags\n"
+        ",Order,SAP,,ORDER,\n"
+        ", order , sap ,,ORDER2,\n",
+        encoding="utf-8",
+    )
+    service = TermKeeperService()
+
+    result = import_meanings(str(path), service)
+
+    assert (result.created, result.skipped) == (1, 1)
+    assert "same scope" in result.issues[0].message
 
 
 def test_import_reports_deleted_public_id(tmp_path: Path) -> None:

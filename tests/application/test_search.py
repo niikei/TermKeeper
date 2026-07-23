@@ -91,3 +91,24 @@ def test_description_search_has_no_suggestion_without_descriptions() -> None:
 
     assert result.hits == ()
     assert result.suggestions == ()
+
+
+def test_search_and_list_filter_ambiguous_terms_by_scope() -> None:
+    service = TermKeeperService()
+    sap = service.create_meaning(
+        "Enterprise Resource Planning",
+        terms=("ERP",),
+        scope="SAP",
+    )
+    service.create_meaning(
+        "Effective Radiated Power",
+        terms=("ERP",),
+        scope="Radio",
+    )
+
+    result = service.search(SearchQuery("ERP", scope="sap"))
+
+    assert [hit.meaning.meaning_id for hit in result.hits] == [sap.meaning_id]
+    assert [item.meaning_id for item in service.meanings(scope="SAP")] == [
+        sap.meaning_id,
+    ]

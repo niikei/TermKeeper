@@ -5,11 +5,13 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from termkeeper.domain.status import OccurrenceStatus
+
 
 @dataclass(frozen=True)
 class OccurrenceQuery:
     meaning_id: int | None = None
-    inbox_id: int | None = None
+    status: OccurrenceStatus | None = None
     keyword: str | None = None
     source: str | None = None
     since: datetime | None = None
@@ -32,12 +34,16 @@ class OccurrenceItem:
     keyword: str
     memo: str | None
     source: str | None
+    status: OccurrenceStatus
     occurred_at: datetime
     updated_at: datetime
-    inbox_id: int | None = None
     meaning_id: int | None = None
+    resolved_at: datetime | None = None
+    discarded_at: datetime | None = None
     created_by_id: int | None = None
     updated_by_id: int | None = None
+    resolved_by_id: int | None = None
+    discarded_by_id: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

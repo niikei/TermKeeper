@@ -1,15 +1,15 @@
 """Shared persistence helpers for application use cases."""
 
 from termkeeper.application.errors import NotFoundError
-from termkeeper.infrastructure.repositories import inbox_repository, meaning_repository
-from termkeeper.infrastructure.tables import Inbox, Meaning, UserProfile
+from termkeeper.infrastructure.repositories import meaning_repository, occurrence_repository
+from termkeeper.infrastructure.tables import Meaning, Occurrence, UserProfile
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
 
-def get_inbox(uow: UnitOfWork, inbox_id: int) -> Inbox:
-    record = inbox_repository.get_inbox(uow.session, inbox_id)
+def get_occurrence(uow: UnitOfWork, occurrence_id: int) -> Occurrence:
+    record = occurrence_repository.get(uow.session, occurrence_id)
     if record is None:
-        message = f"Inbox {inbox_id} was not found."
+        message = f"Occurrence {occurrence_id} was not found."
         raise NotFoundError(message)
     return record
 

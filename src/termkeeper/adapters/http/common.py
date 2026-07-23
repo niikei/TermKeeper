@@ -17,5 +17,5 @@ def _local_meaning_id(
     ).meaning_id
 
 
-def _local_inbox_id(service: TermKeeperService, public_id: UUID) -> int:
-    return service.get_inbox_by_public_id(public_id).inbox_id
+def _local_occurrence_id(service: TermKeeperService, public_id: UUID) -> int:
+    return service.get_occurrence_by_public_id(public_id).occurrence_id

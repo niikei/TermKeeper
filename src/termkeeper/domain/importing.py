@@ -9,6 +9,7 @@ class ImportRow:
     row_number: int
     public_id: str
     full_name: str
+    scope: str
     description: str | None
     terms: tuple[str, ...] = ()
     tags: tuple[str, ...] = ()

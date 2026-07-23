@@ -1,5 +1,6 @@
 """Persistence operations for meanings and aliases."""
 
+from dataclasses import dataclass
 from uuid import UUID
 
 from sqlalchemy import func, or_
@@ -11,19 +12,28 @@ from termkeeper.infrastructure.sqlite_utils import normalize_keyword
 from termkeeper.infrastructure.tables import Meaning, Term, utc_now
 
 
+@dataclass(frozen=True, slots=True)
+class MeaningValues:
+    full_name: str
+    scope: str
+    description: str | None
+    user_id: int | None
+
+
 def create(
     session: Session,
-    full_name: str,
-    description: str | None,
-    user_id: int | None,
+    values: MeaningValues,
     *,
     public_id: UUID | None = None,
 ) -> Meaning:
     record = Meaning(
-        full_name=full_name.strip(),
-        description=description or None,
-        created_by_id=user_id,
-        updated_by_id=user_id,
+        full_name=values.full_name.strip(),
+        full_name_norm=normalize_keyword(values.full_name),
+        scope=values.scope.strip(),
+        scope_norm=normalize_keyword(values.scope),
+        description=values.description or None,
+        created_by_id=values.user_id,
+        updated_by_id=values.user_id,
     )
     if public_id is not None:
         record.public_id = public_id
@@ -111,7 +121,7 @@ def move_terms(session: Session, source_id: int, target_id: int) -> int:
     return moved
 
 
-def find_registered(session: Session, keyword: str) -> Meaning | None:
+def find_candidates(session: Session, keyword: str) -> list[Meaning]:
     statement = (
         select(Meaning)
         .join(Term)
@@ -119,8 +129,25 @@ def find_registered(session: Session, keyword: str) -> Meaning | None:
             Term.keyword_norm == normalize_keyword(keyword),
             col(Meaning.deleted_at).is_(None),
         )
-        .order_by(col(Meaning.meaning_id))
+        .order_by(Meaning.scope_norm, Meaning.full_name_norm, col(Meaning.meaning_id))
     )
+    return list(session.exec(statement).all())
+
+
+def find_duplicate(
+    session: Session,
+    full_name: str,
+    scope: str,
+    *,
+    exclude_id: int | None = None,
+) -> Meaning | None:
+    statement = select(Meaning).where(
+        Meaning.full_name_norm == normalize_keyword(full_name),
+        Meaning.scope_norm == normalize_keyword(scope),
+        col(Meaning.deleted_at).is_(None),
+    )
+    if exclude_id is not None:
+        statement = statement.where(Meaning.meaning_id != exclude_id)
     return session.exec(statement).first()
 
 
@@ -129,6 +156,7 @@ def search(
     tokens: tuple[str, ...],
     field: SearchField,
     *,
+    scope: str | None = None,
     favorite_only: bool = False,
 ) -> list[Meaning]:
     token_conditions = [_search_condition(token, field) for token in tokens]
@@ -141,6 +169,8 @@ def search(
     )
     if favorite_only:
         statement = statement.where(Meaning.is_favorite)
+    if scope:
+        statement = statement.where(Meaning.scope_norm == normalize_keyword(scope))
     return list(session.exec(statement).all())
 
 
@@ -159,14 +189,15 @@ def _search_condition(token: str, field: SearchField) -> ColumnElement[bool]:
 def update(
     session: Session,
     record: Meaning,
-    full_name: str,
-    description: str | None,
-    user_id: int | None,
+    values: MeaningValues,
 ) -> None:
-    record.full_name = full_name.strip()
-    record.description = description or None
+    record.full_name = values.full_name.strip()
+    record.full_name_norm = normalize_keyword(values.full_name)
+    record.scope = values.scope.strip()
+    record.scope_norm = normalize_keyword(values.scope)
+    record.description = values.description or None
     record.updated_at = utc_now()
-    record.updated_by_id = user_id
+    record.updated_by_id = values.user_id
     session.add(record)
 
 

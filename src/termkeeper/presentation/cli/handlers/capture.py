@@ -4,8 +4,7 @@ import argparse
 
 from termkeeper.application import TermKeeperService
 from termkeeper.domain import (
-    AddResult,
-    InboxItem,
+    CaptureResult,
     Meaning,
     OccurrenceItem,
     OccurrenceQuery,
@@ -19,44 +18,38 @@ from termkeeper.presentation.cli.rendering import (
 )
 
 
-def handle_add(args: argparse.Namespace, service: TermKeeperService) -> AddResult:
-    result = service.add(args.keyword, args.memo, args.source)
-    if args.json:
-        return result
-    if result.inbox is not None:
-        if result.outcome == "created":
-            print(f"Added inbox #{result.inbox.inbox_id}: {result.inbox.keyword}")
-        else:
-            print(
-                f"Already in inbox #{result.inbox.inbox_id}; "
-                f"seen count is now {result.inbox.occurrence_count}.",
-            )
-    elif result.meaning is not None:
-        print(
-            f"Already registered as meaning #{result.meaning.meaning_id}: "
-            f"{result.meaning.full_name}",
-        )
+def handle_add(args: argparse.Namespace, service: TermKeeperService) -> CaptureResult:
+    result = service.add(
+        args.keyword,
+        args.memo,
+        args.source,
+        meaning_id=args.meaning_id,
+    )
+    if not args.json:
+        occurrence = result.occurrence
+        print(f"Captured occurrence #{occurrence.occurrence_id}: {occurrence.keyword}")
+        if occurrence.meaning_id is not None:
+            print(f"Assigned to meaning #{occurrence.meaning_id}.")
+        elif result.candidates:
+            print("Possible meanings:")
+            for candidate in result.candidates:
+                print(
+                    f"  #{candidate.meaning_id} [{candidate.scope}] {candidate.full_name}",
+                )
     return result
 
 
-def handle_inbox(args: argparse.Namespace, service: TermKeeperService) -> list[InboxItem]:
+def handle_inbox(args: argparse.Namespace, service: TermKeeperService) -> list[OccurrenceItem]:
     result = service.inbox()
     if not args.json:
         print_inbox(result)
     return result
 
 
-def handle_history(args: argparse.Namespace, service: TermKeeperService) -> list[InboxItem]:
+def handle_history(args: argparse.Namespace, service: TermKeeperService) -> list[OccurrenceItem]:
     result = service.history()
     if not args.json:
-        print_inbox(result)
-    return result
-
-
-def handle_inbox_edit(args: argparse.Namespace, service: TermKeeperService) -> InboxItem:
-    result = service.edit_inbox(args.inbox_id, args.keyword)
-    if not args.json:
-        print(f"Updated inbox #{args.inbox_id}: {result.keyword}")
+        print_occurrences(result)
     return result
 
 
@@ -66,7 +59,7 @@ def handle_occurrences(
 ) -> list[OccurrenceItem]:
     query = OccurrenceQuery(
         meaning_id=args.meaning_id,
-        inbox_id=args.inbox_id,
+        status=args.status,
         keyword=args.keyword,
         source=args.source,
         since=args.since,
@@ -102,23 +95,47 @@ def handle_stats(args: argparse.Namespace, service: TermKeeperService) -> StatsS
     return result
 
 
-def handle_resolve(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
+def handle_resolve(
+    args: argparse.Namespace,
+    service: TermKeeperService,
+) -> Meaning | OccurrenceItem:
+    if args.meaning_id is not None:
+        assigned = service.assign(args.occurrence_id, args.meaning_id)
+        if not args.json:
+            print(
+                f"Assigned occurrence #{args.occurrence_id} to meaning #{args.meaning_id}.",
+            )
+        return assigned
     name = args.name
     description = args.description
     if name is None:
-        item = service.get_inbox(args.inbox_id)
+        item = service.get_occurrence(args.occurrence_id)
         print(f"Resolving: {item.keyword}")
         name = input("Full name: ").strip()
         if description is None:
             description = input("Description: ").strip() or None
-    result = service.resolve(args.inbox_id, name, description)
+    meaning = service.resolve(args.occurrence_id, name, description, args.scope)
     if not args.json:
-        print(f"Created meaning #{result.meaning_id}: {result.full_name}")
+        print(f"Created meaning #{meaning.meaning_id}: {meaning.full_name}")
+    return meaning
+
+
+def handle_unresolve(args: argparse.Namespace, service: TermKeeperService) -> OccurrenceItem:
+    result = service.unresolve(args.occurrence_id)
+    if not args.json:
+        print(f"Returned occurrence #{args.occurrence_id} to the inbox.")
     return result
 
 
-def handle_discard(args: argparse.Namespace, service: TermKeeperService) -> dict[str, int]:
-    service.discard(args.inbox_id)
+def handle_discard(args: argparse.Namespace, service: TermKeeperService) -> OccurrenceItem:
+    result = service.discard(args.occurrence_id)
     if not args.json:
-        print(f"Discarded inbox #{args.inbox_id}.")
-    return {"discarded": args.inbox_id}
+        print(f"Discarded occurrence #{args.occurrence_id}.")
+    return result
+
+
+def handle_reopen(args: argparse.Namespace, service: TermKeeperService) -> OccurrenceItem:
+    result = service.reopen(args.occurrence_id)
+    if not args.json:
+        print(f"Reopened occurrence #{args.occurrence_id}.")
+    return result

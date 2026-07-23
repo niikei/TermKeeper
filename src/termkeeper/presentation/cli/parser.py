@@ -4,7 +4,7 @@ import argparse
 from datetime import datetime
 
 from termkeeper import __version__
-from termkeeper.domain import SearchField
+from termkeeper.domain import OccurrenceStatus, SearchField
 
 
 class _Subparsers:
@@ -36,14 +36,16 @@ def _add_capture_commands(sub: _Subparsers) -> None:
     add.add_argument("keyword")
     add.add_argument("--memo", help="Context or a short reminder")
     add.add_argument("--source", help="Where the term was encountered")
+    add.add_argument("--meaning", type=int, dest="meaning_id", help="Explicit meaning ID")
     sub.add("inbox", "Show unresolved items")
     sub.add("history", "Show all captured items")
-    inbox_edit = sub.add("inbox-edit", "Edit an open inbox keyword")
-    inbox_edit.add_argument("inbox_id", type=int)
-    inbox_edit.add_argument("--keyword", required=True)
     occurrences = sub.add("occurrences", "Show occurrence history")
     occurrences.add_argument("--meaning", type=int, dest="meaning_id")
-    occurrences.add_argument("--inbox", type=int, dest="inbox_id")
+    occurrences.add_argument(
+        "--status",
+        choices=tuple(OccurrenceStatus),
+        type=OccurrenceStatus,
+    )
     occurrences.add_argument("--keyword")
     occurrences.add_argument("--source")
     occurrences.add_argument("--since", type=_parse_datetime)
@@ -57,12 +59,18 @@ def _add_capture_commands(sub: _Subparsers) -> None:
     occurrence_edit.add_argument("--clear-source", action="store_true")
     stats = sub.add("stats", "Show occurrence analytics and rankings")
     stats.add_argument("--limit", type=int, default=10)
-    resolve = sub.add("resolve", "Turn an inbox item into a meaning")
-    resolve.add_argument("inbox_id", type=int)
-    resolve.add_argument("--name", help="Full name (omit for an interactive prompt)")
+    resolve = sub.add("resolve", "Classify an occurrence")
+    resolve.add_argument("occurrence_id", type=int)
+    resolve.add_argument("--meaning", type=int, dest="meaning_id")
+    resolve.add_argument("--name", help="Create a new meaning with this full name")
+    resolve.add_argument("--scope", default="General")
     resolve.add_argument("--description", help="Description")
-    discard = sub.add("discard", "Discard an inbox item")
-    discard.add_argument("inbox_id", type=int)
+    unresolve = sub.add("unresolve", "Return a resolved occurrence to the inbox")
+    unresolve.add_argument("occurrence_id", type=int)
+    discard = sub.add("discard", "Discard a pending occurrence")
+    discard.add_argument("occurrence_id", type=int)
+    reopen = sub.add("reopen", "Return a discarded occurrence to the inbox")
+    reopen.add_argument("occurrence_id", type=int)
 
 
 def _add_meaning_commands(sub: _Subparsers) -> None:
@@ -86,6 +94,7 @@ def _add_search_command(sub: _Subparsers) -> None:
     )
     search.add_argument("--limit", type=int, default=20)
     search.add_argument("--tag")
+    search.add_argument("--scope")
     search.add_argument("--favorite", action="store_true", dest="favorite_only")
     suggestions = search.add_mutually_exclusive_group()
     suggestions.add_argument("--suggestions", type=int, default=3, dest="suggestion_limit")
@@ -120,9 +129,11 @@ def _add_meaning_lifecycle_commands(sub: _Subparsers) -> None:
     edit = sub.add("edit", "Edit a meaning")
     edit.add_argument("meaning_id", type=int)
     edit.add_argument("--name", help="New full name")
+    edit.add_argument("--scope", help="New meaning scope")
     edit.add_argument("--description", help="New description")
     meanings = sub.add("meanings", "List meanings")
     meanings.add_argument("--tag")
+    meanings.add_argument("--scope")
     meanings.add_argument("--favorite", action="store_true", dest="favorite_only")
 
 

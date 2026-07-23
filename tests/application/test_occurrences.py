@@ -10,17 +10,17 @@ from termkeeper.infrastructure.connection import get_session
 from termkeeper.infrastructure.tables import Occurrence
 
 
-def test_occurrences_are_preserved_and_linked_after_resolve() -> None:
+def test_occurrences_are_preserved_and_classified_independently() -> None:
     service = TermKeeperService()
     first = service.add("SLA", memo="meeting", source="Teams")
-    service.add("sla", memo="follow-up", source="Slack")
-    assert first.inbox is not None
+    second = service.add("sla", memo="follow-up", source="Slack")
 
-    meaning = service.resolve(first.inbox.inbox_id, "Service Level Agreement")
+    meaning = service.resolve(first.occurrence.occurrence_id, "Service Level Agreement")
+    service.assign(second.occurrence.occurrence_id, meaning.meaning_id)
 
     with get_session() as session:
         occurrences = session.exec(
-            select(Occurrence).where(Occurrence.inbox_id == first.inbox.inbox_id),
+            select(Occurrence).where(Occurrence.meaning_id == meaning.meaning_id),
         ).all()
     assert len(occurrences) == 2
     assert {item.source for item in occurrences} == {"Teams", "Slack"}
@@ -30,15 +30,15 @@ def test_occurrences_are_preserved_and_linked_after_resolve() -> None:
 def test_occurrence_history_supports_filters_and_limit() -> None:
     service = TermKeeperService()
     captured = service.add("\uff2d\uff24\uff2d", memo="meeting", source="Teams")
-    service.add("mdm", memo="follow-up", source="Slack")
-    assert captured.inbox is not None
-    meaning = service.resolve(captured.inbox.inbox_id, "Master Data Management")
-    service.add("MDM", source="teams")
+    second = service.add("mdm", memo="follow-up", source="Slack")
+    meaning = service.resolve(captured.occurrence.occurrence_id, "Master Data Management")
+    service.assign(second.occurrence.occurrence_id, meaning.meaning_id)
+    third = service.add("MDM", source="teams")
+    service.assign(third.occurrence.occurrence_id, meaning.meaning_id)
 
     all_items = service.occurrences(OccurrenceQuery(meaning_id=meaning.meaning_id))
 
     assert len(all_items) == 3
-    assert len(service.occurrences(OccurrenceQuery(inbox_id=captured.inbox.inbox_id))) == 2
     assert len(service.occurrences(OccurrenceQuery(keyword="mdm"))) == 3
     assert len(service.occurrences(OccurrenceQuery(source="TEAMS"))) == 2
     assert len(service.occurrences(OccurrenceQuery(limit=1))) == 1

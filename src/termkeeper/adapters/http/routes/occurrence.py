@@ -5,11 +5,21 @@ from uuid import UUID
 
 from fastapi import FastAPI, Query
 
-from termkeeper.adapters.external import ExternalMapper, ExternalOccurrence, ExternalPage, page
-from termkeeper.adapters.http.common import _local_inbox_id, _local_meaning_id
-from termkeeper.adapters.http.requests import OccurrenceFilters, OccurrenceUpdateRequest
+from termkeeper.adapters.external import (
+    ExternalMapper,
+    ExternalMeaning,
+    ExternalOccurrence,
+    ExternalPage,
+    page,
+)
+from termkeeper.adapters.http.common import _local_meaning_id, _local_occurrence_id
+from termkeeper.adapters.http.requests import (
+    OccurrenceFilters,
+    OccurrenceUpdateRequest,
+    ResolveRequest,
+)
 from termkeeper.application import TermKeeperService
-from termkeeper.domain import OccurrenceQuery, OccurrenceUpdate
+from termkeeper.domain import OccurrenceQuery, OccurrenceStatus, OccurrenceUpdate
 
 
 def _register_occurrence_routes(
@@ -26,15 +36,12 @@ def _register_occurrence_routes(
             if filters.meaning_id is not None
             else None
         )
-        inbox_id = (
-            _local_inbox_id(service, filters.inbox_id) if filters.inbox_id is not None else None
-        )
         items = [
             mapper.occurrence(item)
             for item in service.occurrences(
                 OccurrenceQuery(
                     meaning_id=meaning_id,
-                    inbox_id=inbox_id,
+                    status=OccurrenceStatus(filters.status) if filters.status else None,
                     keyword=filters.keyword,
                     source=filters.source,
                     since=filters.since,
@@ -54,4 +61,45 @@ def _register_occurrence_routes(
                 occurrence_id,
                 OccurrenceUpdate(**request.model_dump()),
             ),
+        )
+
+    @app.post("/api/v1/occurrences/{occurrence_id}/resolve")
+    def resolve_occurrence(
+        occurrence_id: UUID,
+        request: ResolveRequest,
+    ) -> ExternalMeaning:
+        return mapper.meaning(
+            service.resolve(
+                _local_occurrence_id(service, occurrence_id),
+                request.full_name,
+                request.description,
+                request.scope,
+            ),
+        )
+
+    @app.post("/api/v1/occurrences/{occurrence_id}/assign/{meaning_id}")
+    def assign_occurrence(occurrence_id: UUID, meaning_id: UUID) -> ExternalOccurrence:
+        return mapper.occurrence(
+            service.assign(
+                _local_occurrence_id(service, occurrence_id),
+                _local_meaning_id(service, meaning_id),
+            ),
+        )
+
+    @app.post("/api/v1/occurrences/{occurrence_id}/unresolve")
+    def unresolve_occurrence(occurrence_id: UUID) -> ExternalOccurrence:
+        return mapper.occurrence(
+            service.unresolve(_local_occurrence_id(service, occurrence_id)),
+        )
+
+    @app.post("/api/v1/occurrences/{occurrence_id}/discard")
+    def discard_occurrence(occurrence_id: UUID) -> ExternalOccurrence:
+        return mapper.occurrence(
+            service.discard(_local_occurrence_id(service, occurrence_id)),
+        )
+
+    @app.post("/api/v1/occurrences/{occurrence_id}/reopen")
+    def reopen_occurrence(occurrence_id: UUID) -> ExternalOccurrence:
+        return mapper.occurrence(
+            service.reopen(_local_occurrence_id(service, occurrence_id)),
         )

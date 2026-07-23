@@ -18,15 +18,29 @@ def test_version(capsys: pytest.CaptureFixture[str]) -> None:
 def test_json_workflow(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["--json", "add", "ICMR", "--memo", "monthly close"]) == 0
     added = json.loads(capsys.readouterr().out)
-    inbox_id = added["inbox"]["inbox_id"]
+    occurrence_id = added["occurrence"]["occurrence_id"]
 
     assert main(["--json", "inbox"]) == 0
     inbox = json.loads(capsys.readouterr().out)
     assert inbox[0]["keyword"] == "ICMR"
 
-    assert main(["--json", "resolve", str(inbox_id), "--name", "Intercompany Matching"]) == 0
+    assert (
+        main(
+            [
+                "--json",
+                "resolve",
+                str(occurrence_id),
+                "--name",
+                "Intercompany Matching",
+                "--scope",
+                "Finance",
+            ],
+        )
+        == 0
+    )
     meaning = json.loads(capsys.readouterr().out)
     assert meaning["full_name"] == "Intercompany Matching"
+    assert meaning["scope"] == "Finance"
     assert "ICMR" in meaning["terms"]
 
     assert main(["--json", "search", "ICMR", "--in", "term", "--limit", "1"]) == 0
@@ -109,11 +123,16 @@ def test_human_output_for_repeated_and_registered_terms(
 ) -> None:
     assert main(["add", "ERP"]) == 0
     assert main(["add", "erp"]) == 0
-    assert "seen count is now 2" in capsys.readouterr().out
+    assert "Captured occurrence #2" in capsys.readouterr().out
 
     assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
     assert main(["add", "ERP"]) == 0
-    assert "Already registered as meaning #1" in capsys.readouterr().out
+    output = capsys.readouterr().out
+    assert "Possible meanings:" in output
+    assert "#1 [General] Enterprise Resource Planning" in output
+
+    assert main(["add", "ERP", "--meaning", "1"]) == 0
+    assert "Assigned to meaning #1." in capsys.readouterr().out
 
 
 def test_occurrence_history_human_and_json(capsys: pytest.CaptureFixture[str]) -> None:
@@ -125,10 +144,10 @@ def test_occurrence_history_human_and_json(capsys: pytest.CaptureFixture[str]) -
     assert "ERP" in output
     assert "memo: meeting" in output
 
-    assert main(["--json", "occurrences", "--inbox", "1", "--limit", "1"]) == 0
+    assert main(["--json", "occurrences", "--status", "Pending", "--limit", "1"]) == 0
     occurrences = json.loads(capsys.readouterr().out)
     assert occurrences[0]["keyword"] == "ERP"
-    assert occurrences[0]["inbox_id"] == 1
+    assert occurrences[0]["status"] == "Pending"
 
     assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
     capsys.readouterr()
@@ -136,12 +155,10 @@ def test_occurrence_history_human_and_json(capsys: pytest.CaptureFixture[str]) -
     assert "meaning: 1" in capsys.readouterr().out
 
 
-def test_inbox_and_occurrence_edit_commands(capsys: pytest.CaptureFixture[str]) -> None:
+def test_occurrence_edit_and_classification_commands(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["add", "ERPP", "--memo", "typo", "--source", "Meeting"]) == 0
     capsys.readouterr()
 
-    assert main(["inbox-edit", "1", "--keyword", "ERP"]) == 0
-    assert "Updated inbox #1: ERP" in capsys.readouterr().out
     assert main(["occurrence-edit", "1", "--keyword", "ERP"]) == 0
     assert "Updated occurrence #1." in capsys.readouterr().out
     assert main(["--json", "occurrence-edit", "1", "--clear-memo", "--source", "Teams"]) == 0
@@ -150,6 +167,15 @@ def test_inbox_and_occurrence_edit_commands(capsys: pytest.CaptureFixture[str]) 
     assert occurrence["memo"] is None
     assert occurrence["source"] == "Teams"
     assert occurrence["updated_at"]
+
+    assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
+    assert main(["unresolve", "1"]) == 0
+    assert "Returned occurrence #1 to the inbox." in capsys.readouterr().out
+    assert main(["discard", "1"]) == 0
+    assert main(["reopen", "1"]) == 0
+    assert "Reopened occurrence #1." in capsys.readouterr().out
+    assert main(["resolve", "1", "--meaning", "1"]) == 0
+    assert "Assigned occurrence #1 to meaning #1." in capsys.readouterr().out
 
 
 def test_empty_occurrence_history(capsys: pytest.CaptureFixture[str]) -> None:
@@ -324,6 +350,7 @@ def test_trash_restore_and_purge_commands(capsys: pytest.CaptureFixture[str]) ->
 
     assert main(["delete", "1"]) == 0
     capsys.readouterr()
+    assert main(["unresolve", "1"]) == 0
     assert main(["purge", "1"]) == 0
     assert "Permanently deleted meaning #1." in capsys.readouterr().out
 

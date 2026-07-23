@@ -22,5 +22,5 @@ class ToolContext:
             include_deleted=include_deleted,
         ).meaning_id
 
-    def _local_inbox_id(self, public_id: UUID) -> int:
-        return self._service.get_inbox_by_public_id(public_id).inbox_id
+    def _local_occurrence_id(self, public_id: UUID) -> int:
+        return self._service.get_occurrence_by_public_id(public_id).occurrence_id

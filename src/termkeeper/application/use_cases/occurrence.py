@@ -7,7 +7,7 @@ from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_occurrence
 from termkeeper.application.support import user_id
 from termkeeper.domain import OccurrenceItem, OccurrenceQuery, OccurrenceUpdate
-from termkeeper.infrastructure.repositories import inbox_repository, settings_repository
+from termkeeper.infrastructure.repositories import occurrence_repository, settings_repository
 from termkeeper.infrastructure.tables import Occurrence
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
@@ -23,7 +23,7 @@ class OccurrenceUseCases:
             raise ValidationError(message)
         normalized = OccurrenceQuery(
             meaning_id=query.meaning_id,
-            inbox_id=query.inbox_id,
+            status=query.status,
             keyword=query.keyword.strip() if query.keyword else None,
             source=query.source.strip() if query.source else None,
             since=_to_utc(query.since),
@@ -32,7 +32,7 @@ class OccurrenceUseCases:
         with UnitOfWork() as uow:
             return [
                 to_occurrence(row)
-                for row in inbox_repository.list_occurrences(uow.session, normalized)
+                for row in occurrence_repository.list_occurrences(uow.session, normalized)
             ]
 
     def edit_occurrence(
@@ -42,7 +42,7 @@ class OccurrenceUseCases:
     ) -> OccurrenceItem:
         _validate_update(update)
         with UnitOfWork() as uow:
-            occurrence = inbox_repository.get_occurrence(uow.session, occurrence_id)
+            occurrence = occurrence_repository.get(uow.session, occurrence_id)
             if occurrence is None:
                 message = f"Occurrence {occurrence_id} was not found."
                 raise NotFoundError(message)
@@ -55,7 +55,7 @@ class OccurrenceUseCases:
     ) -> OccurrenceItem:
         _validate_update(update)
         with UnitOfWork() as uow:
-            occurrence = inbox_repository.get_occurrence_by_public_id(
+            occurrence = occurrence_repository.get_by_public_id(
                 uow.session,
                 public_id,
             )
@@ -71,7 +71,7 @@ def _update_occurrence(
     update: OccurrenceUpdate,
 ) -> OccurrenceItem:
     actor_id = user_id(settings_repository.get_profile(uow.session))
-    inbox_repository.update_occurrence(uow.session, occurrence, update, actor_id)
+    occurrence_repository.update(uow.session, occurrence, update, actor_id)
     uow.session.flush()
     result = to_occurrence(occurrence)
     uow.commit()

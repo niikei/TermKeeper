@@ -3,9 +3,8 @@
 import json
 
 from termkeeper.domain import (
-    AddResult,
+    CaptureResult,
     ImportResult,
-    InboxItem,
     Meaning,
     MergeResult,
     OccurrenceItem,
@@ -22,9 +21,8 @@ def print_json(value: CommandResult) -> None:
     if isinstance(
         value,
         (
-            AddResult,
+            CaptureResult,
             ImportResult,
-            InboxItem,
             Meaning,
             MergeResult,
             OccurrenceItem,
@@ -45,15 +43,15 @@ def _print_json_value(value: object) -> None:
     print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
 
 
-def print_inbox(items: list[InboxItem]) -> None:
+def print_inbox(items: list[OccurrenceItem]) -> None:
     if not items:
         print("Inbox is empty.")
         return
-    print(f"{'ID':>4}  {'Term':<24} {'Status':<9} {'Seen':>4}  Updated (UTC)")
+    print(f"{'ID':>4}  {'Term':<24} {'Source':<16} Occurred (UTC)")
     for item in items:
         print(
-            f"{item.inbox_id:>4}  {item.keyword:<24.24} {item.status:<9} "
-            f"{item.occurrence_count:>4}  {item.updated_at}",
+            f"{item.occurrence_id:>4}  {item.keyword:<24.24} "
+            f"{(item.source or '-'):<16.16} {item.occurred_at}",
         )
         details = " / ".join(value for value in (item.memo, item.source) if value)
         if details:
@@ -71,8 +69,7 @@ def print_occurrences(items: list[OccurrenceItem]) -> None:
             f"{(item.source or '-'):<16.16} {item.occurred_at}",
         )
         details = [f"memo: {item.memo}"] if item.memo else []
-        if item.inbox_id is not None:
-            details.append(f"inbox: {item.inbox_id}")
+        details.append(f"status: {item.status}")
         if item.meaning_id is not None:
             details.append(f"meaning: {item.meaning_id}")
         if details:
@@ -81,7 +78,7 @@ def print_occurrences(items: list[OccurrenceItem]) -> None:
 
 def print_stats(stats: StatsSummary) -> None:
     print(
-        f"Occurrences: {stats.total_occurrences}  Open inbox: {stats.open_inbox_items}  "
+        f"Occurrences: {stats.total_occurrences}  Pending: {stats.pending_occurrences}  "
         f"Meanings: {stats.active_meanings}",
     )
     print("Top terms:")
@@ -102,7 +99,7 @@ def print_references(items: list[ReferenceLink]) -> None:
 
 def print_meaning(item: Meaning) -> None:
     marker = "★ " if item.is_favorite else ""
-    print(f"[{item.meaning_id}] {marker}{item.full_name}")
+    print(f"[{item.meaning_id}] {marker}{item.full_name} [{item.scope}]")
     if item.description:
         print(item.description)
     if item.terms:
@@ -122,6 +119,7 @@ def print_search_hit(hit: SearchHit) -> None:
 def print_search_suggestion(suggestion: SearchSuggestion) -> None:
     print(
         f"  [{suggestion.meaning.meaning_id}] {suggestion.meaning.full_name} "
+        f"[{suggestion.meaning.scope}] "
         f"({suggestion.similarity}% via {suggestion.matched_field} "
         f"{suggestion.matched_text!r})",
     )

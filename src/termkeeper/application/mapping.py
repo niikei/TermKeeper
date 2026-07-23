@@ -3,37 +3,13 @@
 from sqlmodel import Session
 
 from termkeeper.application.support import required_id
-from termkeeper.domain import InboxItem, OccurrenceItem
 from termkeeper.domain import Meaning as MeaningDto
+from termkeeper.domain import OccurrenceItem
 from termkeeper.infrastructure.repositories import (
-    inbox_repository,
     meaning_repository,
     tag_repository,
 )
-from termkeeper.infrastructure.tables import Inbox, Meaning, Occurrence
-
-
-def to_inbox(session: Session, record: Inbox) -> InboxItem:
-    count, latest, memo, source = inbox_repository.occurrence_summary(
-        session,
-        required_id(record.inbox_id),
-    )
-    return InboxItem(
-        inbox_id=required_id(record.inbox_id),
-        public_id=record.public_id,
-        keyword=record.keyword,
-        status=record.status,
-        memo=memo,
-        source=source,
-        occurrence_count=count,
-        created_at=record.created_at,
-        updated_at=record.updated_at,
-        last_seen_at=latest.occurred_at if latest else record.created_at,
-        closed_at=record.closed_at,
-        resolved_meaning_id=record.resolved_meaning_id,
-        created_by_id=record.created_by_id,
-        updated_by_id=record.updated_by_id,
-    )
+from termkeeper.infrastructure.tables import Meaning, Occurrence
 
 
 def to_meaning(session: Session, record: Meaning) -> MeaningDto:
@@ -45,6 +21,7 @@ def to_meaning(session: Session, record: Meaning) -> MeaningDto:
         meaning_id=required_id(record.meaning_id),
         public_id=record.public_id,
         full_name=record.full_name,
+        scope=record.scope,
         description=record.description,
         created_at=record.created_at,
         updated_at=record.updated_at,
@@ -65,10 +42,14 @@ def to_occurrence(record: Occurrence) -> OccurrenceItem:
         keyword=record.keyword,
         memo=record.memo,
         source=record.source,
+        status=record.status,
         occurred_at=record.occurred_at,
         updated_at=record.updated_at,
-        inbox_id=record.inbox_id,
         meaning_id=record.meaning_id,
+        resolved_at=record.resolved_at,
+        discarded_at=record.discarded_at,
         created_by_id=record.created_by_id,
         updated_by_id=record.updated_by_id,
+        resolved_by_id=record.resolved_by_id,
+        discarded_by_id=record.discarded_by_id,
     )

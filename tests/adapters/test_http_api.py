@@ -13,23 +13,28 @@ def test_http_api_workflow_and_openapi() -> None:
 
 
 def _exercise_core_workflow(client: TestClient) -> str:
-
     assert client.get("/health").json() == {"status": "ok"}
     captured = client.post(
-        "/api/v1/inbox",
+        "/api/v1/occurrences",
         json={"keyword": "ERP", "memo": "planning", "source": "Teams"},
     )
     assert captured.status_code == 201
-    inbox_public_id = captured.json()["inbox"]["public_id"]
+    occurrence_id = captured.json()["occurrence"]["public_id"]
+    assert captured.json()["occurrence"]["status"] == "Pending"
+    assert captured.json()["candidates"] == []
     inbox_page = client.get("/api/v1/inbox").json()
     assert inbox_page["items"][0]["keyword"] == "ERP"
     assert inbox_page["has_more"] is False
 
     resolved = client.post(
-        f"/api/v1/inbox/{inbox_public_id}/resolve",
-        json={"full_name": "Enterprise Resource Planning"},
+        f"/api/v1/occurrences/{occurrence_id}/resolve",
+        json={
+            "full_name": "Enterprise Resource Planning",
+            "scope": "SAP",
+        },
     )
     public_id = resolved.json()["public_id"]
+    assert resolved.json()["scope"] == "SAP"
     assert "meaning_id" not in resolved.json()
     assert client.get(f"/api/v1/meanings/{public_id}").status_code == 200
     assert client.get("/api/v1/meanings").json()["items"][0]["public_id"] == public_id
@@ -45,16 +50,18 @@ def _exercise_core_workflow(client: TestClient) -> str:
         f"/api/v1/meanings/{public_id}",
         json={
             "full_name": "Enterprise Resource Planning System",
+            "scope": "SAP S/4HANA",
             "description": "Integrated business software",
         },
     )
     assert updated.json()["description"] == "Integrated business software"
+    assert updated.json()["scope"] == "SAP S/4HANA"
     assert client.get("/api/v1/search", params={"text": "ERP"}).json()["hits"]
     assert client.get("/api/v1/stats").json()["total_occurrences"] == 1
 
     occurrences = client.get(
         "/api/v1/occurrences",
-        params={"meaning_id": public_id},
+        params={"meaning_id": public_id, "status": "Resolved"},
     ).json()
     occurrence_id = occurrences["items"][0]["public_id"]
     occurrence = client.put(
@@ -62,6 +69,20 @@ def _exercise_core_workflow(client: TestClient) -> str:
         json={"memo": "Updated through HTTP"},
     )
     assert occurrence.json()["memo"] == "Updated through HTTP"
+
+    assert (
+        client.post(f"/api/v1/occurrences/{occurrence_id}/unresolve").json()["status"] == "Pending"
+    )
+    assigned = client.post(
+        f"/api/v1/occurrences/{occurrence_id}/assign/{public_id}",
+    ).json()
+    assert assigned["meaning_id"] == public_id
+    client.post(f"/api/v1/occurrences/{occurrence_id}/unresolve")
+    assert (
+        client.post(f"/api/v1/occurrences/{occurrence_id}/discard").json()["status"] == "Discarded"
+    )
+    assert client.post(f"/api/v1/occurrences/{occurrence_id}/reopen").json()["status"] == "Pending"
+    client.post(f"/api/v1/occurrences/{occurrence_id}/assign/{public_id}")
     return public_id
 
 
@@ -72,10 +93,10 @@ def _exercise_metadata_workflow(client: TestClient, public_id: str) -> None:
     assert client.put(f"/api/v1/meanings/{public_id}/favorite").json()["is_favorite"] is True
     assert client.delete(f"/api/v1/meanings/{public_id}/favorite").json()["is_favorite"] is False
 
-    second_capture = client.post("/api/v1/inbox", json={"keyword": "MRP"}).json()
+    second_capture = client.post("/api/v1/occurrences", json={"keyword": "MRP"}).json()
     second = client.post(
-        f"/api/v1/inbox/{second_capture['inbox']['public_id']}/resolve",
-        json={"full_name": "Material Requirements Planning"},
+        f"/api/v1/occurrences/{second_capture['occurrence']['public_id']}/resolve",
+        json={"full_name": "Material Requirements Planning", "scope": "General"},
     ).json()
     first_page = client.get("/api/v1/meanings", params={"limit": 1}).json()
     assert len(first_page["items"]) == 1
@@ -151,10 +172,10 @@ def _assert_openapi_contract(client: TestClient) -> None:
         "put",
         "delete",
     }
-    assert schema["paths"]["/api/v1/inbox"]["post"]["responses"]["201"]["content"][
+    assert schema["paths"]["/api/v1/occurrences"]["post"]["responses"]["201"]["content"][
         "application/json"
     ]["schema"] == {
-        "$ref": "#/components/schemas/ExternalAddResult",
+        "$ref": "#/components/schemas/ExternalCaptureResult",
     }
     assert schema["paths"]["/api/v1/search"]["get"]["responses"]["200"]["content"][
         "application/json"
@@ -164,6 +185,7 @@ def _assert_openapi_contract(client: TestClient) -> None:
     assert schema["components"]["schemas"]["ExternalMeaning"]["required"] == [
         "public_id",
         "full_name",
+        "scope",
         "description",
         "created_at",
         "updated_at",
@@ -187,18 +209,21 @@ def test_http_api_maps_application_and_request_errors() -> None:
     assert missing.status_code == 404
     assert missing.json()["error"] == "NotFoundError"
 
-    invalid = client.post("/api/v1/inbox", json={"keyword": " "})
+    invalid = client.post("/api/v1/occurrences", json={"keyword": " "})
     assert invalid.status_code == 422
     assert invalid.json()["error"] == "ValidationError"
 
-    captured = client.post("/api/v1/inbox", json={"keyword": "ERP"}).json()
+    captured = client.post("/api/v1/occurrences", json={"keyword": "ERP"}).json()
     resolved = client.post(
-        f"/api/v1/inbox/{captured['inbox']['public_id']}/resolve",
-        json={"full_name": "Enterprise Resource Planning"},
+        f"/api/v1/occurrences/{captured['occurrence']['public_id']}/resolve",
+        json={
+            "full_name": "Enterprise Resource Planning",
+            "scope": "General",
+        },
     ).json()
     invalid_update = client.put(
         f"/api/v1/meanings/{resolved['public_id']}",
-        json={"full_name": " "},
+        json={"full_name": " ", "scope": "General"},
     )
     assert invalid_update.status_code == 422
     assert invalid_update.json()["error"] == "ValidationError"
@@ -209,8 +234,8 @@ def test_http_api_maps_application_and_request_errors() -> None:
     invalid_identifier = client.get("/api/v1/meanings/not-a-uuid")
     assert invalid_identifier.status_code == 422
 
-    invalid_inbox_identifier = client.post(
-        "/api/v1/inbox/not-a-uuid/resolve",
-        json={"full_name": "Enterprise Resource Planning"},
+    invalid_occurrence_identifier = client.post(
+        "/api/v1/occurrences/not-a-uuid/resolve",
+        json={"full_name": "Enterprise Resource Planning", "scope": "General"},
     )
-    assert invalid_inbox_identifier.status_code == 422
+    assert invalid_occurrence_identifier.status_code == 422

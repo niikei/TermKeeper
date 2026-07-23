@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import CheckConstraint, Index, UniqueConstraint, text
 from sqlmodel import Field, SQLModel
 
-from termkeeper.domain.status import InboxStatus
+from termkeeper.domain.status import OccurrenceStatus
 
 
 def utc_now() -> datetime:
@@ -22,11 +22,24 @@ class UserProfile(SQLModel, table=True):
 
 
 class Meaning(SQLModel, table=True):
-    __table_args__ = (CheckConstraint("length(trim(full_name)) > 0"),)
+    __table_args__ = (
+        CheckConstraint("length(trim(full_name)) > 0"),
+        CheckConstraint("length(trim(scope)) > 0"),
+        Index(
+            "uq_meaning_active_scope_name",
+            "scope_norm",
+            "full_name_norm",
+            unique=True,
+            sqlite_where=text("deleted_at IS NULL"),
+        ),
+    )
 
     meaning_id: int | None = Field(default=None, primary_key=True)
     public_id: UUID = Field(default_factory=uuid4, unique=True, index=True)
     full_name: str
+    full_name_norm: str
+    scope: str = "General"
+    scope_norm: str = "general"
     description: str | None = None
     is_favorite: bool = Field(default=False, index=True)
     created_at: datetime = Field(default_factory=utc_now)
@@ -35,34 +48,6 @@ class Meaning(SQLModel, table=True):
     created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
     updated_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
     deleted_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
-
-
-class Inbox(SQLModel, table=True):
-    __table_args__ = (
-        CheckConstraint("length(trim(keyword)) > 0"),
-        Index(
-            "uq_inbox_open_keyword",
-            "keyword_norm",
-            unique=True,
-            sqlite_where=text("status = 'NEW'"),
-        ),
-    )
-
-    inbox_id: int | None = Field(default=None, primary_key=True)
-    public_id: UUID = Field(default_factory=uuid4, unique=True, index=True)
-    keyword: str
-    keyword_norm: str
-    status: InboxStatus = InboxStatus.NEW
-    resolved_meaning_id: int | None = Field(
-        default=None,
-        foreign_key="meaning.meaning_id",
-        ondelete="SET NULL",
-    )
-    created_at: datetime = Field(default_factory=utc_now)
-    updated_at: datetime = Field(default_factory=utc_now)
-    closed_at: datetime | None = None
-    created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
-    updated_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
 
 
 class Term(SQLModel, table=True):
@@ -135,19 +120,33 @@ class MeaningReference(SQLModel, table=True):
 
 
 class Occurrence(SQLModel, table=True):
+    __table_args__ = (
+        CheckConstraint("length(trim(keyword)) > 0"),
+        CheckConstraint(
+            "(status = 'PENDING' AND meaning_id IS NULL) OR "
+            "(status = 'RESOLVED' AND meaning_id IS NOT NULL) OR "
+            "(status = 'DISCARDED' AND meaning_id IS NULL)",
+            name="ck_occurrence_status_meaning",
+        ),
+    )
+
     occurrence_id: int | None = Field(default=None, primary_key=True)
     public_id: UUID = Field(default_factory=uuid4, unique=True, index=True)
     keyword: str
     keyword_norm: str = Field(index=True)
-    inbox_id: int | None = Field(default=None, foreign_key="inbox.inbox_id")
+    status: OccurrenceStatus = Field(default=OccurrenceStatus.PENDING, index=True)
     meaning_id: int | None = Field(
         default=None,
         foreign_key="meaning.meaning_id",
-        ondelete="SET NULL",
+        ondelete="RESTRICT",
     )
     memo: str | None = None
     source: str | None = None
     occurred_at: datetime = Field(default_factory=utc_now, index=True)
     updated_at: datetime = Field(default_factory=utc_now)
+    resolved_at: datetime | None = None
+    discarded_at: datetime | None = None
     created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
     updated_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
+    resolved_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
+    discarded_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")

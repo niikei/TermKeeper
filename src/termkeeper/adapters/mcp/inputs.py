@@ -14,7 +14,7 @@ type Limit = Annotated[int, Field(ge=1, le=100)]
 @dataclass(frozen=True)
 class OccurrenceFilters:
     meaning_id: UUID | None = None
-    inbox_id: UUID | None = None
+    status: Literal["Pending", "Resolved", "Discarded"] | None = None
     keyword: str | None = None
     source: str | None = None
     since: datetime | None = None
@@ -27,6 +27,7 @@ class SearchFilters:
     text: str
     field: Literal["all", "term", "name", "description"] = "all"
     tag: str | None = None
+    scope: str | None = None
     favorite_only: bool = False
     offset: Offset = 0
     limit: Limit = 20

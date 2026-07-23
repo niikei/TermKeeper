@@ -14,7 +14,7 @@ class AnalyticsUseCases:
         with UnitOfWork() as uow:
             return StatsSummary(
                 total_occurrences=analytics_repository.count_occurrences(uow.session),
-                open_inbox_items=analytics_repository.count_open_inbox(uow.session),
+                pending_occurrences=analytics_repository.count_pending_occurrences(uow.session),
                 active_meanings=analytics_repository.count_active_meanings(uow.session),
                 top_terms=tuple(
                     Frequency(value, count, last_seen)

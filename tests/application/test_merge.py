@@ -4,15 +4,14 @@ from termkeeper.application import NotFoundError, TermKeeperService, ValidationE
 from termkeeper.domain import OccurrenceQuery
 
 
-def test_merge_meanings_moves_terms_occurrences_and_inboxes() -> None:
+def test_merge_meanings_moves_terms_and_occurrences() -> None:
     service = TermKeeperService()
     captured_source = service.add("SRC", source="Teams")
-    service.add("src", source="Slack")
+    second_source = service.add("src", source="Slack")
     captured_target = service.add("TGT")
-    assert captured_source.inbox is not None
-    assert captured_target.inbox is not None
-    source = service.resolve(captured_source.inbox.inbox_id, "Source Meaning")
-    target = service.resolve(captured_target.inbox.inbox_id, "Target Meaning")
+    source = service.resolve(captured_source.occurrence.occurrence_id, "Source Meaning")
+    service.assign(second_source.occurrence.occurrence_id, source.meaning_id)
+    target = service.resolve(captured_target.occurrence.occurrence_id, "Target Meaning")
     service.add_alias(source.meaning_id, "shared")
     service.add_alias(source.meaning_id, "source-only")
     service.add_alias(target.meaning_id, "shared")
@@ -25,7 +24,6 @@ def test_merge_meanings_moves_terms_occurrences_and_inboxes() -> None:
     assert preview.terms_moved == 3
     assert preview.tags_moved == 1
     assert preview.occurrences_moved == 2
-    assert preview.inboxes_moved == 1
     assert preview.applied is False
     assert service.get_meaning(source.meaning_id).full_name == "Source Meaning"
 
@@ -39,8 +37,6 @@ def test_merge_meanings_moves_terms_occurrences_and_inboxes() -> None:
     assert set(merged.tags) == {"source-tag", "shared-tag"}
     assert service.occurrences(OccurrenceQuery(meaning_id=source.meaning_id)) == []
     assert len(service.occurrences(OccurrenceQuery(meaning_id=target.meaning_id))) == 3
-    source_inbox = service.get_inbox(captured_source.inbox.inbox_id)
-    assert source_inbox.resolved_meaning_id == target.meaning_id
 
 
 def test_merge_validation_and_rollback(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -51,11 +47,11 @@ def test_merge_validation_and_rollback(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(ValidationError):
         service.merge_meanings(source.meaning_id, source.meaning_id)
 
-    def fail_move(*_args: object, **_kwargs: object) -> tuple[int, int]:
+    def fail_move(*_args: object, **_kwargs: object) -> None:
         raise RuntimeError("simulated failure")
 
     monkeypatch.setattr(
-        "termkeeper.application.use_cases.merge.inbox_repository.move_meaning_references",
+        "termkeeper.application.use_cases.merge.occurrence_repository.move_meaning_references",
         fail_move,
     )
     with pytest.raises(RuntimeError):

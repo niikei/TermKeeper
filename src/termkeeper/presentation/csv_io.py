@@ -6,7 +6,16 @@ from pathlib import Path
 from termkeeper.application import TermKeeperService
 from termkeeper.domain import ImportResult, ImportRow
 
-FIELDS = ["public_id", "full_name", "description", "terms", "tags", "created_at", "updated_at"]
+FIELDS = [
+    "public_id",
+    "full_name",
+    "scope",
+    "description",
+    "terms",
+    "tags",
+    "created_at",
+    "updated_at",
+]
 
 
 def split_terms(value: str) -> list[str]:
@@ -24,6 +33,7 @@ def export_meanings(path: str, service: TermKeeperService | None = None) -> int:
                 {
                     "public_id": row.public_id,
                     "full_name": row.full_name,
+                    "scope": row.scope,
                     "description": row.description or "",
                     "terms": ";".join(row.terms),
                     "tags": ";".join(row.tags),
@@ -45,6 +55,7 @@ def import_meanings(
     with Path(path).open(newline="", encoding="utf-8-sig") as handle:
         for row_number, row in enumerate(csv.DictReader(handle), start=2):
             name = (row.get("full_name") or "").strip()
+            scope = (row.get("scope") or "General").strip()
             description = (row.get("description") or "").strip() or None
             terms = tuple(split_terms(row.get("terms") or ""))
             tags = tuple(split_terms(row.get("tags") or ""))
@@ -54,6 +65,7 @@ def import_meanings(
                     row_number=row_number,
                     public_id=public_id_text,
                     full_name=name,
+                    scope=scope,
                     description=description,
                     terms=terms,
                     tags=tags,

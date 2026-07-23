@@ -6,10 +6,10 @@ from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_meaning
 from termkeeper.application.search import rank_search, rank_suggestions, search_tokens
 from termkeeper.application.support import get_meaning, required_id, user_id
-from termkeeper.domain import InboxStatus, Meaning, SearchQuery, SearchResult
+from termkeeper.domain import Meaning, SearchQuery, SearchResult
 from termkeeper.infrastructure.repositories import (
-    inbox_repository,
     meaning_repository,
+    occurrence_repository,
     settings_repository,
 )
 from termkeeper.infrastructure.sqlite_utils import normalize_keyword
@@ -44,16 +44,22 @@ class MeaningUseCases:
         full_name: str,
         description: str | None = None,
         terms: tuple[str, ...] = (),
+        scope: str = "General",
         public_id: UUID | None = None,
     ) -> Meaning:
         _validate_name(full_name)
+        _validate_scope(scope)
         with UnitOfWork() as uow:
+            _ensure_unique(uow, full_name, scope)
             actor_id = user_id(settings_repository.get_profile(uow.session))
             record = meaning_repository.create(
                 uow.session,
-                full_name,
-                description,
-                actor_id,
+                meaning_repository.MeaningValues(
+                    full_name,
+                    scope,
+                    description,
+                    actor_id,
+                ),
                 public_id=public_id,
             )
             meaning_id = required_id(record.meaning_id)
@@ -85,6 +91,7 @@ class MeaningUseCases:
                 uow.session,
                 tokens,
                 query.field,
+                scope=query.scope,
                 favorite_only=query.favorite_only,
             )
             meanings = _filter_tag(
@@ -104,6 +111,7 @@ class MeaningUseCases:
                 ],
                 query.tag,
             )
+            all_meanings = _filter_scope(all_meanings, query.scope)
             return SearchResult(
                 (),
                 tuple(rank_suggestions(all_meanings, query)),
@@ -113,6 +121,7 @@ class MeaningUseCases:
         self,
         tag: str | None = None,
         *,
+        scope: str | None = None,
         favorite_only: bool = False,
     ) -> list[Meaning]:
         with UnitOfWork() as uow:
@@ -123,14 +132,7 @@ class MeaningUseCases:
                     favorite_only=favorite_only,
                 )
             ]
-            if not tag:
-                return meanings
-            tag_norm = normalize_keyword(tag)
-            return [
-                meaning
-                for meaning in meanings
-                if any(normalize_keyword(name) == tag_norm for name in meaning.tags)
-            ]
+            return _filter_scope(_filter_tag(meanings, tag), scope)
 
     def favorite_meaning(self, meaning_id: int) -> Meaning:
         return self._set_favorite(meaning_id, favorite=True)
@@ -176,12 +178,35 @@ class MeaningUseCases:
             uow.commit()
             return result
 
-    def edit(self, meaning_id: int, full_name: str, description: str | None) -> Meaning:
+    def edit(
+        self,
+        meaning_id: int,
+        full_name: str,
+        description: str | None,
+        scope: str | None = None,
+    ) -> Meaning:
         _validate_name(full_name)
         with UnitOfWork() as uow:
             meaning = get_meaning(uow, meaning_id)
+            selected_scope = meaning.scope if scope is None else scope
+            _validate_scope(selected_scope)
+            _ensure_unique(
+                uow,
+                full_name,
+                selected_scope,
+                exclude_id=meaning_id,
+            )
             actor_id = user_id(settings_repository.get_profile(uow.session))
-            meaning_repository.update(uow.session, meaning, full_name, description, actor_id)
+            meaning_repository.update(
+                uow.session,
+                meaning,
+                meaning_repository.MeaningValues(
+                    full_name,
+                    selected_scope,
+                    description,
+                    actor_id,
+                ),
+            )
             meaning_repository.add_term(uow.session, meaning_id, full_name, actor_id)
             uow.session.flush()
             result = to_meaning(uow.session, meaning)
@@ -204,32 +229,59 @@ class MeaningUseCases:
     def restore_meaning(self, meaning_id: int) -> Meaning:
         with UnitOfWork() as uow:
             meaning = _get_deleted_meaning(uow, meaning_id)
+            _ensure_unique(
+                uow,
+                meaning.full_name,
+                meaning.scope,
+                exclude_id=meaning_id,
+            )
             actor_id = user_id(settings_repository.get_profile(uow.session))
             meaning_repository.restore(uow.session, meaning, actor_id)
-            for term in meaning_repository.get_terms(uow.session, meaning_id):
-                inbox = inbox_repository.find_open_inbox(uow.session, term.keyword)
-                if inbox is not None:
-                    inbox_id = required_id(inbox.inbox_id)
-                    inbox_repository.close(
-                        uow.session,
-                        inbox,
-                        InboxStatus.CLOSED,
-                        meaning_id,
-                    )
-                    inbox_repository.link_occurrences(uow.session, inbox_id, meaning_id)
             result = to_meaning(uow.session, meaning)
             uow.commit()
             return result
 
     def purge_meaning(self, meaning_id: int) -> None:
         with UnitOfWork() as uow:
-            meaning_repository.purge(uow.session, _get_deleted_meaning(uow, meaning_id))
+            meaning = _get_deleted_meaning(uow, meaning_id)
+            references = occurrence_repository.count_meaning_references(uow.session, meaning_id)
+            if references:
+                message = (
+                    f"Meaning {meaning_id} is referenced by {references} occurrence(s) "
+                    "and cannot be purged."
+                )
+                raise ValidationError(message)
+            meaning_repository.purge(uow.session, meaning)
             uow.commit()
 
 
 def _validate_name(full_name: str) -> None:
     if not full_name.strip():
         message = "Full name must not be empty."
+        raise ValidationError(message)
+
+
+def _validate_scope(scope: str) -> None:
+    if not scope.strip():
+        message = "Scope must not be empty."
+        raise ValidationError(message)
+
+
+def _ensure_unique(
+    uow: UnitOfWork,
+    full_name: str,
+    scope: str,
+    *,
+    exclude_id: int | None = None,
+) -> None:
+    duplicate = meaning_repository.find_duplicate(
+        uow.session,
+        full_name,
+        scope,
+        exclude_id=exclude_id,
+    )
+    if duplicate is not None:
+        message = f"Meaning '{full_name}' already exists in scope '{scope}'."
         raise ValidationError(message)
 
 
@@ -250,3 +302,10 @@ def _filter_tag(meanings: list[Meaning], tag: str | None) -> list[Meaning]:
         for meaning in meanings
         if any(normalize_keyword(name) == tag_norm for name in meaning.tags)
     ]
+
+
+def _filter_scope(meanings: list[Meaning], scope: str | None) -> list[Meaning]:
+    if not scope:
+        return meanings
+    scope_norm = normalize_keyword(scope)
+    return [meaning for meaning in meanings if normalize_keyword(meaning.scope) == scope_norm]

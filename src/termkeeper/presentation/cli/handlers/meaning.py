@@ -18,6 +18,7 @@ def handle_search(args: argparse.Namespace, service: TermKeeperService) -> Searc
         field=args.search_field,
         limit=args.limit,
         tag=args.tag,
+        scope=args.scope,
         favorite_only=args.favorite_only,
         suggestion_limit=args.suggestion_limit,
     )
@@ -90,7 +91,7 @@ def handle_merge(args: argparse.Namespace, service: TermKeeperService) -> MergeR
         print(
             f"{action} meaning #{args.source_id} into #{args.target_id}: "
             f"{result.terms_moved} term(s), {result.tags_moved} tag(s), "
-            f"{result.occurrences_moved} occurrence(s), {result.inboxes_moved} inbox(es).",
+            f"{result.occurrences_moved} occurrence(s).",
         )
     return result
 
@@ -98,20 +99,25 @@ def handle_merge(args: argparse.Namespace, service: TermKeeperService) -> MergeR
 def handle_edit(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
     current = service.get_meaning(args.meaning_id)
     name = args.name
+    scope = args.scope
     description = args.description
     if name is None:
         name = input(f"Full name [{current.full_name}]: ").strip() or current.full_name
         if description is None:
             entered = input(f"Description [{current.description or ''}]: ").strip()
             description = entered or current.description
-    result = service.edit(args.meaning_id, name, description)
+    result = service.edit(args.meaning_id, name, description, scope)
     if not args.json:
         print(f"Updated meaning #{args.meaning_id}.")
     return result
 
 
 def handle_meanings(args: argparse.Namespace, service: TermKeeperService) -> list[Meaning]:
-    result = service.meanings(args.tag, favorite_only=args.favorite_only)
+    result = service.meanings(
+        args.tag,
+        scope=args.scope,
+        favorite_only=args.favorite_only,
+    )
     if not args.json:
         for item in result:
             print_meaning(item)

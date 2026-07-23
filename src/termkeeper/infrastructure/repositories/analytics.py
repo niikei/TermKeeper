@@ -5,8 +5,8 @@ from datetime import datetime
 from sqlalchemy import func
 from sqlmodel import Session, col, select
 
-from termkeeper.domain.status import InboxStatus
-from termkeeper.infrastructure.tables import Inbox, Meaning, Occurrence
+from termkeeper.domain.status import OccurrenceStatus
+from termkeeper.infrastructure.tables import Meaning, Occurrence
 
 type FrequencyRow = tuple[str, int, datetime]
 
@@ -15,8 +15,12 @@ def count_occurrences(session: Session) -> int:
     return session.exec(select(func.count()).select_from(Occurrence)).one()
 
 
-def count_open_inbox(session: Session) -> int:
-    statement = select(func.count()).select_from(Inbox).where(Inbox.status == InboxStatus.NEW)
+def count_pending_occurrences(session: Session) -> int:
+    statement = (
+        select(func.count())
+        .select_from(Occurrence)
+        .where(Occurrence.status == OccurrenceStatus.PENDING)
+    )
     return session.exec(statement).one()
 
 

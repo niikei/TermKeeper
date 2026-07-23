@@ -1,8 +1,7 @@
 """Shared external response contracts."""
 
 from termkeeper.adapters.external.models import (
-    ExternalAddResult,
-    ExternalInbox,
+    ExternalCaptureResult,
     ExternalMapper,
     ExternalMeaning,
     ExternalOccurrence,
@@ -13,8 +12,7 @@ from termkeeper.adapters.external.models import (
 )
 
 __all__ = [
-    "ExternalAddResult",
-    "ExternalInbox",
+    "ExternalCaptureResult",
     "ExternalMapper",
     "ExternalMeaning",
     "ExternalOccurrence",

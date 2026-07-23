@@ -11,7 +11,6 @@ class MergeResult:
     terms_moved: int
     tags_moved: int
     occurrences_moved: int
-    inboxes_moved: int
     applied: bool
 
     def to_dict(self) -> dict[str, Any]:

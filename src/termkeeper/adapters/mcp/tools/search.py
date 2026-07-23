@@ -19,6 +19,7 @@ class SearchTools(ToolContext):
             field=SearchField(query.field),
             limit=query.offset + query.limit + 1,
             tag=query.tag,
+            scope=query.scope,
             favorite_only=query.favorite_only,
         )
         return self._mapper.search_result(

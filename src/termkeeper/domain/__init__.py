@@ -3,7 +3,7 @@
 from termkeeper.domain.analytics import Frequency, StatsSummary
 from termkeeper.domain.importing import ImportIssue, ImportResult, ImportRow
 from termkeeper.domain.merge import MergeResult
-from termkeeper.domain.models import AddResult, InboxItem, Meaning
+from termkeeper.domain.models import CaptureResult, Meaning
 from termkeeper.domain.occurrence import OccurrenceItem, OccurrenceQuery, OccurrenceUpdate
 from termkeeper.domain.reference import ReferenceLink, ReferenceUpdate
 from termkeeper.domain.search import (
@@ -13,21 +13,20 @@ from termkeeper.domain.search import (
     SearchResult,
     SearchSuggestion,
 )
-from termkeeper.domain.status import InboxStatus
+from termkeeper.domain.status import OccurrenceStatus
 from termkeeper.domain.tag import TagSummary
 
 __all__ = [
-    "AddResult",
+    "CaptureResult",
     "Frequency",
     "ImportIssue",
     "ImportResult",
     "ImportRow",
-    "InboxItem",
-    "InboxStatus",
     "Meaning",
     "MergeResult",
     "OccurrenceItem",
     "OccurrenceQuery",
+    "OccurrenceStatus",
     "OccurrenceUpdate",
     "ReferenceLink",
     "ReferenceUpdate",

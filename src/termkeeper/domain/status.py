@@ -3,7 +3,7 @@
 from enum import StrEnum
 
 
-class InboxStatus(StrEnum):
-    NEW = "New"
-    CLOSED = "Closed"
+class OccurrenceStatus(StrEnum):
+    PENDING = "Pending"
+    RESOLVED = "Resolved"
     DISCARDED = "Discarded"

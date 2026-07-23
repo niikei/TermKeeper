@@ -8,13 +8,12 @@ def test_stats_summarizes_and_ranks_occurrences() -> None:
     captured = service.add("ERP", source="Teams")
     service.add("erp", source="teams")
     service.add("CRM", source="Slack")
-    assert captured.inbox is not None
-    service.resolve(captured.inbox.inbox_id, "Enterprise Resource Planning")
+    service.resolve(captured.occurrence.occurrence_id, "Enterprise Resource Planning")
 
     stats = service.stats(limit=1)
 
     assert stats.total_occurrences == 3
-    assert stats.open_inbox_items == 1
+    assert stats.pending_occurrences == 2
     assert stats.active_meanings == 1
     assert [(item.value, item.count) for item in stats.top_terms] == [("ERP", 2)]
     assert [(item.value, item.count) for item in stats.top_sources] == [("Teams", 2)]

@@ -26,12 +26,20 @@ def _register_meaning_routes(
     def list_meanings(
         tag: str | None = None,
         *,
+        scope: str | None = None,
         favorite_only: bool = False,
         offset: Annotated[int, Query(ge=0)] = 0,
         limit: Annotated[int, Query(ge=1, le=100)] = 20,
     ) -> ExternalPage[ExternalMeaning]:
         return page(
-            [mapper.meaning(item) for item in service.meanings(tag, favorite_only=favorite_only)],
+            [
+                mapper.meaning(item)
+                for item in service.meanings(
+                    tag,
+                    scope=scope,
+                    favorite_only=favorite_only,
+                )
+            ],
             offset,
             limit,
         )
@@ -46,6 +54,7 @@ def _register_meaning_routes(
                 _local_meaning_id(service, meaning_id),
                 request.full_name,
                 request.description,
+                request.scope,
             ),
         )
 

@@ -25,6 +25,7 @@ def _register_query_routes(
             text=filters.text,
             field=SearchField(filters.field),
             tag=filters.tag,
+            scope=filters.scope,
             favorite_only=filters.favorite_only,
             limit=filters.offset + filters.limit + 1,
         )

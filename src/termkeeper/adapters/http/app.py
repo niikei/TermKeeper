@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from termkeeper.adapters.external import ExternalMapper
-from termkeeper.adapters.http.routes.inbox import _register_inbox_routes
+from termkeeper.adapters.http.routes.capture import _register_capture_routes
 from termkeeper.adapters.http.routes.meaning import _register_meaning_routes
 from termkeeper.adapters.http.routes.occurrence import _register_occurrence_routes
 from termkeeper.adapters.http.routes.query import _register_query_routes
@@ -45,7 +45,7 @@ def create_app(service: TermKeeperService | None = None) -> FastAPI:
     _register_error_handlers(app)
     _register_system_routes(app)
     mapper = ExternalMapper(service)
-    _register_inbox_routes(app, service, mapper)
+    _register_capture_routes(app, service, mapper)
     _register_meaning_routes(app, service, mapper)
     _register_query_routes(app, service, mapper)
     _register_occurrence_routes(app, service, mapper)

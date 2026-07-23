@@ -10,7 +10,10 @@ from termkeeper.infrastructure.repositories import (
     settings_repository,
     tag_repository,
 )
+from termkeeper.infrastructure.sqlite_utils import normalize_keyword
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
+
+type PlannedRow = tuple[ImportRow, UUID | None, int | None]
 
 
 class ImportUseCases:
@@ -22,48 +25,17 @@ class ImportUseCases:
         strict: bool = False,
     ) -> ImportResult:
         valid_rows, issues = _validate_rows(rows)
-        if strict and issues:
-            message = "; ".join(f"row {issue.row_number}: {issue.message}" for issue in issues)
-            raise ValidationError(message)
+        _raise_if_strict(issues, strict=strict)
         with UnitOfWork() as uow:
             actor_id = user_id(settings_repository.get_profile(uow.session))
-            all_issues = list(issues)
-            planned: list[tuple[ImportRow, UUID | None, int | None]] = []
-            for row, public_id in valid_rows:
-                existing = (
-                    meaning_repository.get_by_public_id(
-                        uow.session,
-                        public_id,
-                        include_deleted=True,
-                    )
-                    if public_id is not None
-                    else None
-                )
-                if existing is not None and existing.deleted_at is not None:
-                    all_issues.append(
-                        ImportIssue(
-                            row.row_number,
-                            "public_id belongs to a deleted meaning; restore it before import",
-                        ),
-                    )
-                    continue
-                meaning_id = required_id(existing.meaning_id) if existing is not None else None
-                planned.append((row, public_id, meaning_id))
-            if strict and len(all_issues) > len(issues):
-                message = "; ".join(
-                    f"row {issue.row_number}: {issue.message}" for issue in all_issues
-                )
-                raise ValidationError(message)
-            created = updated = 0
-            for row, public_id, meaning_id in planned:
-                if meaning_id is None:
-                    created += 1
-                    if not dry_run:
-                        _create(uow, row, public_id, actor_id)
-                else:
-                    updated += 1
-                    if not dry_run:
-                        _update(uow, row, meaning_id, actor_id)
+            planned, all_issues = _plan_rows(uow, valid_rows, issues)
+            _raise_if_strict(all_issues, strict=strict)
+            created, updated = _apply_rows(
+                uow,
+                planned,
+                actor_id,
+                dry_run=dry_run,
+            )
             if not dry_run:
                 uow.commit()
             return ImportResult(
@@ -75,15 +47,101 @@ class ImportUseCases:
             )
 
 
+def _plan_rows(
+    uow: UnitOfWork,
+    valid_rows: list[tuple[ImportRow, UUID | None]],
+    initial_issues: tuple[ImportIssue, ...],
+) -> tuple[list[PlannedRow], list[ImportIssue]]:
+    planned: list[PlannedRow] = []
+    issues = list(initial_issues)
+    for row, public_id in valid_rows:
+        existing = (
+            meaning_repository.get_by_public_id(
+                uow.session,
+                public_id,
+                include_deleted=True,
+            )
+            if public_id is not None
+            else None
+        )
+        if existing is not None and existing.deleted_at is not None:
+            issues.append(
+                ImportIssue(
+                    row.row_number,
+                    "public_id belongs to a deleted meaning; restore it before import",
+                ),
+            )
+            continue
+        meaning_id = required_id(existing.meaning_id) if existing is not None else None
+        duplicate = meaning_repository.find_duplicate(
+            uow.session,
+            row.full_name,
+            row.scope,
+            exclude_id=meaning_id,
+        )
+        if duplicate is not None:
+            issues.append(
+                ImportIssue(
+                    row.row_number,
+                    "full_name already exists in the same scope",
+                ),
+            )
+            continue
+        planned.append((row, public_id, meaning_id))
+    return planned, issues
+
+
+def _apply_rows(
+    uow: UnitOfWork,
+    planned: list[PlannedRow],
+    actor_id: int | None,
+    *,
+    dry_run: bool,
+) -> tuple[int, int]:
+    created = updated = 0
+    for row, public_id, meaning_id in planned:
+        if meaning_id is None:
+            created += 1
+            if not dry_run:
+                _create(uow, row, public_id, actor_id)
+        else:
+            updated += 1
+            if not dry_run:
+                _update(uow, row, meaning_id, actor_id)
+    return created, updated
+
+
+def _raise_if_strict(issues: tuple[ImportIssue, ...] | list[ImportIssue], *, strict: bool) -> None:
+    if strict and issues:
+        message = "; ".join(f"row {issue.row_number}: {issue.message}" for issue in issues)
+        raise ValidationError(message)
+
+
 def _validate_rows(
     rows: tuple[ImportRow, ...],
 ) -> tuple[list[tuple[ImportRow, UUID | None]], tuple[ImportIssue, ...]]:
     valid: list[tuple[ImportRow, UUID | None]] = []
     issues: list[ImportIssue] = []
     seen_ids: set[UUID] = set()
+    seen_meanings: set[tuple[str, str]] = set()
     for row in rows:
         if not row.full_name.strip():
             issues.append(ImportIssue(row.row_number, "full_name must not be empty"))
+            continue
+        if not row.scope.strip():
+            issues.append(ImportIssue(row.row_number, "scope must not be empty"))
+            continue
+        meaning_key = (
+            normalize_keyword(row.scope),
+            normalize_keyword(row.full_name),
+        )
+        if meaning_key in seen_meanings:
+            issues.append(
+                ImportIssue(
+                    row.row_number,
+                    "full_name is duplicated in the same scope in the file",
+                ),
+            )
             continue
         try:
             public_id = UUID(row.public_id) if row.public_id else None
@@ -95,6 +153,7 @@ def _validate_rows(
             continue
         if public_id is not None:
             seen_ids.add(public_id)
+        seen_meanings.add(meaning_key)
         valid.append((row, public_id))
     return valid, tuple(issues)
 
@@ -107,9 +166,12 @@ def _create(
 ) -> None:
     record = meaning_repository.create(
         uow.session,
-        row.full_name,
-        row.description,
-        actor_id,
+        meaning_repository.MeaningValues(
+            row.full_name,
+            row.scope,
+            row.description,
+            actor_id,
+        ),
         public_id=public_id,
     )
     meaning_id = required_id(record.meaning_id)
@@ -126,7 +188,16 @@ def _update(
     if record is None:  # pragma: no cover - cannot change within this unit of work
         message = f"Meaning {meaning_id} disappeared during import."
         raise RuntimeError(message)
-    meaning_repository.update(uow.session, record, row.full_name, row.description, actor_id)
+    meaning_repository.update(
+        uow.session,
+        record,
+        meaning_repository.MeaningValues(
+            row.full_name,
+            row.scope,
+            row.description,
+            actor_id,
+        ),
+    )
     _add_metadata(uow, meaning_id, row, actor_id)
 
 

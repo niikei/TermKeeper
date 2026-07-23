@@ -5,9 +5,8 @@ from collections.abc import Callable, Mapping
 
 from termkeeper.application import TermKeeperService
 from termkeeper.domain import (
-    AddResult,
+    CaptureResult,
     ImportResult,
-    InboxItem,
     Meaning,
     MergeResult,
     OccurrenceItem,
@@ -19,16 +18,14 @@ from termkeeper.domain import (
 )
 
 type CommandResult = (
-    AddResult
+    CaptureResult
     | ImportResult
-    | InboxItem
     | Meaning
     | MergeResult
     | OccurrenceItem
     | ReferenceLink
     | SearchResult
     | StatsSummary
-    | list[InboxItem]
     | list[Meaning]
     | list[OccurrenceItem]
     | list[ReferenceLink]

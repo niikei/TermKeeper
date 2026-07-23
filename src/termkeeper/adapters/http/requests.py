@@ -11,21 +11,24 @@ class CaptureRequest(BaseModel):
     keyword: str
     memo: str | None = None
     source: str | None = None
+    meaning_id: UUID | None = None
 
 
 class ResolveRequest(BaseModel):
     full_name: str
+    scope: str = "General"
     description: str | None = None
 
 
 class MeaningUpdateRequest(BaseModel):
     full_name: str
+    scope: str
     description: str | None = None
 
 
 class OccurrenceFilters(BaseModel):
     meaning_id: UUID | None = None
-    inbox_id: UUID | None = None
+    status: Literal["Pending", "Resolved", "Discarded"] | None = None
     keyword: str | None = None
     source: str | None = None
     since: datetime | None = None
@@ -37,6 +40,7 @@ class SearchFilters(BaseModel):
     text: str = Field(min_length=1)
     field: Literal["all", "term", "name", "description"] = "all"
     tag: str | None = None
+    scope: str | None = None
     favorite_only: bool = False
     offset: int = Field(default=0, ge=0, le=399)
     limit: int = Field(default=20, ge=1, le=100)
