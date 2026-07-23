@@ -23,6 +23,11 @@ def add_primary_commands(commands: Commands) -> None:
     add.add_argument("--memo", help="Context or a short reminder")
     add.add_argument("--source", help="Where the term was encountered")
     add.add_argument("--meaning", type=int, dest="meaning_id", help="Explicit meaning ID")
+    add.add_argument(
+        "--no-prompt",
+        action="store_true",
+        help="Keep matching occurrences pending without asking",
+    )
 
     inbox = commands.add("inbox", "Show pending occurrences", handler="inbox")
     add_pagination_arguments(inbox)
@@ -108,5 +113,7 @@ def add_primary_commands(commands: Commands) -> None:
 
     show = commands.add("show", "Show a meaning", handler="show")
     show.add_argument("meaning_id", type=int, help="Meaning ID")
+    history = commands.add("history", "Show all captured occurrences", handler="history")
+    add_pagination_arguments(history)
     stats = commands.add("stats", "Show occurrence analytics", handler="stats")
     stats.add_argument("--limit", type=int, default=10, help="Ranking size")

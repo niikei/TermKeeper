@@ -139,9 +139,9 @@ Occurrenceを自動分類しない。
 ## 11. CSVで一括入出力する
 
 ```bash
-tk export terms.csv
-tk import terms.csv --dry-run
-tk import terms.csv --strict
+tk data export terms.csv
+tk data import terms.csv --dry-run
+tk data import terms.csv --strict
 ```
 
 CSVは`scope`列を含む。Scope名は事前登録が必要で、未知のScope、同一scope内の重複正式名称、

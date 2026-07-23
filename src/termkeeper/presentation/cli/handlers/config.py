@@ -3,6 +3,7 @@
 import argparse
 
 from termkeeper.application import TermKeeperService
+from termkeeper.presentation.cli.style import command, muted, success, warning
 
 
 def handle_config(args: argparse.Namespace, service: TermKeeperService) -> dict[str, str]:
@@ -12,16 +13,16 @@ def handle_config(args: argparse.Namespace, service: TermKeeperService) -> dict[
             raise ValueError(message)
         result = service.unset_config(args.key)
         if not args.json:
-            print(f"Unset {args.key}.")
+            print(f"{warning('Unset')} {command(args.key)}.")
         return result
     if args.list_config or args.key is None:
         result = service.list_config()
         if not args.json:
             if result:
                 for key, value in result.items():
-                    print(f"{key}={value}")
+                    print(f"{command(key)}={value}")
             else:
-                print("No configuration is set.")
+                print(muted("No configuration is set."))
         return result
     if args.value is None:
         setting = service.get_config(args.key)
@@ -30,5 +31,5 @@ def handle_config(args: argparse.Namespace, service: TermKeeperService) -> dict[
         return setting
     result = service.set_config(args.key, args.value)
     if not args.json:
-        print(f"Set {args.key}.")
+        print(f"{success('Set')} {command(args.key)}.")
     return result

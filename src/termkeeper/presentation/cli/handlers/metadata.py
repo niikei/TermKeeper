@@ -5,19 +5,26 @@ import argparse
 from termkeeper.application import TermKeeperService
 from termkeeper.domain import Meaning, ReferenceLink, ReferenceUpdate, TagSummary
 from termkeeper.presentation.cli.rendering import print_meaning, print_references
+from termkeeper.presentation.cli.style import command, identifier, muted, success, warning
 
 
 def handle_tag(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
     result = service.add_tag(args.meaning_id, args.name)
     if not args.json:
-        print(f"Tagged meaning #{args.meaning_id} with '{args.name}'.")
+        print(
+            f"{success('Tagged')} meaning {identifier(f'#{args.meaning_id}')} "
+            f"with '{command(args.name)}'.",
+        )
     return result
 
 
 def handle_untag(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
     result = service.remove_tag(args.meaning_id, args.name)
     if not args.json:
-        print(f"Removed tag '{args.name}' from meaning #{args.meaning_id}.")
+        print(
+            f"{success('Removed')} tag '{command(args.name)}' "
+            f"from meaning {identifier(f'#{args.meaning_id}')}.",
+        )
     return result
 
 
@@ -26,37 +33,43 @@ def handle_tags(args: argparse.Namespace, service: TermKeeperService) -> list[Ta
     if not args.json:
         if result:
             for tag in result:
-                print(f"{tag.name} ({tag.meaning_count})")
+                print(f"{command(tag.name)} ({tag.meaning_count})")
         else:
-            print("No tags found.")
+            print(muted("No tags found."))
     return result
 
 
 def handle_favorite(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
     result = service.favorite_meaning(args.meaning_id)
     if not args.json:
-        print(f"Favorited meaning #{args.meaning_id}.")
+        print(f"{warning('★ Favorited')} meaning {identifier(f'#{args.meaning_id}')}.")
     return result
 
 
 def handle_unfavorite(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
     result = service.unfavorite_meaning(args.meaning_id)
     if not args.json:
-        print(f"Unfavorited meaning #{args.meaning_id}.")
+        print(f"{success('Unfavorited')} meaning {identifier(f'#{args.meaning_id}')}.")
     return result
 
 
 def handle_relate(args: argparse.Namespace, service: TermKeeperService) -> list[Meaning]:
     result = service.relate(args.meaning_id, args.related_id)
     if not args.json:
-        print(f"Related meaning #{args.meaning_id} to #{args.related_id}.")
+        print(
+            f"{success('Related')} meaning {identifier(f'#{args.meaning_id}')} "
+            f"to {identifier(f'#{args.related_id}')}.",
+        )
     return result
 
 
 def handle_unrelate(args: argparse.Namespace, service: TermKeeperService) -> list[Meaning]:
     result = service.unrelate(args.meaning_id, args.related_id)
     if not args.json:
-        print(f"Unrelated meaning #{args.meaning_id} from #{args.related_id}.")
+        print(
+            f"{success('Unrelated')} meaning {identifier(f'#{args.meaning_id}')} "
+            f"from {identifier(f'#{args.related_id}')}.",
+        )
     return result
 
 
@@ -67,7 +80,7 @@ def handle_related(args: argparse.Namespace, service: TermKeeperService) -> list
             for item in result:
                 print_meaning(item)
         else:
-            print("No related meanings found.")
+            print(muted("No related meanings found."))
     return result
 
 
@@ -77,7 +90,10 @@ def handle_reference_add(
 ) -> ReferenceLink:
     result = service.add_reference(args.meaning_id, args.url, args.title)
     if not args.json:
-        print(f"Added reference #{result.reference_id} to meaning #{args.meaning_id}.")
+        print(
+            f"{success('Added')} reference {identifier(f'#{result.reference_id}')} "
+            f"to meaning {identifier(f'#{args.meaning_id}')}.",
+        )
     return result
 
 
@@ -92,7 +108,7 @@ def handle_reference_edit(
     )
     result = service.edit_reference(args.reference_id, update)
     if not args.json:
-        print(f"Updated reference #{args.reference_id}.")
+        print(f"{success('Updated')} reference {identifier(f'#{args.reference_id}')}.")
     return result
 
 
@@ -102,7 +118,7 @@ def handle_reference_remove(
 ) -> ReferenceLink:
     result = service.remove_reference(args.reference_id)
     if not args.json:
-        print(f"Removed reference #{args.reference_id}.")
+        print(f"{success('Removed')} reference {identifier(f'#{args.reference_id}')}.")
     return result
 
 
@@ -115,5 +131,5 @@ def handle_references(
         if result:
             print_references(result)
         else:
-            print("No references found.")
+            print(muted("No references found."))
     return result

@@ -46,6 +46,11 @@ from termkeeper.presentation.cli.handlers.scope import (
     handle_scope_edit,
     handle_scopes,
 )
+from termkeeper.presentation.cli.handlers.system import (
+    handle_completion,
+    handle_dashboard,
+    handle_doctor,
+)
 from termkeeper.presentation.cli.handlers.transfer import (
     handle_export,
     handle_import,
@@ -54,6 +59,7 @@ from termkeeper.presentation.cli.handlers.transfer import (
 from termkeeper.presentation.cli.types import CommandHandler
 
 HANDLERS: dict[str, CommandHandler] = {
+    "dashboard": handle_dashboard,
     "init": handle_init,
     "add": handle_add,
     "inbox": handle_inbox,
@@ -93,6 +99,8 @@ HANDLERS: dict[str, CommandHandler] = {
     "edit": handle_edit,
     "meanings": handle_meanings,
     "config": handle_config,
+    "doctor": handle_doctor,
+    "completion": handle_completion,
     "export": handle_export,
     "import": handle_import,
 }

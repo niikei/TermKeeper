@@ -47,7 +47,24 @@ TERMKEEPER_DATABASE_URL=postgresql+psycopg://user:password@localhost/termkeeper 
 通常は最初のコマンド実行時に自動作成されます。初期化に失敗した場合、技術的な原因は
 `tk --debug init`で確認できます。
 
+開発中にAlembic baselineを作り直したDBなど、Revision記録と実際のテーブル構造が一致しない
+場合は、通常起動時に不一致を検出して復旧方法を表示します。既存データを引き継がずSQLite DBを
+作り直す場合は次を実行します。
+
+```bash
+tk init --reset
+```
+
+確認後、既存DBを同じディレクトリの`*.backup-<timestamp>.db`へ退避してから新規作成します。
+自動化では`tk init --reset --yes`を使用します。PostgreSQLの自動resetには対応しません。
+
 ## 基本的な使い方
+
+引数なしでバージョン、現在の状態、次の操作を確認できます。
+
+```bash
+tk
+```
 
 インストールされているTermKeeperのバージョンを確認できます。
 
@@ -62,8 +79,12 @@ tk add ICMR --memo "月次決算会議" --source "Teams"
 ```
 
 `add`は毎回独立したOccurrenceを未分類状態で保存します。同じ表記のMeaningが存在しても
-自動では紐付けず、分類候補として表示するだけです。分類先が明らかな場合に限り
-`--meaning ID`で明示できます。
+自動では紐付けず、分類候補として表示します。対話端末では候補をその場で選択でき、Enterなら
+PendingのままInboxへ残します。JSON、パイプ入力、`--no-prompt`では入力待ちしません。
+分類先が事前に明らかな場合は`--meaning ID`で明示できます。
+対話端末ではID、Scope、状態、成功・警告・エラーなどを意味に応じて色分けします。
+`--color=auto|always|never`で制御でき、`auto`がデフォルトです。常に無効にする場合は
+`NO_COLOR=1 tk add TERM`のようにも指定できます。JSONと非TTY出力は通常プレーンテキストです。
 
 ### 未処理項目の確認
 
@@ -76,6 +97,7 @@ Inboxは独立したテーブルではなく、未分類（Pending）のOccurren
 ### 遭遇履歴
 
 ```bash
+tk history
 tk occurrence list
 tk occurrence list --meaning 1
 tk occurrence list --status Pending
@@ -89,7 +111,7 @@ tk stats --limit 10
 
 遭遇ごとの用語、memo、source、状態、日時、Meaningとの関連を確認できます。
 個別Occurrenceのkeyword・memo・sourceを修正できます。
-`inbox`、`occurrence history`、`occurrence list`は`--offset`と`--limit`に対応します。
+`inbox`、`history`、`occurrence list`は`--offset`と`--limit`に対応します。
 一覧はDBでページングされ、
 JSON出力は`items`、`offset`、`limit`、`has_more`を返します。
 `stats`では総遭遇数、未解決数、Meaning数と、頻出語・出典を確認できます。
@@ -108,6 +130,10 @@ tk scope list
 ```bash
 tk resolve 1
 ```
+
+遭遇語に一致するMeaningがある場合は候補を表示します。候補が1件ならEnterでそのMeaningへ
+分類でき、`n`で別概念として新しいMeaningを作成、`q`でキャンセルできます。候補が複数ある場合は
+表示されたMeaning IDを選択します。候補がない場合だけ正式名称と説明を入力します。
 
 非対話形式:
 
@@ -187,7 +213,7 @@ tk meaning trash
 tk meaning restore 1
 tk meaning purge 1 --yes
 tk occurrence discard 2
-tk occurrence history
+tk history
 ```
 
 `meaning edit`は指定した項目だけを更新し、省略した項目は現在値を維持します。
@@ -213,10 +239,10 @@ Meaningは`meaning purge`できません。先に該当Occurrenceを`occurrence 
 ### CSV入出力
 
 ```bash
-tk export terms.csv
-tk import terms.csv --dry-run
-tk import terms.csv
-tk import terms.csv --strict
+tk data export terms.csv
+tk data import terms.csv --dry-run
+tk data import terms.csv
+tk data import terms.csv --strict
 ```
 
 Importは全有効行を1トランザクションで反映します。`--dry-run`は作成・更新・スキップ件数と
@@ -236,6 +262,18 @@ tk config --unset user.email
 ```
 
 設定はTermKeeperのデータベース単位で保存されます。
+
+### 診断とシェル補完
+
+```bash
+tk doctor
+source <(tk completion zsh)
+source <(tk completion bash)
+tk completion fish | source
+```
+
+`doctor`はバージョン、資格情報を隠したDB接続先、backend、Alembic Revision、
+`user.name`・`user.email`の設定有無を確認します。
 
 ## JSON出力
 

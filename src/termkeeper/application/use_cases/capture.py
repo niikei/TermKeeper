@@ -69,6 +69,20 @@ class CaptureUseCases:
         with UnitOfWork() as uow:
             return to_occurrence(get_occurrence(uow, occurrence_id))
 
+    def resolution_options(self, occurrence_id: int) -> CaptureResult:
+        """Return a pending occurrence and all meanings matching its term."""
+        with UnitOfWork() as uow:
+            occurrence = get_occurrence(uow, occurrence_id)
+            _require_status(occurrence.status, OccurrenceStatus.PENDING)
+            candidates = tuple(
+                to_meaning(uow.session, record)
+                for record in meaning_repository.find_candidates(
+                    uow.session,
+                    occurrence.keyword,
+                )
+            )
+            return CaptureResult(to_occurrence(occurrence), candidates)
+
     def get_occurrence_by_public_id(self, public_id: UUID) -> OccurrenceItem:
         with UnitOfWork() as uow:
             record = occurrence_repository.get_by_public_id(uow.session, public_id)

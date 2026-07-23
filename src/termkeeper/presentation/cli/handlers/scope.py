@@ -5,12 +5,16 @@ import argparse
 from termkeeper.application import TermKeeperService, ValidationError
 from termkeeper.domain import Scope
 from termkeeper.presentation.cli.handlers.common import confirm_destructive
+from termkeeper.presentation.cli.style import danger, heading, identifier, success
 
 
 def handle_scope_add(args: argparse.Namespace, service: TermKeeperService) -> Scope:
     result = service.create_scope(args.name, args.description)
     if not args.json:
-        print(f"Created scope #{result.scope_id}: {result.name}")
+        print(
+            f"{success('Created')} scope {identifier(f'#{result.scope_id}')}: "
+            f"{heading(result.name)}",
+        )
     return result
 
 
@@ -18,7 +22,7 @@ def handle_scopes(args: argparse.Namespace, service: TermKeeperService) -> list[
     result = service.scopes()
     if not args.json:
         for scope in result:
-            print(f"#{scope.scope_id} {scope.name}")
+            print(f"{identifier(f'#{scope.scope_id}')} {heading(scope.name)}")
     return result
 
 
@@ -37,7 +41,7 @@ def handle_scope_edit(args: argparse.Namespace, service: TermKeeperService) -> S
         ),
     )
     if not args.json:
-        print(f"Updated scope #{args.scope_id}.")
+        print(f"{success('Updated')} scope {identifier(f'#{args.scope_id}')}.")
     return result
 
 
@@ -45,5 +49,5 @@ def handle_scope_delete(args: argparse.Namespace, service: TermKeeperService) ->
     confirm_destructive(args, f"Delete unused scope #{args.scope_id}?")
     service.delete_scope(args.scope_id)
     if not args.json:
-        print(f"Deleted scope #{args.scope_id}.")
+        print(f"{danger('Deleted')} scope {identifier(f'#{args.scope_id}')}.")
     return {"scope_id": args.scope_id}

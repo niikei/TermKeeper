@@ -22,9 +22,6 @@ def add_occurrence_commands(commands: Commands) -> None:
     list_.add_argument("--since", type=parse_datetime, help="ISO 8601 lower time bound")
     add_pagination_arguments(list_)
 
-    history = commands.add("history", "List all occurrence history", handler="history")
-    add_pagination_arguments(history)
-
     edit = commands.add("edit", "Edit occurrence context", handler="occurrence-edit")
     edit.add_argument("occurrence_id", type=int, help="Occurrence ID")
     edit.add_argument("--keyword", help="Replacement encountered term")

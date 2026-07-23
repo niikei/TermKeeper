@@ -3,8 +3,10 @@ import json
 from pathlib import Path
 
 import pytest
+from sqlalchemy import text
 
 from termkeeper import __version__
+from termkeeper.infrastructure.connection import get_engine, get_session
 from termkeeper.presentation.cli.main import main
 from termkeeper.presentation.csv_io import encode_values
 
@@ -139,7 +141,7 @@ def test_human_readable_management_commands(
     assert main(["search", "suite"]) == 0
     assert main(["show", "1"]) == 0
     assert main(["meaning", "list"]) == 0
-    assert main(["occurrence", "history"]) == 0
+    assert main(["history"]) == 0
     assert main(["meaning", "alias-remove", "1", "enterprise planning"]) == 0
     assert main(["meaning", "delete", "1"]) == 0
     output = capsys.readouterr().out
@@ -178,6 +180,58 @@ def test_interactive_resolve_and_edit(
     monkeypatch.setattr("builtins.input", lambda _prompt: next(answers))
     assert main(["meaning", "edit", "1"]) == 0
     assert "Updated meaning" in capsys.readouterr().out
+
+
+def test_interactive_resolve_defaults_to_the_single_matching_meaning(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["add", "PIM"]) == 0
+    assert main(["resolve", "1", "--name", "Product Information Management"]) == 0
+    assert main(["add", "PIM"]) == 0
+    capsys.readouterr()
+    monkeypatch.setattr("builtins.input", lambda _prompt: "")
+
+    assert main(["resolve", "2"]) == 0
+    output = capsys.readouterr().out
+    assert "Matching meanings:" in output
+    assert "#1 [General] Product Information Management" in output
+    assert "Assigned occurrence #2 to meaning #1." in output
+
+    assert main(["occurrence", "list", "--json"]) == 0
+    occurrences = json.loads(capsys.readouterr().out)
+    assert occurrences["items"][0]["meaning_id"] == 1
+
+
+def test_interactive_resolve_can_create_new_despite_a_candidate(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["add", "PIM"]) == 0
+    assert main(["resolve", "1", "--name", "Product Information Management"]) == 0
+    assert main(["add", "PIM"]) == 0
+    capsys.readouterr()
+    answers = iter(["n", "Personal Information Manager", "Different concept"])
+    monkeypatch.setattr("builtins.input", lambda _prompt: next(answers))
+
+    assert main(["resolve", "2"]) == 0
+    output = capsys.readouterr().out
+    assert "Creating a new meaning." in output
+    assert "Created meaning #2: Personal Information Manager" in output
+
+
+def test_interactive_resolve_can_be_cancelled(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["add", "PIM"]) == 0
+    assert main(["resolve", "1", "--name", "Product Information Management"]) == 0
+    assert main(["add", "PIM"]) == 0
+    capsys.readouterr()
+    monkeypatch.setattr("builtins.input", lambda _prompt: "q")
+
+    assert main(["resolve", "2"]) == 2
+    assert "Resolution cancelled." in capsys.readouterr().err
 
 
 def test_json_resolve_never_prompts_or_mixes_human_output(
@@ -549,11 +603,11 @@ def test_human_csv_export_and_import(
         ],
     )
 
-    assert main(["import", str(import_path), "--dry-run"]) == 0
+    assert main(["data", "import", str(import_path), "--dry-run"]) == 0
     assert "Would create 1, updated 0, skipped 0." in capsys.readouterr().out
-    assert main(["import", str(import_path)]) == 0
+    assert main(["data", "import", str(import_path)]) == 0
     assert "Created 1, updated 0, skipped 0." in capsys.readouterr().out
-    assert main(["export", str(export_path)]) == 0
+    assert main(["data", "export", str(export_path)]) == 0
     assert f"Exported 1 meaning(s) to {export_path}." in capsys.readouterr().out
     assert export_path.exists()
 
@@ -583,16 +637,16 @@ def test_import_json_issues_and_strict_error(
         ],
     )
 
-    assert main(["--json", "import", str(path), "--dry-run"]) == 0
+    assert main(["data", "import", str(path), "--dry-run", "--json"]) == 0
     result = json.loads(capsys.readouterr().out)
     assert result["created"] == 1
     assert result["skipped"] == 1
     assert result["issues"][0]["row_number"] == 3
 
-    assert main(["import", str(path), "--dry-run"]) == 0
+    assert main(["data", "import", str(path), "--dry-run"]) == 0
     assert "Row 3: public_id must be a valid UUID" in capsys.readouterr().out
 
-    assert main(["import", str(path), "--strict"]) == 2
+    assert main(["data", "import", str(path), "--strict"]) == 2
     assert "row 3" in capsys.readouterr().err
 
 
@@ -715,3 +769,286 @@ def test_search_human_output_is_compact(capsys: pytest.CaptureFixture[str]) -> N
     assert "[1] Enterprise Resource Planning [General]" in output
     assert "score 100" in output
     assert "Created:" not in output
+
+
+def test_no_command_shows_dashboard(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main([]) == 0
+    output = capsys.readouterr().out
+    assert output.startswith(f"TermKeeper {__version__}\n")
+    assert "0 pending occurrence(s)" in output
+    assert "0 meaning(s) across 1 scope(s)" in output
+    assert "tk add TERM" in output
+
+    assert main(["add", "ERP"]) == 0
+    capsys.readouterr()
+    assert main(["--json"]) == 0
+    assert json.loads(capsys.readouterr().out) == {
+        "pending_occurrences": 1,
+        "meanings": 0,
+        "scopes": 1,
+    }
+
+
+def test_add_output_stays_compact(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["add", "ERP"]) == 0
+    output = capsys.readouterr().out
+    assert output == "Captured occurrence #1: ERP\n"
+
+
+def test_add_can_assign_a_single_candidate_immediately(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["add", "PIM"]) == 0
+    assert main(["resolve", "1", "--name", "Product Information Management"]) == 0
+    capsys.readouterr()
+    monkeypatch.setattr(
+        "termkeeper.presentation.cli.handlers.capture._can_prompt",
+        lambda: True,
+    )
+    monkeypatch.setattr("builtins.input", lambda _prompt: "y")
+
+    assert main(["add", "PIM"]) == 0
+    output = capsys.readouterr().out
+    assert "Possible meanings:" in output
+    assert "Assigned occurrence #2 to meaning #1." in output
+    assert main(["occurrence", "list", "--json"]) == 0
+    occurrences = json.loads(capsys.readouterr().out)
+    assert occurrences["items"][0]["meaning_id"] == 1
+
+
+def test_add_can_keep_a_candidate_pending(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["add", "PIM"]) == 0
+    assert main(["resolve", "1", "--name", "Product Information Management"]) == 0
+    capsys.readouterr()
+    monkeypatch.setattr(
+        "termkeeper.presentation.cli.handlers.capture._can_prompt",
+        lambda: True,
+    )
+    monkeypatch.setattr("builtins.input", lambda _prompt: "")
+
+    assert main(["add", "PIM"]) == 0
+    assert "Possible meanings:" in capsys.readouterr().out
+    assert main(["inbox", "--json"]) == 0
+    inbox = json.loads(capsys.readouterr().out)
+    assert inbox["items"][0]["occurrence_id"] == 2
+
+
+def test_add_highlights_candidate_identity_and_scope_in_a_color_terminal(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["add", "PIM"]) == 0
+    assert main(["resolve", "1", "--name", "Product Information Management"]) == 0
+    capsys.readouterr()
+
+    assert main(["add", "PIM", "--no-prompt", "--color", "always"]) == 0
+    output = capsys.readouterr().out
+    assert "\033[1mPossible meanings:\033[0m" in output
+    assert "\033[1;36m#1\033[0m" in output
+    assert "\033[35m[General]\033[0m" in output
+
+
+def test_add_can_choose_between_candidates_in_different_scopes(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["scope", "add", "SAP"]) == 0
+    assert main(["add", "PIM"]) == 0
+    assert main(["resolve", "1", "--name", "Product Information Management"]) == 0
+    assert main(["add", "PIM"]) == 0
+    assert (
+        main(
+            [
+                "resolve",
+                "2",
+                "--name",
+                "Plant Information Management",
+                "--scope",
+                "SAP",
+            ],
+        )
+        == 0
+    )
+    capsys.readouterr()
+    monkeypatch.setattr(
+        "termkeeper.presentation.cli.handlers.capture._can_prompt",
+        lambda: True,
+    )
+    monkeypatch.setattr("builtins.input", lambda _prompt: "2")
+
+    assert main(["add", "PIM"]) == 0
+    output = capsys.readouterr().out
+    assert "#1 [General] Product Information Management" in output
+    assert "#2 [SAP] Plant Information Management" in output
+    assert "Assigned occurrence #3 to meaning #2." in output
+
+
+def test_add_no_prompt_never_reads_input(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["add", "PIM"]) == 0
+    assert main(["resolve", "1", "--name", "Product Information Management"]) == 0
+    capsys.readouterr()
+    monkeypatch.setattr(
+        "termkeeper.presentation.cli.handlers.capture._can_prompt",
+        lambda: True,
+    )
+
+    def fail_input(_prompt: str) -> str:
+        raise AssertionError("--no-prompt must not read stdin")
+
+    monkeypatch.setattr("builtins.input", fail_input)
+
+    assert main(["add", "PIM", "--no-prompt"]) == 0
+    assert "Possible meanings:" in capsys.readouterr().out
+
+
+def test_doctor_reports_safe_environment_state(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["doctor"]) == 0
+    output = capsys.readouterr().out
+    assert "TermKeeper" in output
+    assert "[ok] Database: sqlite" in output
+    assert "[ok] Schema: 0001" in output
+    assert "[warn] user.name: missing" in output
+
+    assert main(["doctor", "--json"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == "ok"
+    assert result["database_backend"] == "sqlite"
+    assert result["schema_revision"] == result["expected_schema_revision"]
+    assert result["user.email"] == "missing"
+
+
+@pytest.mark.parametrize(
+    ("shell", "expected"),
+    [
+        ("bash", "complete -F _tk_completion tk"),
+        ("zsh", "compdef _tk tk"),
+        ("fish", "complete -c tk"),
+    ],
+)
+def test_completion_generates_shell_script(
+    shell: str,
+    expected: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["completion", shell]) == 0
+    output = capsys.readouterr().out
+    assert expected in output
+    assert "occurrence" in output
+    assert "data" in output
+
+
+def test_completion_does_not_require_database_initialization(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def fail_initialization() -> None:
+        message = "database unavailable"
+        raise RuntimeError(message)
+
+    monkeypatch.setattr("termkeeper.application.service.init_db", fail_initialization)
+
+    assert main(["completion", "zsh"]) == 0
+    assert "compdef _tk tk" in capsys.readouterr().out
+
+
+def test_schema_drift_is_reported_without_traceback(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with get_session() as session:
+        session.execute(text("DROP TABLE scope"))
+        session.commit()
+
+    assert main([]) == 1
+    captured = capsys.readouterr()
+    assert "database schema does not match" in captured.err.lower()
+    assert "missing table 'scope'" in captured.err
+    assert "tk init --reset" in captured.err
+    assert "Traceback" not in captured.err
+
+    assert main(["doctor", "--json"]) == 0
+    diagnosis = json.loads(capsys.readouterr().out)
+    assert diagnosis["status"] == "error"
+    assert "missing table 'scope'" in diagnosis["schema_issues"]
+
+
+def test_init_reset_backs_up_and_recreates_sqlite_database(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["add", "ERP"]) == 0
+    capsys.readouterr()
+    database = get_engine().url.database
+    assert database is not None
+
+    assert main(["init", "--reset", "--json"]) == 2
+    assert "--yes is required" in json.loads(capsys.readouterr().out)["message"]
+
+    assert main(["init", "--reset", "--yes", "--json"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == "reset"
+    backup = Path(result["backup"])
+    assert backup.exists()
+    assert backup.parent == Path(database).parent
+
+    assert main(["--json"]) == 0
+    assert json.loads(capsys.readouterr().out) == {
+        "pending_occurrences": 0,
+        "meanings": 0,
+        "scopes": 1,
+    }
+
+
+def test_semantic_colors_cover_success_ids_status_and_diagnostics(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["--color", "always", "add", "ERP"]) == 0
+    output = capsys.readouterr().out
+    assert "\033[32mCaptured\033[0m" in output
+    assert "\033[1;36m#1\033[0m" in output
+
+    assert (
+        main(
+            [
+                "resolve",
+                "1",
+                "--name",
+                "Enterprise Resource Planning",
+                "--color",
+                "always",
+            ],
+        )
+        == 0
+    )
+    assert "\033[32mCreated\033[0m" in capsys.readouterr().out
+
+    assert main(["history", "--color", "always"]) == 0
+    assert "\033[32mResolved\033[0m" in capsys.readouterr().out
+
+    assert main(["doctor", "--color", "always"]) == 0
+    assert "\033[32m[ok]\033[0m" in capsys.readouterr().out
+
+
+def test_color_can_be_disabled_and_never_leaks_into_json(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["add", "ERP", "--color", "never"]) == 0
+    assert "\033[" not in capsys.readouterr().out
+
+    assert main(["--json", "--color", "always"]) == 0
+    output = capsys.readouterr().out
+    assert "\033[" not in output
+    json.loads(output)
+
+
+def test_human_errors_are_red_only_when_color_is_enabled(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["show", "999", "--color", "always"]) == 2
+    assert "\033[1;31mError:" in capsys.readouterr().err

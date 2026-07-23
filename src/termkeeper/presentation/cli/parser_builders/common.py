@@ -22,8 +22,14 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
 
 
 class Commands:
-    def __init__(self, parser: argparse.ArgumentParser, *, dest: str) -> None:
-        self._action = parser.add_subparsers(dest=dest, required=True)
+    def __init__(
+        self,
+        parser: argparse.ArgumentParser,
+        *,
+        dest: str,
+        required: bool = True,
+    ) -> None:
+        self._action = parser.add_subparsers(dest=dest, required=required)
 
     def add(
         self,
@@ -73,6 +79,12 @@ def add_runtime_options(
         action="store_true",
         default=default,
         help="Show technical details for unexpected errors",
+    )
+    parser.add_argument(
+        "--color",
+        choices=("auto", "always", "never"),
+        default=argparse.SUPPRESS if suppress_default else "auto",
+        help="Control ANSI colors",
     )
 
 

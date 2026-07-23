@@ -33,6 +33,8 @@ uv run tk init
 
 `tk init`はAlembicでDBを最新Revisionへ更新します。初期化に失敗した場合は
 `uv run tk --debug init`で原因トレースを確認できます。
+baselineをrebaseして既存開発DBを引き継がない場合は`uv run tk init --reset`を使用します。
+SQLite DBは削除せずtimestamp付きbackupへ退避されます。
 
 ## ディレクトリ構成
 

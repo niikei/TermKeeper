@@ -15,7 +15,7 @@ from termkeeper.application.use_cases import (
     TagUseCases,
 )
 from termkeeper.config import database_target
-from termkeeper.infrastructure.schema import init_db
+from termkeeper.infrastructure.schema import SchemaMismatchError, init_db
 
 
 class TermKeeperService(
@@ -36,6 +36,8 @@ class TermKeeperService(
     def initialize(self) -> None:
         try:
             init_db()
+        except SchemaMismatchError as exc:
+            raise InitializationError(str(exc)) from exc
         except Exception as exc:
             target = database_target()
             message = (

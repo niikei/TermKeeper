@@ -13,13 +13,19 @@ from termkeeper.application import (
 from termkeeper.presentation.cli.handlers.registry import HANDLERS
 from termkeeper.presentation.cli.parser import create_parser
 from termkeeper.presentation.cli.rendering import print_json
+from termkeeper.presentation.cli.style import configure_color, danger
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = create_parser().parse_args(argv)
+    configure_color("never" if args.json else args.color)
     service = TermKeeperService()
     try:
-        service.initialize()
+        skip_initialization = args.command in {"completion", "doctor"} or (
+            args.command == "init" and args.reset
+        )
+        if not skip_initialization:
+            service.initialize()
         result = HANDLERS[args.command](args, service)
     except InitializationError as exc:
         if args.debug:
@@ -39,4 +45,4 @@ def _print_error(exc: Exception, *, json_output: bool) -> None:
     if json_output:
         print_json({"error": type(exc).__name__, "message": str(exc)})
     else:
-        print(f"Error: {exc}", file=sys.stderr)
+        print(danger(f"Error: {exc}", stream=sys.stderr), file=sys.stderr)
