@@ -9,7 +9,7 @@ from termkeeper.infrastructure.schema import init_db
 
 @pytest.fixture(autouse=True)
 def isolated_database(tmp_path: Path) -> Iterator[None]:
-    configure_database(tmp_path / "termkeeper.db")
+    configure_database(f"sqlite:///{tmp_path / 'termkeeper.db'}")
     init_db()
     yield
     configure_database(None)

@@ -13,7 +13,7 @@ from termkeeper.application.use_cases import (
     RelationUseCases,
     TagUseCases,
 )
-from termkeeper.config import database_path
+from termkeeper.config import database_target
 from termkeeper.infrastructure.schema import init_db
 
 
@@ -35,9 +35,9 @@ class TermKeeperService(
         try:
             init_db()
         except Exception as exc:
-            path = database_path().resolve()
+            target = database_target()
             message = (
-                f"Could not initialize the TermKeeper database at '{path}'. "
+                f"Could not initialize the TermKeeper database at '{target}'. "
                 "Run 'tk --debug init' for technical details."
             )
             raise InitializationError(message) from exc

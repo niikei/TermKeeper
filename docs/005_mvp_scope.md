@@ -2,7 +2,7 @@
 
 ## 実装済み
 
-- SQLModelとSQLiteによるローカル永続化
+- SQLModelとSQLiteによる既定のローカル永続化、DB URLによる接続切り替え
 - Occurrenceの捕捉、Pending Inboxビュー、分類、再分類、破棄、再開
 - memoとsourceによる遭遇コンテキスト
 - 遭遇ごとのsource・memo・時刻を保持するOccurrence履歴
@@ -56,4 +56,4 @@ Application Service
 └── Web / collaboration adapters
 ```
 
-外部連携ではCLI出力やSQLiteを直接操作せず、`TermKeeperService` を利用する。
+外部連携ではCLI出力やデータベースを直接操作せず、`TermKeeperService` を利用する。

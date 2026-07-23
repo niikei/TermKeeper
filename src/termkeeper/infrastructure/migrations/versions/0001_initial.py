@@ -50,6 +50,7 @@ def upgrade() -> None:
         ["scope_norm", "full_name_norm"],
         unique=True,
         sqlite_where=sa.text("deleted_at IS NULL"),
+        postgresql_where=sa.text("deleted_at IS NULL"),
     )
     op.create_table(
         "term",

@@ -1,4 +1,4 @@
-"""Small SQLite helpers shared by repositories."""
+"""Database-independent text normalization for persistence and search."""
 
 import unicodedata
 

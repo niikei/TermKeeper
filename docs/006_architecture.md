@@ -18,6 +18,8 @@
 
 各アダプターはレイヤーの公開モジュールを直接使用し、旧構成向けの互換モジュールは持たない。
 CRUDと検索はSQLModelを使用し、スキーマ変更はAlembic Revisionで明示する。
+接続先はSQLAlchemy URLで選択し、RepositoryとApplicationへdialect固有処理を持ち込まない。
+SQLite固有のPRAGMA、日時変換、Migration batch modeはInfrastructure境界に閉じ込める。
 Applicationの各更新ユースケースはUnit of Workを使用し、1つのSessionとトランザクションで
 完結する。Repositoryはcommitせず、トランザクション境界をApplicationへ集約する。
 Repositoryは`infrastructure/repositories/`へ集約し、テーブル・接続・Unit of Workとは
@@ -102,7 +104,8 @@ RouteとMCP Toolは機能単位のモジュールへ分割し、アプリケー�
 ## スキーマ管理
 
 既定DBはOS標準のユーザーデータ領域へ保存し、カレントディレクトリには依存させない。
-開発・テスト・外部アダプターでは`TERMKEEPER_DB`による明示パスを優先する。
+開発・テスト・外部アダプターでは`TERMKEEPER_DATABASE_URL`による接続URLを優先する。
+SQLiteを既定とし、PostgreSQL用driverは`postgres`任意依存として分離する。
 `tk init` および各CLI起動時にAlembicを実行し、最新Revisionまでupgradeする。
 現行モデルを`0001_initial`の初期ベースラインとする。各Revisionは固定DDLとして保持し、
 スキーマ変更時は適用済みRevisionを書き換えず、新しいRevisionを追加して順番に適用する。

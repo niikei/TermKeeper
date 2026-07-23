@@ -3,7 +3,7 @@
 from sqlalchemy import func
 from sqlmodel import Session, col, select
 
-from termkeeper.infrastructure.sqlite_utils import normalize_keyword
+from termkeeper.infrastructure.normalization import normalize_keyword
 from termkeeper.infrastructure.tables import Meaning, MeaningTag, Tag
 
 

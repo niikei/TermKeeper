@@ -24,7 +24,7 @@ def test_database_is_upgraded_to_latest_revision() -> None:
 
 
 def test_latest_revision_matches_runtime_metadata(tmp_path: Path) -> None:
-    configure_database(tmp_path / "fresh.db")
+    configure_database(f"sqlite:///{tmp_path / 'fresh.db'}")
     init_db()
 
     with get_engine().connect() as connection:

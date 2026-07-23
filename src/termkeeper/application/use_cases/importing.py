@@ -5,12 +5,12 @@ from uuid import UUID
 from termkeeper.application.errors import ValidationError
 from termkeeper.application.support import required_id, user_id
 from termkeeper.domain import ImportIssue, ImportResult, ImportRow
+from termkeeper.infrastructure.normalization import normalize_keyword
 from termkeeper.infrastructure.repositories import (
     meaning_repository,
     settings_repository,
     tag_repository,
 )
-from termkeeper.infrastructure.sqlite_utils import normalize_keyword
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
 type PlannedRow = tuple[ImportRow, UUID | None, int | None]

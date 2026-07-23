@@ -10,7 +10,7 @@ from termkeeper.domain import (
     SearchQuery,
     SearchSuggestion,
 )
-from termkeeper.infrastructure.sqlite_utils import normalize_keyword
+from termkeeper.infrastructure.normalization import normalize_keyword
 
 _MIN_SUGGESTION_RATIO = 0.6
 type _Match = tuple[int, SearchField, str]

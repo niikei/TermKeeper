@@ -8,7 +8,7 @@ from sqlalchemy.sql.elements import ColumnElement
 from sqlmodel import Session, col, select
 
 from termkeeper.domain import SearchField
-from termkeeper.infrastructure.sqlite_utils import normalize_keyword
+from termkeeper.infrastructure.normalization import normalize_keyword
 from termkeeper.infrastructure.tables import Meaning, Term, utc_now
 
 

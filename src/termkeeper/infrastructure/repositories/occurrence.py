@@ -7,7 +7,7 @@ from sqlalchemy import func
 from sqlmodel import Session, col, select
 
 from termkeeper.domain import OccurrenceQuery, OccurrenceStatus, OccurrenceUpdate
-from termkeeper.infrastructure.sqlite_utils import normalize_keyword
+from termkeeper.infrastructure.normalization import normalize_keyword
 from termkeeper.infrastructure.tables import Occurrence, utc_now
 
 

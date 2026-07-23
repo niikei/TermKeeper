@@ -27,7 +27,7 @@ TermKeeperを利用するだけなら`uv sync`で十分です。
 作業用DBを明示すると、通常利用するDBとの混在を避けられます。
 
 ```bash
-export TERMKEEPER_DB="$PWD/data/development.db"
+export TERMKEEPER_DATABASE_URL="sqlite:///$PWD/data/development.db"
 uv run tk init
 ```
 

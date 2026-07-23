@@ -18,6 +18,9 @@ api = [
 mcp = [
     "mcp>=1.27,<2",
 ]
+postgres = [
+    "psycopg[binary]>=3.2,<4",
+]
 dev = [
     "fastapi>=0.139,<0.140",
     "httpx2>=2.7,<3",

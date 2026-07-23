@@ -14,7 +14,7 @@
 ## 必要環境
 
 - Python 3.12以上
-- SQLite（SQLModel経由で利用）
+- SQLite（既定）またはSQLAlchemy URLで指定したデータベース
 
 ## セットアップ
 
@@ -27,11 +27,18 @@ tk init
 
 データベースはOS標準のユーザーデータ領域に保存されます。macOSでは通常
 `~/Library/Application Support/TermKeeper/termkeeper.db`です。保存先は環境変数で変更できます。
-旧既定値の`data/termkeeper.db`は自動移行しません。継続利用する場合は`TERMKEEPER_DB`で
-明示してください。
+旧既定値の`data/termkeeper.db`は自動移行しません。継続利用する場合は
+`TERMKEEPER_DATABASE_URL`で明示してください。
 
 ```bash
-TERMKEEPER_DB=~/Documents/terms.db tk inbox
+TERMKEEPER_DATABASE_URL=sqlite:////absolute/path/terms.db tk inbox
+```
+
+PostgreSQLを使用する場合は任意依存と接続URLを指定します。
+
+```bash
+uv sync --extra postgres
+TERMKEEPER_DATABASE_URL=postgresql+psycopg://user:password@localhost/termkeeper tk init
 ```
 
 ### DBの初期化
@@ -260,10 +267,10 @@ pip install -e ".[mcp]"
 tk-mcp
 ```
 
-`TERMKEEPER_DB`でCLIと同じデータベースを指定できます。MCPクライアントには、サーバー起動
-コマンドとして`tk-mcp`を登録してください。Capture、分類・再分類、Inbox、Search、Occurrence、
-Stats、Tag、Favorite、Related Meaning、Referenceの24ツールを公開します。各ツールは具体的な
-Domain DTOに基づく構造化出力スキーマを持ちます。
+`TERMKEEPER_DATABASE_URL`でCLIと同じデータベースを指定できます。MCPクライアントには、
+サーバー起動コマンドとして`tk-mcp`を登録してください。Capture、分類・再分類、Inbox、Search、
+Occurrence、Stats、Tag、Favorite、Related Meaning、Referenceの24ツールを公開します。
+各ツールは具体的なDomain DTOに基づく構造化出力スキーマを持ちます。
 
 ### HTTP API
 
