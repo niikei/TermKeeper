@@ -1,5 +1,0 @@
-"""Compatibility imports; prefer :mod:`termkeeper.domain.models`."""
-
-from termkeeper.domain.models import AddResult, InboxItem, Meaning
-
-__all__ = ["AddResult", "InboxItem", "Meaning"]

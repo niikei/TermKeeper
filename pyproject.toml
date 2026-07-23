@@ -13,7 +13,7 @@ dev = [
 ]
 
 [project.scripts]
-tk = "termkeeper.cli:main"
+tk = "termkeeper.presentation.main:main"
 
 [build-system]
 requires = ["hatchling"]

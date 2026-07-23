@@ -8,8 +8,7 @@
 - `infrastructure/`: SQLite接続、スキーマ更新、Inbox・Meaning別リポジトリ
 - `presentation/`: CLI引数、コマンド処理、表示、CSV入出力
 
-トップレベルの `cli.py`, `db.py`, `models.py`, `service.py` は既存利用者のimportを壊さない
-ための互換モジュールであり、新規コードは各レイヤーのパッケージを直接使用する。
+各アダプターはレイヤーの公開モジュールを直接使用し、旧構成向けの互換モジュールは持たない。
 
 APIやMCPを追加するときは `TermKeeperService` を再利用し、SQLやCLIの標準出力を直接
 呼ばない。MCPツールはまず `add`, `inbox`, `resolve`, `search`, `show` を1対1で公開する。

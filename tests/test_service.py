@@ -1,6 +1,6 @@
 import pytest
 
-from termkeeper.service import NotFoundError, TermKeeperService, ValidationError
+from termkeeper.application import NotFoundError, TermKeeperService, ValidationError
 
 
 def test_capture_duplicate_increments_occurrence_count() -> None:

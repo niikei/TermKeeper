@@ -1,5 +1,0 @@
-"""Compatibility imports; prefer :mod:`termkeeper.application`."""
-
-from termkeeper.application.service import NotFoundError, TermKeeperService, ValidationError
-
-__all__ = ["NotFoundError", "TermKeeperService", "ValidationError"]

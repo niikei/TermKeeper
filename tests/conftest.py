@@ -3,12 +3,13 @@ from pathlib import Path
 
 import pytest
 
-from termkeeper import db
+from termkeeper.infrastructure.connection import configure_database
+from termkeeper.infrastructure.schema import init_db
 
 
 @pytest.fixture(autouse=True)
 def isolated_database(tmp_path: Path) -> Iterator[None]:
-    db.configure_database(tmp_path / "termkeeper.db")
-    db.init_db()
+    configure_database(tmp_path / "termkeeper.db")
+    init_db()
     yield
-    db.configure_database(None)
+    configure_database(None)

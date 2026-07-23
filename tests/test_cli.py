@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from termkeeper.cli import main
+from termkeeper.presentation.main import main
 
 
 def test_json_workflow(capsys: pytest.CaptureFixture[str]) -> None:
