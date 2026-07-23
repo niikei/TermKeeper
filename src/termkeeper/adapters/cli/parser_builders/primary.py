@@ -111,7 +111,9 @@ def add_primary_commands(commands: Commands) -> None:
         examples=(
             "Examples:\n"
             "  tk search ERP\n"
-            '  tk search "planning system" --match-any --field description\n'
+            '  tk search "planning system" --word-match any --field description\n'
+            "  tk search ERP --field term --field name\n"
+            "  tk search '^ERP-' --mode regex --field term\n"
             "  tk search ERP --scope SAP --tag Core"
         ),
     )

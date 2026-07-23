@@ -57,6 +57,10 @@ Meaning間の関連は小さいIDを先にした対称ペアとして正規化�
 検索は`SearchUseCases`をCLI・HTTP・MCP共通の唯一のApplication境界とする。
 Repositoryで部分一致候補を取得し、Applicationで関連度、ページング、`has_more`を計算する。
 通常ヒットが0件の場合だけ有効Meaningを読み込み、`SearchSuggestion`を生成する。
+Meaning検索のフィールドはORで結合し、smart modeの複数語は独立したALL/ANY条件で評価する。
+exact、prefix、contains、glob、regex modeは入力全体を1つのパターンとして扱う。
+globとregexはDB dialect固有演算子を使わずApplicationで同じ照合器を実行する。正規表現には
+文字数、候補Meaning件数、1照合あたりの時間制限を設け、ReDoSと無制限な全件走査を防ぐ。
 各アダプターは入力契約とID表現の変換、出力表現だけを担当し、検索・候補・ページ判定の
 ロジックを持たない。
 HTTPとMCPのUUIDからDomain検索Queryへの変換は`adapters/external/queries.py`で共有し、

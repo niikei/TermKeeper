@@ -5,20 +5,34 @@ from enum import StrEnum
 from typing import Any
 
 from termkeeper.domain.models import Meaning
+from termkeeper.domain.query import LogicalOperator
 
 
 class SearchField(StrEnum):
-    ALL = "all"
     TERM = "term"
     NAME = "name"
     DESCRIPTION = "description"
 
 
+class SearchMode(StrEnum):
+    SMART = "smart"
+    EXACT = "exact"
+    PREFIX = "prefix"
+    CONTAINS = "contains"
+    GLOB = "glob"
+    REGEX = "regex"
+
+
 @dataclass(frozen=True)
 class SearchQuery:
     text: str
-    match_all: bool = True
-    field: SearchField = SearchField.ALL
+    mode: SearchMode = SearchMode.SMART
+    fields: tuple[SearchField, ...] = (
+        SearchField.TERM,
+        SearchField.NAME,
+        SearchField.DESCRIPTION,
+    )
+    word_match: LogicalOperator = LogicalOperator.ALL
     offset: int = 0
     limit: int = 20
     tag: str | None = None

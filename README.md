@@ -200,8 +200,11 @@ tk occurrence reopen 1
 ```bash
 tk search ICMR
 tk meaning search ICMR
-tk search "enterprise planning" --match-all
-tk search "planning document" --match-any --field description --limit 10
+tk search "enterprise planning"
+tk search "planning document" --word-match any --field description --limit 10
+tk search ERP --field term --field name
+tk search "ERP*" --mode glob --field term
+tk search '^ERP-[0-9]+$' --mode regex --field term
 tk search ERP --tag SAP
 tk search ERP --scope SAP
 tk search ERPP --suggestions 3
@@ -216,14 +219,19 @@ tk meaning list --scope SAP
 tk meaning list --favorite
 ```
 
-`tk search`は`tk meaning search`の短縮形です。Meaning検索は完全一致、前方一致、部分一致の
-順に関連度を付け、一致理由とともに表示します。
-複数語は標準ですべての語に一致するMeaningを探します。`--match-any`でいずれかの語、
-`--field term|name|description|all`で検索対象、`--limit`で最大件数を指定できます。
+`tk search`は`tk meaning search`の短縮形です。標準の`--mode smart`は完全一致、前方一致、
+部分一致の順に関連度を付け、一致理由とともに表示します。複数語は標準ですべての語を必要とし、
+`--word-match any`ならいずれかの語を探します。
+`--field term|name|description`は繰り返し指定でき、指定フィールド間はORです。たとえば
+`--field term --field description --word-match all`では、各検索語がTermまたは説明の
+どちらかにあれば一致します。
+`--mode exact|prefix|contains|glob|regex`では検索文字列を分割せず、各フィールド全体に対して
+指定方式で照合します。globや正規表現はシェル展開を避けるため引用符で囲んでください。
+`--limit`で最大件数を指定できます。
 `--tag`を指定すると、そのタグを持つMeaningだけに絞り込みます。
 `--scope`を指定すると、SAP、Oracle、Generalなどの概念境界で絞り込みます。
 `--favorite`を指定すると、お気に入りのMeaningだけに絞り込みます。
-検索結果がない場合は、Term・正式名称などの類似度から候補を表示します。候補数は
+smart検索で結果がない場合は、Term・正式名称などの類似度から候補を表示します。候補数は
 `--suggestions`、無効化は`--no-suggestions`で指定できます。
 Occurrence検索はkeyword、memo、sourceを横断し、status、source、since、Meaningで先に
 絞り込めます。`tk inbox search`は同じ検索をPendingだけに限定します。Scope検索は名前と説明を

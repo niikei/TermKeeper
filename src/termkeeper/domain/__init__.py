@@ -18,6 +18,7 @@ from termkeeper.domain.scope import GENERAL_SCOPE_PUBLIC_ID, Scope, ScopeSearchQ
 from termkeeper.domain.search import (
     SearchField,
     SearchHit,
+    SearchMode,
     SearchQuery,
     SearchResult,
     SearchSuggestion,
@@ -51,6 +52,7 @@ __all__ = [
     "Readiness",
     "SearchField",
     "SearchHit",
+    "SearchMode",
     "SearchQuery",
     "SearchResult",
     "SearchSuggestion",

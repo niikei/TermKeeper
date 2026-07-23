@@ -373,6 +373,55 @@ def test_http_meaning_list_exposes_structured_filters_and_sorting() -> None:
     assert [item["full_name"] for item in response.json()["items"]] == ["Alpha"]
 
 
+def test_http_search_uses_shared_field_word_and_regex_contract() -> None:
+    service = TermKeeperService()
+    client = TestClient(create_app(service))
+    target = service.create_meaning(
+        "Enterprise Resource Planning",
+        "Customer operations",
+        terms=("ERP",),
+    )
+    service.create_meaning(
+        "Customer Relationship Management",
+        "Planning operations",
+        terms=("CRM",),
+    )
+
+    smart = client.get(
+        "/api/v1/meanings/search",
+        params=[
+            ("text", "ERP customer"),
+            ("fields", "term"),
+            ("fields", "description"),
+            ("word_match", "all"),
+        ],
+    )
+    assert smart.status_code == 200
+    assert [hit["meaning"]["public_id"] for hit in smart.json()["hits"]] == [
+        str(target.public_id),
+    ]
+
+    pattern = client.get(
+        "/api/v1/meanings/search",
+        params={
+            "text": "^Enterprise.*Planning$",
+            "mode": "regex",
+            "fields": "name",
+        },
+    )
+    assert pattern.status_code == 200
+    assert [hit["meaning"]["public_id"] for hit in pattern.json()["hits"]] == [
+        str(target.public_id),
+    ]
+
+    invalid = client.get(
+        "/api/v1/meanings/search",
+        params={"text": "[", "mode": "regex"},
+    )
+    assert invalid.status_code == 422
+    assert invalid.json()["error"] == "ValidationError"
+
+
 def test_http_scope_lifecycle_uses_stable_ids() -> None:
     client = TestClient(create_app())
 

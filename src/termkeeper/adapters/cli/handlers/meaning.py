@@ -18,6 +18,7 @@ from termkeeper.domain import (
     MeaningListQuery,
     MergeResult,
     Page,
+    SearchField,
     SearchQuery,
     SearchResult,
 )
@@ -26,8 +27,9 @@ from termkeeper.domain import (
 def handle_search(args: argparse.Namespace, service: TermKeeperService) -> SearchResult:
     query = SearchQuery(
         text=args.text,
-        match_all=args.match_all,
-        field=args.search_field,
+        mode=args.mode,
+        fields=tuple(args.search_fields or tuple(SearchField)),
+        word_match=args.word_match,
         offset=args.offset,
         limit=args.limit,
         tag=args.tag,

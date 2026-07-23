@@ -1,12 +1,12 @@
 """Shared search use cases used by every inbound adapter."""
 
-from datetime import UTC, datetime
+import regex
 
 from termkeeper.application.errors import ValidationError
 from termkeeper.application.mapping import to_meaning, to_occurrence, to_scope
 from termkeeper.application.search import rank_search, rank_suggestions, search_tokens
 from termkeeper.application.support import get_scope_by_name, required_id
-from termkeeper.application.validation import optional_filter, validate_page
+from termkeeper.application.validation import optional_filter, to_utc, validate_page
 from termkeeper.domain import (
     Meaning,
     OccurrenceItem,
@@ -16,9 +16,11 @@ from termkeeper.domain import (
     Scope,
     ScopeSearchQuery,
     SearchHit,
+    SearchMode,
     SearchQuery,
     SearchResult,
 )
+from termkeeper.infrastructure.normalization import normalize_keyword
 from termkeeper.infrastructure.repositories import (
     meaning_repository,
     occurrence_repository,
@@ -29,6 +31,8 @@ from termkeeper.infrastructure.unit_of_work import UnitOfWork
 MAX_SEARCH_LIMIT = 100
 MAX_LIST_LIMIT = 500
 MAX_SUGGESTION_LIMIT = 10
+MAX_PATTERN_LENGTH = 256
+MAX_PATTERN_SCAN = 10_000
 
 
 class SearchUseCases:
@@ -36,15 +40,25 @@ class SearchUseCases:
 
     def search_meanings(self, query: SearchQuery | str) -> SearchResult:
         query = SearchQuery(query) if isinstance(query, str) else query
-        tokens = search_tokens(query.text)
+        text = query.text.strip()
+        tokens = search_tokens(text)
         validate_page(
             query.offset,
             query.limit,
             resource="Meaning",
             max_limit=MAX_SEARCH_LIMIT,
         )
-        if not tokens:
+        if not text:
             message = "Search keyword must not be empty."
+            raise ValidationError(message)
+        if not query.fields:
+            message = "At least one search field is required."
+            raise ValidationError(message)
+        if len(set(query.fields)) != len(query.fields):
+            message = "Search fields must not contain duplicates."
+            raise ValidationError(message)
+        if len(text) > MAX_PATTERN_LENGTH:
+            message = f"Search text cannot exceed {MAX_PATTERN_LENGTH} characters."
             raise ValidationError(message)
         if not 0 <= query.suggestion_limit <= MAX_SUGGESTION_LIMIT:
             message = f"Suggestion limit must be between 0 and {MAX_SUGGESTION_LIMIT}."
@@ -52,9 +66,10 @@ class SearchUseCases:
         tag = optional_filter(query.tag, name="Tag")
         scope = optional_filter(query.scope, name="Scope")
         query = SearchQuery(
-            text=query.text.strip(),
-            match_all=query.match_all,
-            field=query.field,
+            text=text,
+            mode=query.mode,
+            fields=query.fields,
+            word_match=query.word_match,
             offset=query.offset,
             limit=query.limit,
             tag=tag,
@@ -67,21 +82,46 @@ class SearchUseCases:
             scope_id = (
                 required_id(get_scope_by_name(uow, query.scope).scope_id) if query.scope else None
             )
-            records = meaning_repository.search(
-                uow.session,
-                tokens,
-                query.field,
-                scope_id=scope_id,
-                favorite_only=query.favorite_only,
-            )
+            if query.mode in {SearchMode.GLOB, SearchMode.REGEX}:
+                records = meaning_repository.list_all(
+                    uow.session,
+                    scope_id=scope_id,
+                    favorite_only=query.favorite_only,
+                    limit=MAX_PATTERN_SCAN + 1,
+                )
+                if len(records) > MAX_PATTERN_SCAN:
+                    message = (
+                        f"{query.mode.value} search is limited to "
+                        f"{MAX_PATTERN_SCAN} candidate meanings."
+                    )
+                    raise ValidationError(message)
+            else:
+                values = (
+                    tokens if query.mode == SearchMode.SMART else (normalize_keyword(query.text),)
+                )
+                records = meaning_repository.search(
+                    uow.session,
+                    values,
+                    query.fields,
+                    query.mode,
+                    scope_id=scope_id,
+                    favorite_only=query.favorite_only,
+                )
             meanings = _filter_tag(
                 [to_meaning(uow.session, row) for row in records],
                 query.tag,
             )
-            ranked = rank_search(meanings, query)
+            try:
+                ranked = rank_search(meanings, query)
+            except regex.error as exc:
+                message = f"Invalid regular expression: {exc}."
+                raise ValidationError(message) from exc
+            except TimeoutError as exc:
+                message = "Regular expression evaluation timed out."
+                raise ValidationError(message) from exc
             if ranked:
                 return _search_page(ranked, query)
-            if query.suggestion_limit == 0 or query.offset > 0:
+            if query.mode != SearchMode.SMART or query.suggestion_limit == 0 or query.offset > 0:
                 return _search_page([], query)
             all_meanings = _filter_tag(
                 [
@@ -90,6 +130,7 @@ class SearchUseCases:
                         uow.session,
                         scope_id=scope_id,
                         favorite_only=query.favorite_only,
+                        limit=MAX_PATTERN_SCAN,
                     )
                 ],
                 query.tag,
@@ -169,7 +210,7 @@ def _occurrence_page(
         text=query.text.strip() if query.text else None,
         keyword=keyword,
         source=source,
-        since=_to_utc(query.since),
+        since=to_utc(query.since),
         offset=query.offset,
         limit=query.limit,
     )
@@ -202,11 +243,3 @@ def _filter_tag(meanings: list[Meaning], tag: str | None) -> list[Meaning]:
         for meaning in meanings
         if any(item.casefold() == normalized for item in meaning.tags)
     ]
-
-
-def _to_utc(value: datetime | None) -> datetime | None:
-    if value is None:
-        return None
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-    return value.astimezone(UTC)

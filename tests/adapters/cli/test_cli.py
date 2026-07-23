@@ -887,6 +887,65 @@ def test_search_human_output_exposes_next_page(capsys: pytest.CaptureFixture[str
     assert len(result["hits"]) == 1
 
 
+def test_search_cli_makes_field_word_and_pattern_semantics_explicit(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    service = TermKeeperService()
+    target = service.create_meaning(
+        "Enterprise Resource Planning",
+        "Customer operations",
+        terms=("ERP",),
+    )
+    service.create_meaning(
+        "Customer Relationship Management",
+        "Planning operations",
+        terms=("CRM",),
+    )
+
+    assert (
+        main(
+            [
+                "search",
+                "ERP customer",
+                "--field",
+                "term",
+                "--field",
+                "description",
+                "--word-match",
+                "all",
+                "--json",
+            ],
+        )
+        == 0
+    )
+    smart = json.loads(capsys.readouterr().out)
+    assert [hit["meaning"]["meaning_id"] for hit in smart["hits"]] == [target.meaning_id]
+
+    assert (
+        main(
+            [
+                "search",
+                "^Enterprise.*Planning$",
+                "--mode",
+                "regex",
+                "--field",
+                "name",
+                "--json",
+            ],
+        )
+        == 0
+    )
+    pattern = json.loads(capsys.readouterr().out)
+    assert [hit["meaning"]["meaning_id"] for hit in pattern["hits"]] == [target.meaning_id]
+
+    with pytest.raises(SystemExit) as exc_info:
+        main(["search", "--help"])
+    assert exc_info.value.code == 0
+    search_help = " ".join(capsys.readouterr().out.split())
+    assert "fields use OR" in search_help
+    assert "require all or any search words" in search_help
+
+
 def test_resource_search_commands_share_filters_and_structured_results(
     capsys: pytest.CaptureFixture[str],
 ) -> None:

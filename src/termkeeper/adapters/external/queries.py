@@ -6,10 +6,12 @@ from uuid import UUID
 
 from termkeeper.application import TermKeeperService
 from termkeeper.domain import (
+    LogicalOperator,
     OccurrenceQuery,
     OccurrenceStatus,
     ScopeSearchQuery,
     SearchField,
+    SearchMode,
     SearchQuery,
 )
 
@@ -19,7 +21,13 @@ class MeaningSearchInput(Protocol):
     def text(self) -> str: ...
 
     @property
-    def field(self) -> str: ...
+    def mode(self) -> str: ...
+
+    @property
+    def fields(self) -> tuple[str, ...]: ...
+
+    @property
+    def word_match(self) -> str: ...
 
     @property
     def tag(self) -> str | None: ...
@@ -35,6 +43,9 @@ class MeaningSearchInput(Protocol):
 
     @property
     def limit(self) -> int: ...
+
+    @property
+    def suggestion_limit(self) -> int: ...
 
 
 class OccurrenceSearchInput(Protocol):
@@ -94,7 +105,9 @@ def meaning_search_query(
 ) -> SearchQuery:
     return SearchQuery(
         text=query.text,
-        field=SearchField(query.field),
+        mode=SearchMode(query.mode),
+        fields=tuple(SearchField(field) for field in query.fields),
+        word_match=LogicalOperator(query.word_match),
         tag=query.tag,
         scope=(
             service.get_scope_by_public_id(query.scope_id).name
@@ -104,6 +117,7 @@ def meaning_search_query(
         favorite_only=query.favorite_only,
         offset=query.offset,
         limit=query.limit,
+        suggestion_limit=query.suggestion_limit,
     )
 
 

@@ -104,8 +104,12 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
     assert definitions["search_scopes"]["$defs"]["ScopeSearchFilters"]["required"] == ["text"]
     search_definitions = definitions["search_meanings"]["$defs"]
     assert search_definitions["SearchText"]["minLength"] == 1
+    assert search_definitions["SearchText"]["maxLength"] == 256
     assert search_definitions["SearchText"]["pattern"] == r".*\S.*"
     assert "next page" in search_definitions["Offset"]["description"]
+    search_filter = search_definitions["SearchFilters"]
+    assert "combined with OR" in search_filter["properties"]["fields"]["description"]
+    assert "all or any words" in search_filter["properties"]["word_match"]["description"]
     create_definitions = definitions["create_meaning"]["$defs"]
     assert create_definitions["NonEmptyText"]["minLength"] == 1
     assert create_definitions["NonEmptyText"]["pattern"] == r".*\S.*"
@@ -288,6 +292,42 @@ def test_mcp_tools_delegate_complete_workflow() -> None:
     renamed_scope = tools.edit_scope(spare_scope.public_id, "Temporary 2")
     assert renamed_scope.name == "Temporary 2"
     assert tools.delete_scope(spare_scope.public_id) == {"scope_id": spare_scope.public_id}
+
+
+def test_mcp_search_uses_shared_field_word_and_regex_contract() -> None:
+    service = TermKeeperService()
+    tools = TermKeeperMcpTools(service)
+    target = service.create_meaning(
+        "Enterprise Resource Planning",
+        "Customer operations",
+        terms=("ERP",),
+    )
+    service.create_meaning(
+        "Customer Relationship Management",
+        "Planning operations",
+        terms=("CRM",),
+    )
+
+    smart = tools.search_meanings(
+        SearchFilters(
+            text="ERP customer",
+            fields=("term", "description"),
+            word_match="all",
+        ),
+    )
+    assert [hit.meaning.public_id for hit in smart.hits] == [target.public_id]
+
+    pattern = tools.search_meanings(
+        SearchFilters(
+            text="^Enterprise.*Planning$",
+            mode="regex",
+            fields=("name",),
+        ),
+    )
+    assert [hit.meaning.public_id for hit in pattern.hits] == [target.public_id]
+
+    with pytest.raises(ValidationError, match="Invalid regular expression"):
+        tools.search_meanings(SearchFilters(text="[", mode="regex"))
 
 
 def test_mcp_occurrence_pages_reach_beyond_500() -> None:

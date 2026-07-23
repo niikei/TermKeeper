@@ -159,6 +159,9 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 - HTTP/MCPの一覧はDB連番や内部ユーザーIDを返さない
 - Meaning検索条件と結果は`SearchQuery`／`SearchHit`、Occurrence検索条件は
   `OccurrenceQuery`で表現し、CLI固有の型を持ち込まない
+- Meaning検索のフィールドOR、smart modeの語ALL/ANY、exact／prefix／contains／glob／regexは
+  `SearchUseCases`で一度だけ実装し、CLI・HTTP・MCPで同じ意味にする
+- 正規表現検索はDB方言へ委譲せず、文字数・候補件数・照合時間に上限を設ける
 - 検索応答は`SearchResult`で通常ヒットと類似候補を分離し、候補は0件時だけ計算する
 - CLI固有の処理をApplication層へ持ち込まない
 - APIやMCPを追加するときも既存のApplicationユースケースを再利用する

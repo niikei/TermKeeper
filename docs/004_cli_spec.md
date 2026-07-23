@@ -178,9 +178,16 @@ tk scope search TEXT
 
 `tk search`と`tk meaning search`は同じMeaning検索ユースケースを呼ぶ。
 
-完全一致、前方一致、部分一致の順で採点する。複数語は標準でAND、`--match-any`でOR。
-`--field term|name|description|all`、`--tag`、`--scope`、`--favorite`で絞り込む。
-通常ヒットがない場合だけ類似候補を返す。
+`--mode smart`は完全一致、前方一致、部分一致の順で採点する。複数語は標準でALL、
+`--word-match any`でANYとなる。`--field term|name|description`は繰り返し可能で、
+フィールド間は常にOR。語のALL/ANYとは独立している。
+
+`--mode exact|prefix|contains|glob|regex`は入力を分割せず、選択した各フィールドへ単一の
+文字列またはパターンとして適用する。globはシェル形式の`*`、`?`、`[]`、regexは正規表現を
+使用する。シェル展開を避けるため、パターンは引用符で囲む。類似候補はsmart modeの先頭ページが
+0件の場合だけ返す。
+
+`--tag`、`--scope`、`--favorite`で構造化絞り込みを行う。
 Term、正式名称、説明はNFKC＋casefoldで比較し、全角／半角や`Straße`／`STRASSE`の差を
 吸収する。レスポンスの一致文字列は正規化前の原文を返す。人間向け出力はID、正式名称、
 Scope、一致箇所、スコアに絞り、詳細は`tk show`で確認する。

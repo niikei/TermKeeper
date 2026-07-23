@@ -50,7 +50,7 @@ class SearchTools(ToolContext):
         self,
         query: SearchFilters,
     ) -> ExternalSearchResult:
-        """Search known meanings. Follow has_more with offset + returned hit count."""
+        """Search meanings with explicit mode, field-OR, word matching, and paging."""
         return self._mapper.search_result(
             self._service.search_meanings(
                 meaning_search_query(self._service, query),

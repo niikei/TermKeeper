@@ -11,6 +11,7 @@ from termkeeper.domain import (
     MeaningSort,
     OccurrenceStatus,
     SearchField,
+    SearchMode,
     SortOrder,
 )
 
@@ -87,27 +88,28 @@ def add_meaning_list_arguments(parser: argparse.ArgumentParser) -> None:
 
 def add_meaning_search_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("text", help="Text to find in terms, names, or descriptions")
-    mode = parser.add_mutually_exclusive_group()
-    mode.add_argument(
-        "--match-all",
-        action="store_true",
-        dest="match_all",
-        default=True,
-        help="Require every search word",
+    parser.add_argument(
+        "--mode",
+        choices=tuple(SearchMode),
+        default=SearchMode.SMART,
+        type=SearchMode,
+        help="Match mode: smart, exact, prefix, contains, glob, or regex",
     )
-    mode.add_argument(
-        "--match-any",
-        action="store_false",
-        dest="match_all",
-        help="Accept any search word",
+    parser.add_argument(
+        "--word-match",
+        choices=tuple(LogicalOperator),
+        default=LogicalOperator.ALL,
+        type=LogicalOperator,
+        help="In smart mode, require all or any search words",
     )
     parser.add_argument(
         "--field",
+        action="append",
         choices=tuple(SearchField),
-        default=SearchField.ALL,
-        dest="search_field",
+        dest="search_fields",
         type=SearchField,
-        help="Field to search",
+        metavar="{term,name,description}",
+        help="Search field; repeat for more fields (fields use OR)",
     )
     add_pagination_arguments(parser, default_limit=20)
     parser.add_argument("--tag", help="Filter by tag name")
@@ -124,7 +126,7 @@ def add_meaning_search_arguments(parser: argparse.ArgumentParser) -> None:
         type=int,
         default=3,
         dest="suggestion_limit",
-        help="Maximum spelling suggestions",
+        help="Maximum smart-mode suggestions when no result is found",
     )
     suggestions.add_argument(
         "--no-suggestions",

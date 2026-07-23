@@ -18,8 +18,9 @@ type SearchText = Annotated[
     str,
     Field(
         min_length=1,
+        max_length=256,
         pattern=r".*\S.*",
-        description="Non-blank case-insensitive text to find; SQL wildcards are literal",
+        description="Non-blank search text or pattern; surrounding whitespace is ignored",
     ),
 ]
 type NonEmptyText = Annotated[
@@ -83,12 +84,34 @@ class InboxSearchFilters:
 @dataclass(frozen=True)
 class SearchFilters:
     text: SearchText
-    field: Literal["all", "term", "name", "description"] = "all"
+    mode: Annotated[
+        Literal["smart", "exact", "prefix", "contains", "glob", "regex"],
+        Field(description="Matching algorithm; smart is ranked word search"),
+    ] = "smart"
+    fields: Annotated[
+        tuple[Literal["term", "name", "description"], ...],
+        Field(
+            min_length=1,
+            description="Fields are combined with OR; include each field at most once",
+        ),
+    ] = ("term", "name", "description")
+    word_match: Annotated[
+        Literal["all", "any"],
+        Field(description="In smart mode, require all or any words across selected fields"),
+    ] = "all"
     tag: str | None = None
     scope_id: UUID | None = None
     favorite_only: bool = False
     offset: Offset = 0
     limit: Limit = 20
+    suggestion_limit: Annotated[
+        int,
+        Field(
+            ge=0,
+            le=10,
+            description="Smart-mode suggestions returned when the first page has no hits",
+        ),
+    ] = 3
 
 
 @dataclass(frozen=True)

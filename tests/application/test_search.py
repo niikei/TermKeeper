@@ -1,7 +1,7 @@
 import pytest
 
 from termkeeper.application import TermKeeperService, ValidationError
-from termkeeper.domain import SearchField, SearchQuery
+from termkeeper.domain import LogicalOperator, SearchField, SearchMode, SearchQuery
 
 
 def test_search_ranks_matches_and_reports_reason() -> None:
@@ -35,15 +35,30 @@ def test_search_supports_multiple_words_fields_modes_and_limit() -> None:
         service.search_meanings("enterprise planning").hits[0].meaning.meaning_id == erp.meaning_id
     )
     assert service.search_meanings("enterprise missing").hits == ()
-    assert len(service.search_meanings(SearchQuery("planning document", match_all=False)).hits) == 2
     assert (
-        service.search_meanings(SearchQuery("business", field=SearchField.DESCRIPTION))
+        len(
+            service.search_meanings(
+                SearchQuery(
+                    "planning document",
+                    word_match=LogicalOperator.ANY,
+                ),
+            ).hits,
+        )
+        == 2
+    )
+    assert (
+        service.search_meanings(
+            SearchQuery("business", fields=(SearchField.DESCRIPTION,)),
+        )
         .hits[0]
         .meaning.meaning_id
         == erp.meaning_id
     )
     assert (
-        service.search_meanings(SearchQuery("enterprise", field=SearchField.DESCRIPTION)).hits == ()
+        service.search_meanings(
+            SearchQuery("enterprise", fields=(SearchField.DESCRIPTION,)),
+        ).hits
+        == ()
     )
     assert len(service.search_meanings(SearchQuery("enterprise", limit=1)).hits) == 1
 
@@ -114,7 +129,9 @@ def test_description_search_has_no_suggestion_without_descriptions() -> None:
     service = TermKeeperService()
     service.create_meaning("Enterprise Resource Planning")
 
-    result = service.search_meanings(SearchQuery("planning", field=SearchField.DESCRIPTION))
+    result = service.search_meanings(
+        SearchQuery("planning", fields=(SearchField.DESCRIPTION,)),
+    )
 
     assert result.hits == ()
     assert result.suggestions == ()
@@ -128,9 +145,11 @@ def test_search_normalizes_unicode_names_and_descriptions() -> None:
         "ＳＡＰ　Ｐｌａｎｎｉｎｇ",
     )
 
-    name_result = service.search_meanings(SearchQuery("STRASSE", field=SearchField.NAME))
+    name_result = service.search_meanings(
+        SearchQuery("STRASSE", fields=(SearchField.NAME,)),
+    )
     description_result = service.search_meanings(
-        SearchQuery("sap planning", field=SearchField.DESCRIPTION),
+        SearchQuery("sap planning", fields=(SearchField.DESCRIPTION,)),
     )
 
     assert name_result.hits[0].meaning.meaning_id == german.meaning_id
@@ -144,7 +163,9 @@ def test_search_normalizes_unicode_names_and_descriptions() -> None:
         "Ｃｕｓｔｏｍｅｒ　Ｄａｔａ",
     )
     assert (
-        service.search_meanings(SearchQuery("customer data", field=SearchField.DESCRIPTION))
+        service.search_meanings(
+            SearchQuery("customer data", fields=(SearchField.DESCRIPTION,)),
+        )
         .hits[0]
         .meaning.meaning_id
         == full_width.meaning_id
@@ -172,3 +193,74 @@ def test_search_and_list_filter_ambiguous_terms_by_scope() -> None:
     assert [item.meaning_id for item in service.meanings(scope="SAP")] == [
         sap.meaning_id,
     ]
+
+
+def test_search_modes_and_repeated_fields_have_explicit_semantics() -> None:
+    service = TermKeeperService()
+    meaning = service.create_meaning(
+        "Enterprise Resource Planning",
+        "Integrated business suite",
+        terms=("ERP",),
+    )
+
+    cross_field = service.search_meanings(
+        SearchQuery(
+            "ERP suite",
+            fields=(SearchField.TERM, SearchField.DESCRIPTION),
+        ),
+    )
+    exact = service.search_meanings(
+        SearchQuery(
+            "ERP",
+            mode=SearchMode.EXACT,
+            fields=(SearchField.TERM,),
+        ),
+    )
+    prefix = service.search_meanings(
+        SearchQuery(
+            "Enterprise Res",
+            mode=SearchMode.PREFIX,
+            fields=(SearchField.NAME,),
+        ),
+    )
+    glob = service.search_meanings(
+        SearchQuery(
+            "Enterprise * Planning",
+            mode=SearchMode.GLOB,
+            fields=(SearchField.NAME,),
+        ),
+    )
+    regex_result = service.search_meanings(
+        SearchQuery(
+            r"^Enterprise\s+Resource",
+            mode=SearchMode.REGEX,
+            fields=(SearchField.NAME,),
+        ),
+    )
+
+    assert cross_field.hits[0].meaning.meaning_id == meaning.meaning_id
+    assert exact.hits[0].matched_field == SearchField.TERM
+    assert prefix.hits[0].meaning.meaning_id == meaning.meaning_id
+    assert glob.hits[0].meaning.meaning_id == meaning.meaning_id
+    assert regex_result.hits[0].meaning.meaning_id == meaning.meaning_id
+    assert regex_result.suggestions == ()
+
+
+def test_search_rejects_ambiguous_fields_and_invalid_patterns() -> None:
+    service = TermKeeperService()
+
+    with pytest.raises(ValidationError, match="At least one search field"):
+        service.search_meanings(SearchQuery("ERP", fields=()))
+    with pytest.raises(ValidationError, match="must not contain duplicates"):
+        service.search_meanings(
+            SearchQuery(
+                "ERP",
+                fields=(SearchField.TERM, SearchField.TERM),
+            ),
+        )
+    with pytest.raises(ValidationError, match="Invalid regular expression"):
+        service.search_meanings(
+            SearchQuery("[", mode=SearchMode.REGEX),
+        )
+    with pytest.raises(ValidationError, match="cannot exceed 256"):
+        service.search_meanings(SearchQuery("x" * 257))
