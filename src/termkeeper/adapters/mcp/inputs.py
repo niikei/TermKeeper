@@ -18,6 +18,10 @@ type SearchText = Annotated[
     str,
     Field(min_length=1, description="Case-insensitive text to find; SQL wildcards are literal"),
 ]
+type NonEmptyText = Annotated[
+    str,
+    Field(min_length=1, description="Non-empty text; surrounding whitespace is normalized"),
+]
 
 
 @dataclass(frozen=True)
@@ -73,15 +77,15 @@ class MeaningFilters:
 
 @dataclass(frozen=True)
 class MeaningCreateInput:
-    full_name: str
+    full_name: NonEmptyText
     scope_id: UUID = GENERAL_SCOPE_PUBLIC_ID
     description: str | None = None
-    aliases: tuple[str, ...] = ()
+    aliases: tuple[NonEmptyText, ...] = ()
 
 
 @dataclass(frozen=True)
 class MeaningEditInput:
-    full_name: str
+    full_name: NonEmptyText
     scope_id: UUID = GENERAL_SCOPE_PUBLIC_ID
     description: str | None = None
 

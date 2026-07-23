@@ -7,6 +7,7 @@ from termkeeper.adapters.mcp.inputs import (
     Limit,
     MeaningCreateInput,
     MeaningEditInput,
+    NonEmptyText,
     Offset,
 )
 from termkeeper.adapters.mcp.tools.context import ToolContext
@@ -40,13 +41,13 @@ class MeaningTools(ToolContext):
             ),
         )
 
-    def add_alias(self, meaning_id: UUID, alias: str) -> ExternalMeaning:
+    def add_alias(self, meaning_id: UUID, alias: NonEmptyText) -> ExternalMeaning:
         """Add a searchable alias to an active meaning."""
         return self._mapper.meaning(
             self._service.add_alias(self._local_meaning_id(meaning_id), alias),
         )
 
-    def remove_alias(self, meaning_id: UUID, alias: str) -> ExternalMeaning:
+    def remove_alias(self, meaning_id: UUID, alias: NonEmptyText) -> ExternalMeaning:
         """Remove one alias from an active meaning."""
         return self._mapper.meaning(
             self._service.remove_alias(self._local_meaning_id(meaning_id), alias),
