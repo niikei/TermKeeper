@@ -7,14 +7,62 @@ from sqlmodel import Session
 
 from termkeeper.application import TermKeeperService, ValidationError
 from termkeeper.infrastructure.repositories import tag_repository
-from termkeeper.presentation.csv_io import export_meanings, import_meanings, split_terms
+from termkeeper.presentation.csv_io import (
+    decode_values,
+    encode_values,
+    export_meanings,
+    import_meanings,
+)
+
+CSV_FIELDS: list[str] = [
+    "public_id",
+    "full_name",
+    "scope",
+    "description",
+    "terms",
+    "tags",
+]
 
 
-def test_split_terms_trims_and_ignores_empty_values() -> None:
-    assert split_terms(" ERP ; ; Enterprise Resource Planning ") == [
+def _row(
+    full_name: str = "",
+    *,
+    public_id: str = "",
+    scope: str = "",
+    description: str = "",
+    terms: tuple[str, ...] = (),
+    tags: tuple[str, ...] = (),
+) -> dict[str, str]:
+    return {
+        "public_id": public_id,
+        "full_name": full_name,
+        "scope": scope,
+        "description": description,
+        "terms": encode_values(terms),
+        "tags": encode_values(tags),
+    }
+
+
+def _write_csv(path: Path, rows: list[dict[str, str]]) -> None:
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=CSV_FIELDS)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def test_csv_list_encoding_is_unambiguous() -> None:
+    values = (" ERP ", "A;B", 'quoted "value"', "日本語,分類")
+
+    assert decode_values(encode_values(values)) == (
         "ERP",
-        "Enterprise Resource Planning",
-    ]
+        "A;B",
+        'quoted "value"',
+        "日本語,分類",
+    )
+    assert decode_values("") == ()
+    for invalid in ("ERP;MRP", '{"value":"ERP"}', '["ERP", ""]', '["ERP", 1]'):
+        with pytest.raises(ValueError):
+            decode_values(invalid)
 
 
 def test_csv_round_trip_and_update(tmp_path: Path) -> None:
@@ -25,14 +73,25 @@ def test_csv_round_trip_and_update(tmp_path: Path) -> None:
         "Bill of Materials",
         "parts",
     )
-    service.add_tag(meaning.meaning_id, "Manufacturing")
+    service.add_alias(meaning.meaning_id, "SAP;Legacy")
+    service.add_alias(meaning.meaning_id, 'quoted "alias", value')
+    service.add_tag(meaning.meaning_id, "Manufacturing;Core")
+    service.add_tag(meaning.meaning_id, "日本語,分類")
     path = tmp_path / "terms.csv"
 
     assert export_meanings(str(path)) == 1
     rows = list(csv.DictReader(path.open(encoding="utf-8-sig")))
     assert rows[0]["public_id"] == str(meaning.public_id)
-    assert set(rows[0]["terms"].split(";")) == {"BOM", "Bill of Materials"}
-    assert rows[0]["tags"] == "Manufacturing"
+    assert set(decode_values(rows[0]["terms"])) == {
+        "BOM",
+        "Bill of Materials",
+        "SAP;Legacy",
+        'quoted "alias", value',
+    }
+    assert set(decode_values(rows[0]["tags"])) == {
+        "Manufacturing;Core",
+        "日本語,分類",
+    }
 
     rows[0]["full_name"] = "Bill of Material"
     rows[0]["description"] = "updated"
@@ -46,15 +105,24 @@ def test_csv_round_trip_and_update(tmp_path: Path) -> None:
     assert (result.created, result.updated, result.skipped) == (0, 1, 1)
     assert result.issues[0].row_number == 3
     assert service.get_meaning(meaning.meaning_id).description == "updated"
-    assert service.get_meaning(meaning.meaning_id).tags == ("Manufacturing",)
+    assert set(service.get_meaning(meaning.meaning_id).tags) == {
+        "Manufacturing;Core",
+        "日本語,分類",
+    }
 
 
 def test_import_creates_meaning_and_aliases(tmp_path: Path) -> None:
     path = tmp_path / "new.csv"
-    path.write_text(
-        "public_id,full_name,description,terms,tags\n"
-        ",Master Data Management,governance,MDM;master data,Data\n",
-        encoding="utf-8",
+    _write_csv(
+        path,
+        [
+            _row(
+                "Master Data Management",
+                description="governance",
+                terms=("MDM", "master data"),
+                tags=("Data",),
+            ),
+        ],
     )
 
     result = import_meanings(str(path), TermKeeperService())
@@ -65,13 +133,44 @@ def test_import_creates_meaning_and_aliases(tmp_path: Path) -> None:
     assert imported.tags == ("Data",)
 
 
+def test_import_reports_invalid_json_list_cells(tmp_path: Path) -> None:
+    path = tmp_path / "invalid-lists.csv"
+    invalid = _row("Invalid Lists")
+    invalid["terms"] = "ERP;MRP"
+    invalid["tags"] = '["", 1]'
+    _write_csv(
+        path,
+        [
+            _row("Valid Meaning", terms=("VALID",)),
+            invalid,
+        ],
+    )
+    service = TermKeeperService()
+
+    result = import_meanings(str(path), service)
+
+    assert (result.created, result.skipped) == (1, 1)
+    assert result.issues[0].row_number == 3
+    assert "terms must be a valid JSON array" in result.issues[0].message
+    assert "tags must contain only non-empty strings" in result.issues[0].message
+    with pytest.raises(ValidationError, match="row 3"):
+        import_meanings(str(path), TermKeeperService(), strict=True)
+
+
 def test_import_preserves_unknown_public_id(tmp_path: Path) -> None:
     public_id = uuid4()
     path = tmp_path / "external.csv"
-    path.write_text(
-        "public_id,full_name,description,terms,tags\n"
-        f"{public_id},Customer Relationship Management,customers,CRM,Sales\n",
-        encoding="utf-8",
+    _write_csv(
+        path,
+        [
+            _row(
+                "Customer Relationship Management",
+                public_id=str(public_id),
+                description="customers",
+                terms=("CRM",),
+                tags=("Sales",),
+            ),
+        ],
     )
     service = TermKeeperService()
 
@@ -86,12 +185,13 @@ def test_import_preserves_unknown_public_id(tmp_path: Path) -> None:
 
 def test_import_dry_run_reports_issues_without_writing(tmp_path: Path) -> None:
     path = tmp_path / "dry-run.csv"
-    path.write_text(
-        "public_id,full_name,description,terms,tags\n"
-        ",Valid Meaning,,VALID,Test\n"
-        "not-a-uuid,Invalid Meaning,,INVALID,\n"
-        ",,,,\n",
-        encoding="utf-8",
+    _write_csv(
+        path,
+        [
+            _row("Valid Meaning", terms=("VALID",), tags=("Test",)),
+            _row("Invalid Meaning", public_id="not-a-uuid", terms=("INVALID",)),
+            _row(),
+        ],
     )
     service = TermKeeperService()
 
@@ -105,10 +205,7 @@ def test_import_dry_run_reports_issues_without_writing(tmp_path: Path) -> None:
 
 def test_import_strict_rejects_all_rows(tmp_path: Path) -> None:
     path = tmp_path / "strict.csv"
-    path.write_text(
-        "public_id,full_name,description,terms,tags\n,Valid Meaning,,VALID,\n,,,,\n",
-        encoding="utf-8",
-    )
+    _write_csv(path, [_row("Valid Meaning", terms=("VALID",)), _row()])
     service = TermKeeperService()
 
     with pytest.raises(ValidationError, match="row 3"):
@@ -120,11 +217,12 @@ def test_import_strict_rejects_all_rows(tmp_path: Path) -> None:
 def test_import_skips_duplicate_public_id_in_file(tmp_path: Path) -> None:
     public_id = uuid4()
     path = tmp_path / "duplicate.csv"
-    path.write_text(
-        "public_id,full_name,description,terms,tags\n"
-        f"{public_id},First Meaning,,FIRST,\n"
-        f"{public_id},Second Meaning,,SECOND,\n",
-        encoding="utf-8",
+    _write_csv(
+        path,
+        [
+            _row("First Meaning", public_id=str(public_id), terms=("FIRST",)),
+            _row("Second Meaning", public_id=str(public_id), terms=("SECOND",)),
+        ],
     )
     service = TermKeeperService()
 
@@ -137,11 +235,12 @@ def test_import_skips_duplicate_public_id_in_file(tmp_path: Path) -> None:
 
 def test_import_skips_duplicate_name_in_same_scope(tmp_path: Path) -> None:
     path = tmp_path / "duplicate-scope.csv"
-    path.write_text(
-        "public_id,full_name,scope,description,terms,tags\n"
-        ",Order,SAP,,ORDER,\n"
-        ", order , sap ,,ORDER2,\n",
-        encoding="utf-8",
+    _write_csv(
+        path,
+        [
+            _row("Order", scope="SAP", terms=("ORDER",)),
+            _row(" order ", scope=" sap ", terms=("ORDER2",)),
+        ],
     )
     service = TermKeeperService()
 
@@ -156,10 +255,15 @@ def test_import_reports_deleted_public_id(tmp_path: Path) -> None:
     meaning = service.create_meaning("Archived")
     service.delete_meaning(meaning.meaning_id)
     path = tmp_path / "deleted.csv"
-    path.write_text(
-        "public_id,full_name,description,terms,tags\n"
-        f"{meaning.public_id},Archived Updated,,ARCHIVED,\n",
-        encoding="utf-8",
+    _write_csv(
+        path,
+        [
+            _row(
+                "Archived Updated",
+                public_id=str(meaning.public_id),
+                terms=("ARCHIVED",),
+            ),
+        ],
     )
 
     result = import_meanings(str(path), service)
@@ -173,10 +277,15 @@ def test_import_strict_rejects_deleted_public_id(tmp_path: Path) -> None:
     meaning = service.create_meaning("Archived")
     service.delete_meaning(meaning.meaning_id)
     path = tmp_path / "deleted-strict.csv"
-    path.write_text(
-        "public_id,full_name,description,terms,tags\n"
-        f"{meaning.public_id},Archived Updated,,ARCHIVED,\n",
-        encoding="utf-8",
+    _write_csv(
+        path,
+        [
+            _row(
+                "Archived Updated",
+                public_id=str(meaning.public_id),
+                terms=("ARCHIVED",),
+            ),
+        ],
     )
 
     with pytest.raises(ValidationError, match="restore it before import"):
@@ -190,11 +299,12 @@ def test_import_rolls_back_all_rows_on_runtime_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     path = tmp_path / "rollback.csv"
-    path.write_text(
-        "public_id,full_name,description,terms,tags\n"
-        ",First Meaning,,FIRST,Safe\n"
-        ",Second Meaning,,SECOND,Fail\n",
-        encoding="utf-8",
+    _write_csv(
+        path,
+        [
+            _row("First Meaning", terms=("FIRST",), tags=("Safe",)),
+            _row("Second Meaning", terms=("SECOND",), tags=("Fail",)),
+        ],
     )
     service = TermKeeperService()
     original_add = tag_repository.add

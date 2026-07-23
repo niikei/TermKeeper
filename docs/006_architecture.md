@@ -36,6 +36,8 @@ CLIの`main.py`はパース、Service初期化、エラー処理、JSON出力だ
 CSVファイルの読み取りはPresentationで`ImportRow`へ変換し、検証、Dry Run、既存UUIDの判定、
 一括更新は`use_cases/importing.py`で行う。Import中のRepository操作は同じUnit of Workを
 共有し、実行時エラーでは全件をロールバックする。
+複数値セルはPresentationでJSON文字列配列へencode/decodeし、構文エラーを行番号付きissueへ
+変換する。区切り文字による独自エスケープ規則は持たない。
 
 Meaning Repositoryの通常取得は`deleted_at IS NULL`を共通条件とする。Trash操作だけが
 削除済みMeaningを明示的に取得する。Meaning統合は参照移動後に統合元を完全削除するが、
@@ -79,6 +81,8 @@ OccurrenceとInboxはApplication層のPageを共有し、Repositoryで`offset`�
 HTTPアダプターはFastAPIで`/api/v1`以下へ公開し、PydanticはHTTPリクエストの構文検証だけを
 担当する。業務検証はApplicationへ委譲し、`ValidationError`を422、`NotFoundError`を404の
 一貫したJSONエラーへ変換する。認証・認可を導入するまではlocalhost専用とする。
+FastAPI/Pydanticの入力検証エラーも`ErrorResponse`へ変換し、`details`に入力位置、エラーコード、
+メッセージを格納する。Application由来のエラーでは`details`を省略する。
 RouteとMCP Toolは機能単位のモジュールへ分割し、アプリケーション／サーバーの構築モジュールは
 登録とプロセス起動だけを担当する。
 

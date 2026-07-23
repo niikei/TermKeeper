@@ -93,6 +93,37 @@ def test_description_search_has_no_suggestion_without_descriptions() -> None:
     assert result.suggestions == ()
 
 
+def test_search_normalizes_unicode_names_and_descriptions() -> None:
+    service = TermKeeperService()
+    german = service.create_meaning("Straße")
+    full_width = service.create_meaning(
+        "Finance",
+        "ＳＡＰ　Ｐｌａｎｎｉｎｇ",
+    )
+
+    name_result = service.search(SearchQuery("STRASSE", field=SearchField.NAME))
+    description_result = service.search(
+        SearchQuery("sap planning", field=SearchField.DESCRIPTION),
+    )
+
+    assert name_result.hits[0].meaning.meaning_id == german.meaning_id
+    assert name_result.hits[0].matched_text == "Straße"
+    assert description_result.hits[0].meaning.meaning_id == full_width.meaning_id
+    assert description_result.hits[0].matched_text == "ＳＡＰ　Ｐｌａｎｎｉｎｇ"
+
+    service.edit(
+        full_width.meaning_id,
+        full_width.full_name,
+        "Ｃｕｓｔｏｍｅｒ　Ｄａｔａ",
+    )
+    assert (
+        service.search(SearchQuery("customer data", field=SearchField.DESCRIPTION))
+        .hits[0]
+        .meaning.meaning_id
+        == full_width.meaning_id
+    )
+
+
 def test_search_and_list_filter_ambiguous_terms_by_scope() -> None:
     service = TermKeeperService()
     sap = service.create_meaning(

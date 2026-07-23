@@ -3,11 +3,11 @@
 from typing import Literal
 
 import uvicorn
-from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, status
 from pydantic import BaseModel
 
 from termkeeper.adapters.external import ExternalMapper
+from termkeeper.adapters.http.errors import ErrorResponse, register_error_handlers
 from termkeeper.adapters.http.routes.capture import _register_capture_routes
 from termkeeper.adapters.http.routes.meaning import _register_meaning_routes
 from termkeeper.adapters.http.routes.occurrence import _register_occurrence_routes
@@ -15,16 +15,11 @@ from termkeeper.adapters.http.routes.query import _register_query_routes
 from termkeeper.adapters.http.routes.reference import _register_reference_routes
 from termkeeper.adapters.http.routes.relation import _register_relation_routes
 from termkeeper.adapters.http.routes.tag import _register_tag_routes
-from termkeeper.application import NotFoundError, TermKeeperService, ValidationError
+from termkeeper.application import TermKeeperService
 
 
 class HealthResponse(BaseModel):
     status: Literal["ok"]
-
-
-class ErrorResponse(BaseModel):
-    error: str
-    message: str
 
 
 def create_app(service: TermKeeperService | None = None) -> FastAPI:
@@ -42,7 +37,7 @@ def create_app(service: TermKeeperService | None = None) -> FastAPI:
             status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
         },
     )
-    _register_error_handlers(app)
+    register_error_handlers(app)
     _register_system_routes(app)
     mapper = ExternalMapper(service)
     _register_capture_routes(app, service, mapper)
@@ -55,30 +50,10 @@ def create_app(service: TermKeeperService | None = None) -> FastAPI:
     return app
 
 
-def _register_error_handlers(app: FastAPI) -> None:
-    """Map application exceptions to stable HTTP error responses."""
-
-    @app.exception_handler(ValidationError)
-    def validation_error(_request: Request, exc: ValidationError) -> JSONResponse:
-        return _error_response(exc, status.HTTP_422_UNPROCESSABLE_CONTENT)
-
-    @app.exception_handler(NotFoundError)
-    def not_found_error(_request: Request, exc: NotFoundError) -> JSONResponse:
-        return _error_response(exc, status.HTTP_404_NOT_FOUND)
-
-
 def _register_system_routes(app: FastAPI) -> None:
     @app.get("/health")
     def health() -> HealthResponse:
         return HealthResponse(status="ok")
-
-
-def _error_response(exc: Exception, status_code: int) -> JSONResponse:
-    error = ErrorResponse(error=type(exc).__name__, message=str(exc))
-    return JSONResponse(
-        status_code=status_code,
-        content=error.model_dump(),
-    )
 
 
 def main() -> None:

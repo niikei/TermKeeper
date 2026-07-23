@@ -138,6 +138,8 @@ tk import terms.csv --strict
 
 CSVは`scope`列を含む。同一scope内の重複正式名称、不正UUID、空の必須項目をissueとして扱う。
 Importは1つのUnit of Workで実行し、実行時エラーでは全件をロールバックする。
+`terms`と`tags`はJSON文字列配列としてセルに格納し、セミコロン、カンマ、引用符、Unicodeを
+含む値を可逆に扱う。空セルは空配列として扱い、不正なJSON配列は行単位のissueにする。
 
 ## 12. 利用者情報を記録する
 

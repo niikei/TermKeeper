@@ -42,6 +42,7 @@ class Meaning(SQLModel, table=True):
     scope: str = "General"
     scope_norm: str = "general"
     description: str | None = None
+    description_norm: str = ""
     is_favorite: bool = Field(default=False, index=True)
     created_at: datetime = Field(default_factory=utc_now, sa_type=UTCDateTime)
     updated_at: datetime = Field(default_factory=utc_now, sa_type=UTCDateTime)

@@ -204,6 +204,11 @@ def _assert_openapi_contract(client: TestClient) -> None:
         "error",
         "message",
     ]
+    assert schema["paths"]["/api/v1/search"]["get"]["responses"]["422"]["content"][
+        "application/json"
+    ]["schema"] == {
+        "$ref": "#/components/schemas/ErrorResponse",
+    }
     meaning_parameter = schema["paths"]["/api/v1/meanings/{meaning_id}"]["get"]["parameters"][0]
     assert meaning_parameter["schema"]["format"] == "uuid"
 
@@ -213,11 +218,15 @@ def test_http_api_maps_application_and_request_errors() -> None:
 
     missing = client.get("/api/v1/meanings/00000000-0000-0000-0000-000000000999")
     assert missing.status_code == 404
+    assert set(missing.json()) == {"error", "message"}
     assert missing.json()["error"] == "NotFoundError"
 
     invalid = client.post("/api/v1/occurrences", json={"keyword": " "})
     assert invalid.status_code == 422
-    assert invalid.json()["error"] == "ValidationError"
+    assert invalid.json() == {
+        "error": "ValidationError",
+        "message": "Keyword must not be empty.",
+    }
 
     captured = client.post("/api/v1/occurrences", json={"keyword": "ERP"}).json()
     resolved = client.post(
@@ -233,6 +242,32 @@ def test_http_api_maps_application_and_request_errors() -> None:
     )
     assert invalid_update.status_code == 422
     assert invalid_update.json()["error"] == "ValidationError"
+
+    request_errors = (
+        (
+            client.get("/api/v1/search", params={"text": "ERP", "limit": 0}),
+            ["query", "limit"],
+            "greater_than_equal",
+        ),
+        (
+            client.get("/api/v1/meanings/not-a-uuid"),
+            ["path", "meaning_id"],
+            "uuid_parsing",
+        ),
+        (
+            client.post("/api/v1/occurrences", json={}),
+            ["body", "keyword"],
+            "missing",
+        ),
+    )
+    for response, location, code in request_errors:
+        assert response.status_code == 422
+        body = response.json()
+        assert body["error"] == "RequestValidationError"
+        assert body["message"] == "Request validation failed."
+        assert body["details"][0]["location"] == location
+        assert body["details"][0]["code"] == code
+        assert body["details"][0]["message"]
 
 
 def test_http_occurrence_pages_reach_beyond_500() -> None:
@@ -257,15 +292,3 @@ def test_http_occurrence_pages_reach_beyond_500() -> None:
     assert len(tail["items"]) == 5
     assert tail["offset"] == 500
     assert tail["has_more"] is False
-
-    request_error = client.get("/api/v1/search", params={"text": "ERP", "limit": 0})
-    assert request_error.status_code == 422
-
-    invalid_identifier = client.get("/api/v1/meanings/not-a-uuid")
-    assert invalid_identifier.status_code == 422
-
-    invalid_occurrence_identifier = client.post(
-        "/api/v1/occurrences/not-a-uuid/resolve",
-        json={"full_name": "Enterprise Resource Planning", "scope": "General"},
-    )
-    assert invalid_occurrence_identifier.status_code == 422

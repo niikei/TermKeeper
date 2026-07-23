@@ -92,6 +92,8 @@ source、status、meaning_id、各日時・監査列を含む。
 完全一致、前方一致、部分一致の順で採点する。複数語は標準でAND、`--any`でOR。
 `--in term|name|description|all`、`--tag`、`--scope`、`--favorite`で絞り込む。
 通常ヒットがない場合だけ類似候補を返す。
+Term、正式名称、説明はNFKC＋casefoldで比較し、全角／半角や`Straße`／`STRASSE`の差を
+吸収する。レスポンスの一致文字列は正規化前の原文を返す。
 
 ## Meaning lifecycle
 
@@ -109,7 +111,9 @@ public_id,full_name,scope,description,terms,tags,created_at,updated_at
 ```
 
 `scope`省略時は`General`。空の正式名称・scope、不正UUID、ファイル内重複UUID、同一scope内の
-重複正式名称をissueとする。`--strict`はissueが1件でもあれば更新しない。
+重複正式名称をissueとする。`terms`と`tags`はJSON文字列配列（例:
+`["ERP","SAP;Legacy"]`）として格納する。空セルは空配列として許容し、非空セルの旧区切り文字
+形式、非文字列要素、空文字要素はissueとする。`--strict`はissueが1件でもあれば更新しない。
 
 ## 外部識別子
 

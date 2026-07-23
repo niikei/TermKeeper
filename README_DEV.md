@@ -171,6 +171,7 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 - Presentation: CLI終了コード、通常表示、JSON、CSV
 
 CSVの構文解析はPresentation、行検証・Dry Run・一括更新はApplicationの責務とする。
+`terms`／`tags`セルはJSON文字列配列とし、Presentationで構文エラーを行issueへ変換する。
 
 単に100%へ近づけるためのテストではなく、利用者に影響する分岐、外部連携境界、データ整合性を
 優先します。

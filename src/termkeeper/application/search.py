@@ -32,7 +32,11 @@ def rank_search(meanings: list[Meaning], query: SearchQuery) -> list[SearchHit]:
         is not None
     ]
     hits.sort(
-        key=lambda hit: (-hit.score, hit.meaning.full_name.casefold(), hit.meaning.meaning_id),
+        key=lambda hit: (
+            -hit.score,
+            normalize_keyword(hit.meaning.full_name),
+            hit.meaning.meaning_id,
+        ),
     )
     return hits[: query.limit]
 
@@ -51,7 +55,7 @@ def rank_suggestions(meanings: list[Meaning], query: SearchQuery) -> list[Search
     suggestions.sort(
         key=lambda item: (
             -item.similarity,
-            item.meaning.full_name.casefold(),
+            normalize_keyword(item.meaning.full_name),
             item.meaning.meaning_id,
         ),
     )

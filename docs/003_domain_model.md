@@ -42,6 +42,7 @@ erDiagram
         text scope
         text scope_norm
         text description "nullable"
+        text description_norm
         boolean is_favorite
         datetime created_at "UTC"
         datetime updated_at "UTC"
@@ -158,7 +159,8 @@ ERP [Radio] → Effective Radiated Power
 - 参照中Meaningの物理削除は`RESTRICT`し、分類履歴を暗黙に失わない。
 - MeaningRelationは小さいMeaning IDを先にした対称ペア。
 - MeaningReferenceの`(meaning_id, url)`は一意。
-- `keyword_norm`、`scope_norm`、`full_name_norm`はNFKCとcasefold相当の正規化検索値。
+- `keyword_norm`、`scope_norm`、`full_name_norm`、`description_norm`はNFKCとcasefold相当の
+  正規化検索値。
 - 全日時はUTCで保存し、アプリケーション境界ではUTC情報付きのdatetimeとして扱う。
 - 外部境界ではMeaning、Occurrence、MeaningReferenceのUUID `public_id`を使用する。
 

@@ -1,3 +1,4 @@
+import csv
 import json
 from pathlib import Path
 
@@ -5,6 +6,21 @@ import pytest
 
 from termkeeper import __version__
 from termkeeper.presentation.cli.main import main
+from termkeeper.presentation.csv_io import encode_values
+
+
+def _write_import_csv(path: Path, rows: list[dict[str, str]]) -> None:
+    fieldnames: list[str] = [
+        "public_id",
+        "full_name",
+        "description",
+        "terms",
+        "tags",
+    ]
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 def test_version(capsys: pytest.CaptureFixture[str]) -> None:
@@ -420,9 +436,17 @@ def test_human_csv_export_and_import(
 ) -> None:
     export_path = tmp_path / "terms.csv"
     import_path = tmp_path / "external.csv"
-    import_path.write_text(
-        "public_id,full_name,description,terms\n,Master Data Management,governance,MDM\n",
-        encoding="utf-8",
+    _write_import_csv(
+        import_path,
+        [
+            {
+                "public_id": "",
+                "full_name": "Master Data Management",
+                "description": "governance",
+                "terms": encode_values(("MDM",)),
+                "tags": encode_values(()),
+            },
+        ],
     )
 
     assert main(["import", str(import_path), "--dry-run"]) == 0
@@ -439,11 +463,24 @@ def test_import_json_issues_and_strict_error(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     path = tmp_path / "invalid.csv"
-    path.write_text(
-        "public_id,full_name,description,terms,tags\n"
-        ",Valid Meaning,,VALID,\n"
-        "invalid,Invalid Meaning,,INVALID,\n",
-        encoding="utf-8",
+    _write_import_csv(
+        path,
+        [
+            {
+                "public_id": "",
+                "full_name": "Valid Meaning",
+                "description": "",
+                "terms": encode_values(("VALID",)),
+                "tags": encode_values(()),
+            },
+            {
+                "public_id": "invalid",
+                "full_name": "Invalid Meaning",
+                "description": "",
+                "terms": encode_values(("INVALID",)),
+                "tags": encode_values(()),
+            },
+        ],
     )
 
     assert main(["--json", "import", str(path), "--dry-run"]) == 0

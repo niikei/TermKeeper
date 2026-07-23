@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import func, or_
+from sqlalchemy import or_
 from sqlalchemy.sql.elements import ColumnElement
 from sqlmodel import Session, col, select
 
@@ -32,6 +32,7 @@ def create(
         scope=values.scope.strip(),
         scope_norm=normalize_keyword(values.scope),
         description=values.description or None,
+        description_norm=normalize_keyword(values.description or ""),
         created_by_id=values.user_id,
         updated_by_id=values.user_id,
     )
@@ -179,10 +180,9 @@ def _search_condition(token: str, field: SearchField) -> ColumnElement[bool]:
     if field in {SearchField.ALL, SearchField.TERM}:
         conditions.append(col(Term.keyword_norm).contains(token, autoescape=True))
     if field in {SearchField.ALL, SearchField.NAME}:
-        conditions.append(func.lower(Meaning.full_name).contains(token, autoescape=True))
+        conditions.append(col(Meaning.full_name_norm).contains(token, autoescape=True))
     if field in {SearchField.ALL, SearchField.DESCRIPTION}:
-        description = func.lower(func.coalesce(Meaning.description, ""))
-        conditions.append(description.contains(token, autoescape=True))
+        conditions.append(col(Meaning.description_norm).contains(token, autoescape=True))
     return or_(*conditions)
 
 
@@ -196,6 +196,7 @@ def update(
     record.scope = values.scope.strip()
     record.scope_norm = normalize_keyword(values.scope)
     record.description = values.description or None
+    record.description_norm = normalize_keyword(values.description or "")
     record.updated_at = utc_now()
     record.updated_by_id = values.user_id
     session.add(record)
