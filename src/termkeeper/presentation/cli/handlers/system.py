@@ -20,14 +20,15 @@ _ROOT_COMMANDS = (
     "scope data config doctor completion init --help --version --json --debug --color"
 )
 _GROUP_COMMANDS = {
-    "occurrence": "list edit unresolve discard reopen",
+    "inbox": "search",
+    "occurrence": "search list edit unresolve discard reopen",
     "meaning": (
-        "list edit alias-add alias-remove favorite unfavorite relate unrelate related "
+        "search list edit alias-add alias-remove favorite unfavorite relate unrelate related "
         "merge delete trash restore purge"
     ),
     "tag": "add remove list",
     "reference": "add edit remove list",
-    "scope": "add list edit delete",
+    "scope": "search add list edit delete",
     "data": "export import",
 }
 

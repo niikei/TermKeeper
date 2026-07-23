@@ -185,6 +185,7 @@ tk occurrence reopen 1
 
 ```bash
 tk search ICMR
+tk meaning search ICMR
 tk search "enterprise planning" --match-all
 tk search "planning document" --match-any --field description --limit 10
 tk search ERP --tag SAP
@@ -192,13 +193,17 @@ tk search ERP --scope SAP
 tk search ERPP --suggestions 3
 tk search ERPP --no-suggestions
 tk search ERP --favorite
+tk occurrence search planning --status Pending --source Teams
+tk inbox search planning --source Teams
+tk scope search platform
 tk show 1
 tk meaning list --tag SAP
 tk meaning list --scope SAP
 tk meaning list --favorite
 ```
 
-検索は完全一致、前方一致、部分一致の順に関連度を付け、一致理由とともに表示します。
+`tk search`は`tk meaning search`の短縮形です。Meaning検索は完全一致、前方一致、部分一致の
+順に関連度を付け、一致理由とともに表示します。
 複数語は標準ですべての語に一致するMeaningを探します。`--match-any`でいずれかの語、
 `--field term|name|description|all`で検索対象、`--limit`で最大件数を指定できます。
 `--tag`を指定すると、そのタグを持つMeaningだけに絞り込みます。
@@ -206,6 +211,9 @@ tk meaning list --favorite
 `--favorite`を指定すると、お気に入りのMeaningだけに絞り込みます。
 検索結果がない場合は、Term・正式名称などの類似度から候補を表示します。候補数は
 `--suggestions`、無効化は`--no-suggestions`で指定できます。
+Occurrence検索はkeyword、memo、sourceを横断し、status、source、since、Meaningで先に
+絞り込めます。`tk inbox search`は同じ検索をPendingだけに限定します。Scope検索は名前と説明を
+対象にします。
 
 ### 整理
 
@@ -306,7 +314,8 @@ tk add BTP --source Slack --json
 
 JSONモードは完全に非対話で、標準入力を要求せず、標準出力にはJSONだけを出力します。
 必須の入力が不足した場合もJSON形式でエラー種別とメッセージを返し、終了コードは `2` になります。
-検索JSONは`hits`と`suggestions`を持つオブジェクトです。
+Meaning検索JSONは`hits`と`suggestions`を持つオブジェクトです。Occurrence、Inbox、Scopeの
+検索JSONは`items`、`offset`、`limit`、`has_more`を持つページ形式です。
 
 ## Python APIとMCP連携
 
@@ -337,8 +346,9 @@ tk-mcp
 ```
 
 `TERMKEEPER_DATABASE_URL`でCLIと同じデータベースを指定できます。MCPクライアントには、
-サーバー起動コマンドとして`tk-mcp`を登録してください。Capture、分類・再分類、Inbox、Search、
-Occurrence、Stats、Tag、Favorite、Related Meaning、Referenceの24ツールを公開します。
+サーバー起動コマンドとして`tk-mcp`を登録してください。Capture、分類・再分類、Meaning・
+Occurrence・Inbox・Scope検索、Stats、Tag、Favorite、Related Meaning、Referenceなどの
+型付きツールを公開します。
 各ツールは具体的なDomain DTOに基づく構造化出力スキーマを持ちます。
 
 ### HTTP API
@@ -352,7 +362,8 @@ uv run tk-api
 対話的なAPIドキュメントは`/docs`で確認できます。現在はローカル利用向けで認証を持たないため、
 外部ネットワークへ直接公開しないでください。
 Occurrenceの捕捉・未分類一覧・分類・再分類、Meaningの一覧・取得・更新・論理削除・Trash・復元、
-検索、統計を`/api/v1`以下から利用できます。Meaningを指定するパスでは、DB内部の連番ではなく
+Meaning・Occurrence・Inbox・Scope検索、統計を`/api/v1`以下から利用できます。Meaningを
+指定するパスでは、DB内部の連番ではなく
 レスポンスの
 `public_id`（UUID）を使用します。
 分類パスでは、捕捉レスポンスに含まれるOccurrenceの`public_id`を使用します。
@@ -360,6 +371,10 @@ Tag、Favorite、関連Meaning、Referenceの操作にも対応しています�
 DB連番を含まず、一覧は`items`、`offset`、`limit`、`has_more`のページ形式です。
 Scopeは`/api/v1/scopes`で管理し、HTTP/MCPからMeaningのScopeを指定するときはScopeの
 `public_id`（UUID）を使用します。
+
+検索エンドポイントは`/api/v1/meanings/search`、`/api/v1/occurrences/search`、
+`/api/v1/inbox/search`、`/api/v1/scopes/search`です。`/api/v1/search`はMeaning検索の
+短縮エンドポイントとして維持します。
 
 ## データモデル
 

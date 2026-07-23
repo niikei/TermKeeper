@@ -48,3 +48,22 @@ def test_default_and_referenced_scopes_cannot_be_deleted() -> None:
     service.create_meaning("Order", scope="SAP")
     with pytest.raises(ValidationError, match="used by 1 meaning"):
         service.delete_scope(scope.scope_id)
+
+
+def test_scope_search_covers_name_description_pagination_and_validation() -> None:
+    service = TermKeeperService()
+    service.create_scope("SAP", "Enterprise platform")
+    service.create_scope("Finance", "Planning and consolidation")
+
+    assert [item.name for item in service.search_scopes("sap").items] == ["SAP"]
+    assert [item.name for item in service.search_scopes("planning").items] == ["Finance"]
+    first = service.search_scopes("a", limit=1)
+    assert len(first.items) == 1
+    assert first.has_more is True
+
+    with pytest.raises(ValidationError, match="text must not be empty"):
+        service.search_scopes(" ")
+    with pytest.raises(ValidationError, match="offset"):
+        service.search_scopes("SAP", offset=-1)
+    with pytest.raises(ValidationError, match="limit"):
+        service.search_scopes("SAP", limit=0)

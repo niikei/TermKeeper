@@ -6,7 +6,11 @@ from uuid import UUID
 from fastapi import FastAPI, Query, Response, status
 
 from termkeeper.adapters.external import ExternalMapper, ExternalPage, ExternalScope, page
-from termkeeper.adapters.http.requests import ScopeCreateRequest, ScopeUpdateRequest
+from termkeeper.adapters.http.requests import (
+    ScopeCreateRequest,
+    ScopeSearchFilters,
+    ScopeUpdateRequest,
+)
 from termkeeper.application import TermKeeperService
 
 
@@ -21,6 +25,18 @@ def _register_scope_routes(
         limit: Annotated[int, Query(ge=1, le=100)] = 20,
     ) -> ExternalPage[ExternalScope]:
         return page([mapper.scope(item) for item in service.scopes()], offset, limit)
+
+    @app.get("/api/v1/scopes/search")
+    def search_scopes(
+        filters: Annotated[ScopeSearchFilters, Query()],
+    ) -> ExternalPage[ExternalScope]:
+        return mapper.scope_page(
+            service.search_scopes(
+                filters.text,
+                offset=filters.offset,
+                limit=filters.limit,
+            ),
+        )
 
     @app.post("/api/v1/scopes", status_code=status.HTTP_201_CREATED)
     def create_scope(request: ScopeCreateRequest) -> ExternalScope:

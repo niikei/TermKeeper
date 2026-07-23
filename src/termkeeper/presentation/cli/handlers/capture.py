@@ -126,6 +126,46 @@ def handle_occurrences(
     return result
 
 
+def handle_occurrence_search(
+    args: argparse.Namespace,
+    service: TermKeeperService,
+) -> Page[OccurrenceItem]:
+    result = service.search_occurrences(
+        OccurrenceQuery(
+            meaning_id=args.meaning_id,
+            status=args.status,
+            text=args.text,
+            source=args.source,
+            since=args.since,
+            offset=args.offset,
+            limit=args.limit,
+        ),
+    )
+    if not args.json:
+        print_occurrences(result.items)
+        print_has_more(result)
+    return result
+
+
+def handle_inbox_search(
+    args: argparse.Namespace,
+    service: TermKeeperService,
+) -> Page[OccurrenceItem]:
+    result = service.search_inbox(
+        OccurrenceQuery(
+            text=args.text,
+            source=args.source,
+            since=args.since,
+            offset=args.offset,
+            limit=args.limit,
+        ),
+    )
+    if not args.json:
+        print_inbox(result.items)
+        print_has_more(result)
+    return result
+
+
 def handle_occurrence_edit(
     args: argparse.Namespace,
     service: TermKeeperService,

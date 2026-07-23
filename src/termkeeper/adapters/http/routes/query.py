@@ -11,6 +11,30 @@ from termkeeper.application import TermKeeperService
 from termkeeper.domain import SearchField, SearchQuery, StatsSummary
 
 
+def meaning_search_result(
+    filters: SearchFilters,
+    service: TermKeeperService,
+    mapper: ExternalMapper,
+) -> ExternalSearchResult:
+    query = SearchQuery(
+        text=filters.text,
+        field=SearchField(filters.field),
+        tag=filters.tag,
+        scope=(
+            _scope_name(service, filters.scope_id)
+            if filters.scope_id is not None
+            else None
+        ),
+        favorite_only=filters.favorite_only,
+        limit=filters.offset + filters.limit + 1,
+    )
+    return mapper.search_result(
+        service.search(query),
+        offset=filters.offset,
+        limit=filters.limit,
+    )
+
+
 def _register_query_routes(
     app: FastAPI,
     service: TermKeeperService,
@@ -22,23 +46,7 @@ def _register_query_routes(
     def search(
         filters: Annotated[SearchFilters, Query()],
     ) -> ExternalSearchResult:
-        query = SearchQuery(
-            text=filters.text,
-            field=SearchField(filters.field),
-            tag=filters.tag,
-            scope=(
-                _scope_name(service, filters.scope_id)
-                if filters.scope_id is not None
-                else None
-            ),
-            favorite_only=filters.favorite_only,
-            limit=filters.offset + filters.limit + 1,
-        )
-        return mapper.search_result(
-            service.search(query),
-            offset=filters.offset,
-            limit=filters.limit,
-        )
+        return meaning_search_result(filters, service, mapper)
 
     @app.get("/api/v1/stats")
     def stats(limit: Annotated[int, Query(ge=1, le=100)] = 10) -> StatsSummary:

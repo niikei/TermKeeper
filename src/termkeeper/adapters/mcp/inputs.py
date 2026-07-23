@@ -23,11 +23,38 @@ class OccurrenceFilters:
 
 
 @dataclass(frozen=True)
+class OccurrenceSearchFilters:
+    text: str
+    meaning_id: UUID | None = None
+    status: Literal["Pending", "Resolved", "Discarded"] | None = None
+    source: str | None = None
+    since: datetime | None = None
+    offset: Offset = 0
+    limit: Limit = 20
+
+
+@dataclass(frozen=True)
+class InboxSearchFilters:
+    text: str
+    source: str | None = None
+    since: datetime | None = None
+    offset: Offset = 0
+    limit: Limit = 20
+
+
+@dataclass(frozen=True)
 class SearchFilters:
     text: str
     field: Literal["all", "term", "name", "description"] = "all"
     tag: str | None = None
     scope_id: UUID | None = None
     favorite_only: bool = False
+    offset: Offset = 0
+    limit: Limit = 20
+
+
+@dataclass(frozen=True)
+class ScopeSearchFilters:
+    text: str
     offset: Offset = 0
     limit: Limit = 20

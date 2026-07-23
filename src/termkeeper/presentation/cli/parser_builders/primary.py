@@ -1,9 +1,12 @@
 """Primary workflow command parsers."""
 
-from termkeeper.domain import SearchField
 from termkeeper.presentation.cli.parser_builders.common import (
     Commands,
     add_pagination_arguments,
+)
+from termkeeper.presentation.cli.parser_builders.search import (
+    add_inbox_search_arguments,
+    add_meaning_search_arguments,
 )
 
 
@@ -31,6 +34,23 @@ def add_primary_commands(commands: Commands) -> None:
 
     inbox = commands.add("inbox", "Show pending occurrences", handler="inbox")
     add_pagination_arguments(inbox)
+    inbox_actions = Commands(
+        inbox,
+        dest="inbox_action",
+        required=False,
+        title="Actions",
+        metavar="ACTION",
+    )
+    inbox.epilog = (
+        "Without an action, list pending occurrences. "
+        "Run 'tk inbox search --help' for search options."
+    )
+    inbox_search = inbox_actions.add(
+        "search",
+        "Search pending occurrences",
+        handler="inbox-search",
+    )
+    add_inbox_search_arguments(inbox_search)
 
     list_ = commands.add("list", "Show active meanings", handler="term-list")
     list_.add_argument("--tag", help="Filter by tag")
@@ -73,53 +93,7 @@ def add_primary_commands(commands: Commands) -> None:
             "  tk search ERP --scope SAP --tag Core"
         ),
     )
-    search.add_argument("keyword", help="One or more search terms")
-    mode = search.add_mutually_exclusive_group()
-    mode.add_argument(
-        "--match-all",
-        action="store_true",
-        dest="match_all",
-        default=True,
-        help="Require every search term",
-    )
-    mode.add_argument(
-        "--match-any",
-        action="store_false",
-        dest="match_all",
-        help="Accept any search term",
-    )
-    search.add_argument(
-        "--field",
-        choices=tuple(SearchField),
-        default=SearchField.ALL,
-        dest="search_field",
-        type=SearchField,
-        help="Field to search",
-    )
-    search.add_argument("--limit", type=int, default=20, help="Maximum results")
-    search.add_argument("--tag", help="Filter by tag name")
-    search.add_argument("--scope", help="Filter by registered scope name")
-    search.add_argument(
-        "--favorite",
-        action="store_true",
-        dest="favorite_only",
-        help="Show only favorite meanings",
-    )
-    suggestions = search.add_mutually_exclusive_group()
-    suggestions.add_argument(
-        "--suggestions",
-        type=int,
-        default=3,
-        dest="suggestion_limit",
-        help="Maximum spelling suggestions",
-    )
-    suggestions.add_argument(
-        "--no-suggestions",
-        action="store_const",
-        const=0,
-        dest="suggestion_limit",
-        help="Disable spelling suggestions",
-    )
+    add_meaning_search_arguments(search)
 
     show = commands.add("show", "Show a meaning", handler="show")
     show.add_argument("meaning_id", type=int, help="Meaning ID")

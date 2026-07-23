@@ -150,12 +150,13 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 - Occurrence更新では正規化列と更新者・更新日時を同じUnit of Workで更新する
 - Repository内では`commit()`しない
 - 遭遇は毎回Occurrenceとして保存し、memoやsourceを上書きしない
-- Occurrence一覧の入力は`OccurrenceQuery`、出力は`Page[OccurrenceItem]`で表現する
+- Occurrence一覧・検索の入力は`OccurrenceQuery`、出力は`Page[OccurrenceItem]`で表現する
 - DB内部IDを外部連携の識別子にせず、Meaningの`public_id`を使用する
 - Occurrence、Referenceも外部境界では`public_id`を使用する
 - Occurrence／InboxはApplication層から共通ページ形式とし、DBでページングする
 - HTTP/MCPの一覧はDB連番や内部ユーザーIDを返さない
-- 検索条件と結果は`SearchQuery`／`SearchHit`で表現し、CLI固有の型を持ち込まない
+- Meaning検索条件と結果は`SearchQuery`／`SearchHit`、Occurrence検索条件は
+  `OccurrenceQuery`で表現し、CLI固有の型を持ち込まない
 - 検索応答は`SearchResult`で通常ヒットと類似候補を分離し、候補は0件時だけ計算する
 - CLI固有の処理をApplication層へ持ち込まない
 - APIやMCPを追加するときも既存のApplicationユースケースを再利用する

@@ -6,9 +6,13 @@ from termkeeper.presentation.cli.parser_builders.common import (
     add_pagination_arguments,
     parse_datetime,
 )
+from termkeeper.presentation.cli.parser_builders.search import add_occurrence_search_arguments
 
 
 def add_occurrence_commands(commands: Commands) -> None:
+    search = commands.add("search", "Search occurrence history", handler="occurrence-search")
+    add_occurrence_search_arguments(search)
+
     list_ = commands.add("list", "List occurrence history", handler="occurrences")
     list_.add_argument("--meaning", type=int, dest="meaning_id", help="Meaning ID")
     list_.add_argument(

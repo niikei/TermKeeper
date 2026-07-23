@@ -57,6 +57,9 @@ Meaning間の関連は小さいIDを先にした対称ペアとして正規化�
 検索はRepositoryで部分一致候補を取得し、Applicationで関連度を計算する。通常ヒットが0件の
 場合だけ有効Meaningを読み込み、`SearchSuggestion`を生成する。Presentationは候補ロジックを
 持たず、`SearchResult`を表示・JSON化する。
+Occurrence検索はkeyword、memo、sourceをRepositoryで横断し、status、source、since、Meaningの
+構造化条件を同じqueryへ適用する。Inbox検索はこのユースケースをPendingへ固定して再利用する。
+Scope検索はnameとdescriptionを対象にし、Applicationから`Page[Scope]`として返す。
 
 Captureは毎回OccurrenceをPendingで保存し、Term一致は候補として返すだけにする。Inboxは
 Pending Occurrenceの読み取りビューであり永続テーブルを持たない。Meaningへの分類・再分類・
@@ -68,8 +71,9 @@ Capture時のkeyword、memo、sourceはApplication境界で前後空白を除去
 Repositoryへ閉じ込め、Applicationからは`StatsSummary`として返す。
 
 APIやMCPを追加するときは `TermKeeperService` を再利用し、SQLやCLIの標準出力を直接
-呼ばない。MCPはCapture、Pending一覧、分類・再分類・解除・破棄・再開、検索、統計、
-Tag・Favorite・Related Meaning・Reference操作を型付きツールとして公開する。
+呼ばない。MCPはCapture、Pending一覧、分類・再分類・解除・破棄・再開、Meaning・Occurrence・
+Inbox・Scope検索、統計、Tag・Favorite・Related Meaning・Reference操作を型付きツールとして
+公開する。
 
 MCPアダプターは公式Python SDKのFastMCPを使用し、標準入出力transportで提供する。
 `TermKeeperMcpTools`は具体的なDomain DTOを返し、FastMCPが型注釈から構造化出力スキーマを

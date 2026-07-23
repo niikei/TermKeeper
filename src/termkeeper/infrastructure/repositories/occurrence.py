@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlmodel import Session, col, select
 
 from termkeeper.domain import OccurrenceQuery, OccurrenceStatus, OccurrenceUpdate
@@ -80,6 +80,18 @@ def list_occurrences(session: Session, query: OccurrenceQuery) -> list[Occurrenc
         statement = statement.where(Occurrence.meaning_id == query.meaning_id)
     if query.status is not None:
         statement = statement.where(Occurrence.status == query.status)
+    if query.text:
+        text = query.text.casefold()
+        statement = statement.where(
+            or_(
+                col(Occurrence.keyword_norm).contains(
+                    normalize_keyword(query.text),
+                    autoescape=True,
+                ),
+                func.lower(Occurrence.memo).contains(text, autoescape=True),
+                func.lower(Occurrence.source).contains(text, autoescape=True),
+            ),
+        )
     if query.keyword:
         statement = statement.where(
             col(Occurrence.keyword_norm).contains(

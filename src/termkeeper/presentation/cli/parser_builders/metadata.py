@@ -4,6 +4,7 @@ from termkeeper.presentation.cli.parser_builders.common import (
     Commands,
     add_confirmation_argument,
 )
+from termkeeper.presentation.cli.parser_builders.search import add_scope_search_arguments
 
 
 def add_tag_commands(commands: Commands) -> None:
@@ -34,6 +35,9 @@ def add_reference_commands(commands: Commands) -> None:
 
 
 def add_scope_commands(commands: Commands) -> None:
+    search = commands.add("search", "Search meaning scopes", handler="scope-search")
+    add_scope_search_arguments(search)
+
     add = commands.add(
         "add",
         "Create a meaning scope",

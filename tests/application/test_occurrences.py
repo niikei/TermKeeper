@@ -70,6 +70,42 @@ def test_occurrence_history_validates_limit() -> None:
         service.occurrences(OccurrenceQuery(offset=-1))
 
 
+def test_occurrence_search_covers_context_and_structured_filters() -> None:
+    service = TermKeeperService()
+    planning = service.add("ERP", memo="quarterly planning", source="Teams")
+    service.add("CRM", memo="customer review", source="Slack")
+    meaning = service.resolve(
+        planning.occurrence.occurrence_id,
+        "Enterprise Resource Planning",
+    )
+
+    by_memo = service.search_occurrences(OccurrenceQuery(text="planning"))
+    by_source = service.search_occurrences(
+        OccurrenceQuery(text="teams", source="TEAMS"),
+    )
+    resolved = service.search_occurrences(
+        OccurrenceQuery(text="ERP", meaning_id=meaning.meaning_id),
+    )
+
+    assert [item.keyword for item in by_memo.items] == ["ERP"]
+    assert [item.keyword for item in by_source.items] == ["ERP"]
+    assert [item.keyword for item in resolved.items] == ["ERP"]
+    assert service.search_inbox(OccurrenceQuery(text="ERP")).items == ()
+    inbox = service.search_inbox(OccurrenceQuery(text="customer"))
+    assert [item.keyword for item in inbox.items] == ["CRM"]
+
+
+def test_occurrence_search_treats_wildcards_as_text_and_requires_text() -> None:
+    service = TermKeeperService()
+    service.add("100%", memo="literal_percent")
+    service.add("Other")
+
+    result = service.search_occurrences(OccurrenceQuery(text="%"))
+    assert [item.keyword for item in result.items] == ["100%"]
+    with pytest.raises(ValidationError, match="text must not be empty"):
+        service.search_occurrences(OccurrenceQuery(text=" "))
+
+
 def test_occurrence_pages_reach_records_beyond_500() -> None:
     with get_session() as session:
         session.add_all(

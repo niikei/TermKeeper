@@ -3,8 +3,9 @@
 import argparse
 
 from termkeeper.application import TermKeeperService, ValidationError
-from termkeeper.domain import Scope
+from termkeeper.domain import Page, Scope
 from termkeeper.presentation.cli.handlers.common import confirm_destructive
+from termkeeper.presentation.cli.rendering import print_has_more, print_scopes
 from termkeeper.presentation.cli.style import danger, heading, identifier, success
 
 
@@ -21,8 +22,18 @@ def handle_scope_add(args: argparse.Namespace, service: TermKeeperService) -> Sc
 def handle_scopes(args: argparse.Namespace, service: TermKeeperService) -> list[Scope]:
     result = service.scopes()
     if not args.json:
-        for scope in result:
-            print(f"{identifier(f'#{scope.scope_id}')} {heading(scope.name)}")
+        print_scopes(result)
+    return result
+
+
+def handle_scope_search(
+    args: argparse.Namespace,
+    service: TermKeeperService,
+) -> Page[Scope]:
+    result = service.search_scopes(args.text, offset=args.offset, limit=args.limit)
+    if not args.json:
+        print_scopes(result.items)
+        print_has_more(result)
     return result
 
 

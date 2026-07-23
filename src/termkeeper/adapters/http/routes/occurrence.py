@@ -18,6 +18,7 @@ from termkeeper.adapters.http.common import (
 )
 from termkeeper.adapters.http.requests import (
     OccurrenceFilters,
+    OccurrenceSearchFilters,
     OccurrenceUpdateRequest,
     ResolveRequest,
 )
@@ -45,6 +46,29 @@ def _register_occurrence_routes(
                     meaning_id=meaning_id,
                     status=OccurrenceStatus(filters.status) if filters.status else None,
                     keyword=filters.keyword,
+                    source=filters.source,
+                    since=filters.since,
+                    offset=filters.offset,
+                    limit=filters.limit,
+                ),
+            ),
+        )
+
+    @app.get("/api/v1/occurrences/search")
+    def search_occurrences(
+        filters: Annotated[OccurrenceSearchFilters, Query()],
+    ) -> ExternalPage[ExternalOccurrence]:
+        meaning_id = (
+            _local_meaning_id(service, filters.meaning_id, include_deleted=True)
+            if filters.meaning_id is not None
+            else None
+        )
+        return mapper.occurrence_page(
+            service.search_occurrences(
+                OccurrenceQuery(
+                    meaning_id=meaning_id,
+                    status=OccurrenceStatus(filters.status) if filters.status else None,
+                    text=filters.text,
                     source=filters.source,
                     since=filters.since,
                     offset=filters.offset,

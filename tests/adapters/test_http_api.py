@@ -34,6 +34,27 @@ def _exercise_core_workflow(client: TestClient) -> str:
     inbox_page = client.get("/api/v1/inbox").json()
     assert inbox_page["items"][0]["keyword"] == "ERP"
     assert inbox_page["has_more"] is False
+    assert (
+        client.get(
+            "/api/v1/inbox/search",
+            params={"text": "planning", "source": "Teams"},
+        ).json()["items"][0]["keyword"]
+        == "ERP"
+    )
+    assert (
+        client.get(
+            "/api/v1/occurrences/search",
+            params={"text": "planning", "status": "Pending"},
+        ).json()["items"][0]["keyword"]
+        == "ERP"
+    )
+    assert (
+        client.get(
+            "/api/v1/scopes/search",
+            params={"text": "SAP"},
+        ).json()["items"][0]["name"]
+        == "SAP"
+    )
 
     resolved = client.post(
         f"/api/v1/occurrences/{occurrence_id}/resolve",
@@ -66,6 +87,7 @@ def _exercise_core_workflow(client: TestClient) -> str:
     assert updated.json()["description"] == "Integrated business software"
     assert updated.json()["scope"] == "SAP S/4HANA"
     assert client.get("/api/v1/search", params={"text": "ERP"}).json()["hits"]
+    assert client.get("/api/v1/meanings/search", params={"text": "ERP"}).json()["hits"]
     assert client.get("/api/v1/stats").json()["total_occurrences"] == 1
 
     occurrences = client.get(
@@ -178,6 +200,10 @@ def _assert_openapi_contract(client: TestClient) -> None:
     schema = client.get("/openapi.json").json()
     assert schema["info"]["title"] == "TermKeeper API"
     assert "/api/v1/search" in schema["paths"]
+    assert "/api/v1/meanings/search" in schema["paths"]
+    assert "/api/v1/occurrences/search" in schema["paths"]
+    assert "/api/v1/inbox/search" in schema["paths"]
+    assert "/api/v1/scopes/search" in schema["paths"]
     assert set(schema["paths"]["/api/v1/meanings/{meaning_id}"]) == {
         "get",
         "put",

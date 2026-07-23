@@ -23,7 +23,10 @@ def create_server(service: TermKeeperService | None = None) -> FastMCP:
     for tool in (
         tools.capture_term,
         tools.list_inbox,
+        tools.search_inbox,
         tools.search_meanings,
+        tools.search_occurrences,
+        tools.search_scopes,
         tools.get_meaning,
         tools.list_occurrences,
         tools.edit_occurrence,

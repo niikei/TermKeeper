@@ -12,6 +12,7 @@ from termkeeper.domain.status import OccurrenceStatus
 class OccurrenceQuery:
     meaning_id: int | None = None
     status: OccurrenceStatus | None = None
+    text: str | None = None
     keyword: str | None = None
     source: str | None = None
     since: datetime | None = None

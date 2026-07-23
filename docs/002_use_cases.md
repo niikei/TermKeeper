@@ -105,7 +105,11 @@ tk list
 tk list --scope SAP --tag Core
 tk list --favorite
 tk search "enterprise planning" --match-all
+tk meaning search ERP --scope SAP
 tk search ERP --tag Core --scope SAP
+tk occurrence search planning --status Pending --source Teams
+tk inbox search planning
+tk scope search platform
 tk show 1
 tk meaning edit 1 --name "Enterprise Resource Planning" --scope "SAP S/4HANA"
 tk meaning alias-add 1 ERP
@@ -113,8 +117,10 @@ tk tag add 1 Core
 tk meaning favorite 1
 ```
 
-`tk list`はActive Meaningをコンパクトに見渡す日常用ビュー。検索はTerm、正式名称、説明を
-関連度順に返す。どちらもTag、scope、お気に入りで絞り込める。
+`tk list`はActive Meaningをコンパクトに見渡す日常用ビュー。`tk search`は
+`tk meaning search`の短縮形で、Term、正式名称、説明を関連度順に返す。どちらもTag、scope、
+お気に入りで絞り込める。Occurrenceはkeyword・memo・source、Scopeは名前・説明を検索する。
+Inbox検索はOccurrence検索をPendingに限定する。
 
 ## 9. Meaningを統合する
 

@@ -5,9 +5,16 @@ from uuid import UUID
 
 from fastapi import FastAPI, Query, Response, status
 
-from termkeeper.adapters.external import ExternalMapper, ExternalMeaning, ExternalPage, page
+from termkeeper.adapters.external import (
+    ExternalMapper,
+    ExternalMeaning,
+    ExternalPage,
+    ExternalSearchResult,
+    page,
+)
 from termkeeper.adapters.http.common import _local_meaning_id, _scope_name
-from termkeeper.adapters.http.requests import MeaningUpdateRequest
+from termkeeper.adapters.http.requests import MeaningUpdateRequest, SearchFilters
+from termkeeper.adapters.http.routes.query import meaning_search_result
 from termkeeper.application import TermKeeperService
 
 
@@ -17,6 +24,12 @@ def _register_meaning_routes(
     mapper: ExternalMapper,
 ) -> None:
     """Register meaning lifecycle routes."""
+
+    @app.get("/api/v1/meanings/search")
+    def search_meanings(
+        filters: Annotated[SearchFilters, Query()],
+    ) -> ExternalSearchResult:
+        return meaning_search_result(filters, service, mapper)
 
     @app.get("/api/v1/meanings/{meaning_id}")
     def get_meaning(meaning_id: UUID) -> ExternalMeaning:

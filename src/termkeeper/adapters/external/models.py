@@ -144,6 +144,14 @@ class ExternalMapper:
             updated_at=item.updated_at,
         )
 
+    def scope_page(self, result: Page[Scope]) -> ExternalPage[ExternalScope]:
+        return ExternalPage(
+            items=tuple(self.scope(item) for item in result.items),
+            offset=result.offset,
+            limit=result.limit,
+            has_more=result.has_more,
+        )
+
     def occurrence(self, item: OccurrenceItem) -> ExternalOccurrence:
         public_ids = self._meaning_public_ids((item.meaning_id,))
         return self._occurrence(item, public_ids)

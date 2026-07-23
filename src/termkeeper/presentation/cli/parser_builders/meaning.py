@@ -4,9 +4,13 @@ from termkeeper.presentation.cli.parser_builders.common import (
     Commands,
     add_confirmation_argument,
 )
+from termkeeper.presentation.cli.parser_builders.search import add_meaning_search_arguments
 
 
 def add_meaning_commands(commands: Commands) -> None:
+    search = commands.add("search", "Search meanings", handler="search")
+    add_meaning_search_arguments(search)
+
     list_ = commands.add("list", "List meanings", handler="meanings")
     list_.add_argument("--tag", help="Filter by tag")
     list_.add_argument("--scope", help="Filter by registered scope name")

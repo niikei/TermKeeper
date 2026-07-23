@@ -3,11 +3,24 @@
 from uuid import UUID
 
 from termkeeper.adapters.external import ExternalPage, ExternalScope, page
-from termkeeper.adapters.mcp.inputs import Limit, Offset
+from termkeeper.adapters.mcp.inputs import Limit, Offset, ScopeSearchFilters
 from termkeeper.adapters.mcp.tools.context import ToolContext
 
 
 class ScopeTools(ToolContext):
+    def search_scopes(
+        self,
+        query: ScopeSearchFilters,
+    ) -> ExternalPage[ExternalScope]:
+        """Search scope names and descriptions."""
+        return self._mapper.scope_page(
+            self._service.search_scopes(
+                query.text,
+                offset=query.offset,
+                limit=query.limit,
+            ),
+        )
+
     def create_scope(self, name: str, description: str | None = None) -> ExternalScope:
         """Create a controlled meaning namespace."""
         return self._mapper.scope(self._service.create_scope(name, description))

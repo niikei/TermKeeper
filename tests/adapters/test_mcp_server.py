@@ -2,7 +2,10 @@ import asyncio
 from datetime import UTC
 
 from termkeeper.adapters.mcp import (
+    InboxSearchFilters,
     OccurrenceFilters,
+    OccurrenceSearchFilters,
+    ScopeSearchFilters,
     SearchFilters,
     TermKeeperMcpTools,
     create_server,
@@ -44,6 +47,9 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
         "reopen_occurrence",
         "resolve_occurrence",
         "search_meanings",
+        "search_inbox",
+        "search_occurrences",
+        "search_scopes",
         "unfavorite_meaning",
         "unrelate_meanings",
         "unresolve_occurrence",
@@ -72,6 +78,11 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
     assert definitions["get_meaning"]["properties"]["meaning_id"]["format"] == "uuid"
     occurrence_query = definitions["list_occurrences"]["$defs"]["OccurrenceFilters"]
     assert occurrence_query["properties"]["meaning_id"]["anyOf"][0]["format"] == "uuid"
+    assert definitions["search_inbox"]["$defs"]["InboxSearchFilters"]["required"] == ["text"]
+    assert definitions["search_occurrences"]["$defs"]["OccurrenceSearchFilters"][
+        "required"
+    ] == ["text"]
+    assert definitions["search_scopes"]["$defs"]["ScopeSearchFilters"]["required"] == ["text"]
     assert definitions["resolve_occurrence"]["properties"]["occurrence_id"]["format"] == "uuid"
     assert definitions["edit_occurrence"]["properties"]["occurrence_id"]["format"] == "uuid"
 
@@ -87,6 +98,11 @@ def test_mcp_tools_delegate_complete_workflow() -> None:
     assert captured.occurrence.occurred_at.tzinfo is UTC
     assert captured.occurrence.updated_at.tzinfo is UTC
     assert tools.list_inbox().items[0].keyword == "ERP"
+    assert tools.search_inbox(InboxSearchFilters(text="planning")).items[0].keyword == "ERP"
+    assert (
+        tools.search_occurrences(OccurrenceSearchFilters(text="Teams")).items[0].keyword
+        == "ERP"
+    )
     meaning = tools.resolve_occurrence(
         occurrence_id,
         "Enterprise Resource Planning",
@@ -157,6 +173,9 @@ def test_mcp_tools_delegate_complete_workflow() -> None:
     )
     spare_scope = tools.create_scope("Temporary")
     assert any(item.public_id == spare_scope.public_id for item in tools.list_scopes().items)
+    assert tools.search_scopes(ScopeSearchFilters(text="tempor")).items[0].public_id == (
+        spare_scope.public_id
+    )
     renamed_scope = tools.edit_scope(spare_scope.public_id, "Temporary 2")
     assert renamed_scope.name == "Temporary 2"
     assert tools.delete_scope(spare_scope.public_id) == {"scope_id": spare_scope.public_id}

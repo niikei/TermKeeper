@@ -104,9 +104,13 @@ def add_runtime_options(
     )
 
 
-def add_pagination_arguments(parser: argparse.ArgumentParser) -> None:
+def add_pagination_arguments(
+    parser: argparse.ArgumentParser,
+    *,
+    default_limit: int = 50,
+) -> None:
     parser.add_argument("--offset", type=int, default=0, help="Rows to skip")
-    parser.add_argument("--limit", type=int, default=50, help="Maximum rows")
+    parser.add_argument("--limit", type=int, default=default_limit, help="Maximum rows")
 
 
 def add_confirmation_argument(parser: argparse.ArgumentParser) -> None:

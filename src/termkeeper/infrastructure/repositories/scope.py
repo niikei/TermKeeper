@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlmodel import Session, col, select
 
 from termkeeper.infrastructure.normalization import normalize_keyword
@@ -46,6 +46,29 @@ def get_by_public_id(session: Session, public_id: UUID) -> Scope | None:
 
 def list_all(session: Session) -> list[Scope]:
     return list(session.exec(select(Scope).order_by(col(Scope.name_norm))).all())
+
+
+def search(
+    session: Session,
+    text: str,
+    *,
+    offset: int,
+    limit: int,
+) -> list[Scope]:
+    normalized = normalize_keyword(text)
+    statement = (
+        select(Scope)
+        .where(
+            or_(
+                col(Scope.name_norm).contains(normalized, autoescape=True),
+                func.lower(Scope.description).contains(text.casefold(), autoescape=True),
+            ),
+        )
+        .order_by(col(Scope.name_norm), col(Scope.scope_id))
+        .offset(offset)
+        .limit(limit + 1)
+    )
+    return list(session.exec(statement).all())
 
 
 def update(session: Session, record: Scope, values: ScopeValues) -> None:

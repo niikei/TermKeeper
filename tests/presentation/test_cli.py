@@ -794,6 +794,49 @@ def test_search_human_output_is_compact(capsys: pytest.CaptureFixture[str]) -> N
     assert "Created:" not in output
 
 
+def test_resource_search_commands_share_filters_and_structured_results(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["scope", "add", "SAP", "--description", "Enterprise platform"]) == 0
+    assert main(["add", "ERP", "--memo", "quarterly planning", "--source", "Teams"]) == 0
+    assert (
+        main(
+            [
+                "resolve",
+                "1",
+                "--name",
+                "Enterprise Resource Planning",
+                "--scope",
+                "SAP",
+            ],
+        )
+        == 0
+    )
+    assert main(["add", "CRM", "--memo", "customer review", "--source", "Slack"]) == 0
+    capsys.readouterr()
+
+    assert main(["meaning", "search", "ERP", "--json"]) == 0
+    meaning_result = json.loads(capsys.readouterr().out)
+    assert meaning_result["hits"][0]["meaning"]["full_name"] == (
+        "Enterprise Resource Planning"
+    )
+
+    assert main(["occurrence", "search", "planning", "--source", "Teams", "--json"]) == 0
+    occurrence_result = json.loads(capsys.readouterr().out)
+    assert occurrence_result["items"][0]["keyword"] == "ERP"
+
+    assert main(["inbox", "search", "customer", "--json"]) == 0
+    inbox_result = json.loads(capsys.readouterr().out)
+    assert [item["keyword"] for item in inbox_result["items"]] == ["CRM"]
+    assert main(["inbox", "search", "planning", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out)["items"] == []
+
+    assert main(["scope", "search", "platform", "--json"]) == 0
+    scope_result = json.loads(capsys.readouterr().out)
+    assert scope_result["items"][0]["name"] == "SAP"
+    assert scope_result["has_more"] is False
+
+
 def test_no_command_shows_dashboard(capsys: pytest.CaptureFixture[str]) -> None:
     assert main([]) == 0
     output = capsys.readouterr().out

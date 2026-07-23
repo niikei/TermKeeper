@@ -33,6 +33,7 @@ class OccurrenceUseCases:
         normalized = OccurrenceQuery(
             meaning_id=query.meaning_id,
             status=query.status,
+            text=query.text.strip() if query.text else None,
             keyword=query.keyword.strip() if query.keyword else None,
             source=query.source.strip() if query.source else None,
             since=_to_utc(query.since),
@@ -48,6 +49,24 @@ class OccurrenceUseCases:
                 limit=normalized.limit,
                 has_more=len(records) > normalized.limit,
             )
+
+    def search_occurrences(self, query: OccurrenceQuery) -> Page[OccurrenceItem]:
+        if query.text is None or not query.text.strip():
+            message = "Occurrence search text must not be empty."
+            raise ValidationError(message)
+        return self.occurrences(query)
+
+    def search_inbox(self, query: OccurrenceQuery) -> Page[OccurrenceItem]:
+        return self.search_occurrences(
+            OccurrenceQuery(
+                status=OccurrenceStatus.PENDING,
+                text=query.text,
+                source=query.source,
+                since=query.since,
+                offset=query.offset,
+                limit=query.limit,
+            ),
+        )
 
     def inbox(self, *, offset: int = 0, limit: int = 50) -> Page[OccurrenceItem]:
         return self.occurrences(

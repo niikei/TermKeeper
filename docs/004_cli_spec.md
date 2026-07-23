@@ -64,15 +64,16 @@ ANSI制御文字を含めない。`completion`と`--version`もプレーンテ�
 | `inbox` | Pending Occurrence一覧 | `--offset`, `--limit` |
 | `list` | Active Meaningのコンパクト一覧 | `--tag`, `--scope`, `--favorite` |
 | `resolve` | 新規・既存Meaningへ分類 | `occurrence_id`, `--meaning`または`--name`, `--scope`, `--description` |
-| `search` | Meaning検索 | query、field、tag、scope、favorite、suggestion |
+| `search` / `meaning search` | Meaning検索 | text、field、tag、scope、favorite、suggestion |
+| `inbox search` | Pending Occurrence検索 | text、source、since、ページング |
 | `show` | Meaning詳細 | Meaning ID |
 | `history` | 全Occurrence履歴 | `--offset`, `--limit` |
 | `stats` | 遭遇統計 | `--limit` |
-| `occurrence list/edit/unresolve/discard/reopen` | Occurrence管理 | filter、ID、ページング |
-| `meaning list/edit/alias-*/favorite/unfavorite` | Meaning管理 | Meaning ID、更新値 |
+| `occurrence search/list/edit/unresolve/discard/reopen` | Occurrence管理 | text、filter、ID、ページング |
+| `meaning search/list/edit/alias-*/favorite/unfavorite` | Meaning管理 | text、Meaning ID、更新値 |
 | `meaning relate/unrelate/related` | Meaning関連 | Meaning ID |
 | `meaning merge/delete/trash/restore/purge` | Meaning lifecycle | Meaning ID、`--dry-run`, `--yes` |
-| `scope add/list/edit/delete` | Scope管理 | name、description、Scope ID |
+| `scope search/add/list/edit/delete` | Scope管理 | text、name、description、Scope ID |
 | `tag add/remove/list` | Tag管理 | Meaning ID、name |
 | `reference add/edit/remove/list` | 参考URL管理 | Meaning・Reference ID |
 | `data export/import` | CSV入出力 | path、dry-run、strict |
@@ -153,7 +154,17 @@ DB側で`offset`と`limit + 1`を適用し、500件を超える履歴も取得�
 `offset`、`limit`、`has_more`を持つページ形式で、各itemにID、public_id、keyword、memo、
 source、status、meaning_id、各日時・監査列を含む。
 
-## `tk search`
+## Search
+
+```bash
+tk search TEXT
+tk meaning search TEXT
+tk occurrence search TEXT
+tk inbox search TEXT
+tk scope search TEXT
+```
+
+`tk search`と`tk meaning search`は同じMeaning検索ユースケースを呼ぶ。
 
 完全一致、前方一致、部分一致の順で採点する。複数語は標準でAND、`--match-any`でOR。
 `--field term|name|description|all`、`--tag`、`--scope`、`--favorite`で絞り込む。
@@ -161,6 +172,13 @@ source、status、meaning_id、各日時・監査列を含む。
 Term、正式名称、説明はNFKC＋casefoldで比較し、全角／半角や`Straße`／`STRASSE`の差を
 吸収する。レスポンスの一致文字列は正規化前の原文を返す。人間向け出力はID、正式名称、
 Scope、一致箇所、スコアに絞り、詳細は`tk show`で確認する。
+
+Occurrence検索はkeyword、memo、sourceを横断し、`--meaning`、`--status`、`--source`、
+`--since`の構造化条件を先に適用する。結果は`occurred_at`降順、Occurrence ID降順。
+Inbox検索はstatusを常にPendingへ固定し、source、since、ページングを受け付ける。
+
+Scope検索はnameとdescriptionを対象にし、正規化name、Scope IDの順で安定して返す。
+Occurrence、Inbox、Scope検索のJSONは`items`、`offset`、`limit`、`has_more`を持つ。
 
 ## Meaning lifecycle
 

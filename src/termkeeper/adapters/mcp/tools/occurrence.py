@@ -7,7 +7,7 @@ from termkeeper.adapters.external import (
     ExternalOccurrence,
     ExternalPage,
 )
-from termkeeper.adapters.mcp.inputs import OccurrenceFilters
+from termkeeper.adapters.mcp.inputs import OccurrenceFilters, OccurrenceSearchFilters
 from termkeeper.adapters.mcp.tools.context import ToolContext
 from termkeeper.domain import (
     GENERAL_SCOPE_PUBLIC_ID,
@@ -18,6 +18,30 @@ from termkeeper.domain import (
 
 
 class OccurrenceTools(ToolContext):
+    def search_occurrences(
+        self,
+        query: OccurrenceSearchFilters,
+    ) -> ExternalPage[ExternalOccurrence]:
+        """Search encounter terms, memos, and sources with structured filters."""
+        meaning_id = (
+            self._local_meaning_id(query.meaning_id, include_deleted=True)
+            if query.meaning_id is not None
+            else None
+        )
+        return self._mapper.occurrence_page(
+            self._service.search_occurrences(
+                OccurrenceQuery(
+                    meaning_id=meaning_id,
+                    status=OccurrenceStatus(query.status) if query.status else None,
+                    text=query.text,
+                    source=query.source,
+                    since=query.since,
+                    offset=query.offset,
+                    limit=query.limit,
+                ),
+            ),
+        )
+
     def list_occurrences(
         self,
         query: OccurrenceFilters | None = None,

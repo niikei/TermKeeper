@@ -16,7 +16,7 @@ from termkeeper.presentation.cli.style import danger, heading, identifier, muted
 
 def handle_search(args: argparse.Namespace, service: TermKeeperService) -> SearchResult:
     query = SearchQuery(
-        text=args.keyword,
+        text=args.text,
         match_all=args.match_all,
         field=args.search_field,
         limit=args.limit,

@@ -129,11 +129,21 @@ def print_occurrences(items: Sequence[OccurrenceItem]) -> None:
             print("      " + " / ".join(details))
 
 
-def print_has_more(result: Page[OccurrenceItem]) -> None:
+def print_has_more[T](result: Page[T]) -> None:
     if result.has_more:
         next_offset = result.offset + len(result.items)
         next_command = command(f"--offset {next_offset}")
         print(f"More items are available. Continue with {next_command}.")
+
+
+def print_scopes(items: Sequence[Scope]) -> None:
+    if not items:
+        print(muted("No scopes found."))
+        return
+    for item in items:
+        print(f"{identifier(f'#{item.scope_id}')} {heading(item.name)}")
+        if item.description:
+            print(muted(f"    {item.description}"))
 
 
 def print_stats(stats: StatsSummary) -> None:
