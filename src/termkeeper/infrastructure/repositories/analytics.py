@@ -16,18 +16,12 @@ def count_occurrences(session: Session) -> int:
 
 
 def count_open_inbox(session: Session) -> int:
-    statement = (
-        select(func.count()).select_from(Inbox).where(Inbox.status == InboxStatus.NEW)
-    )
+    statement = select(func.count()).select_from(Inbox).where(Inbox.status == InboxStatus.NEW)
     return session.exec(statement).one()
 
 
 def count_active_meanings(session: Session) -> int:
-    statement = (
-        select(func.count())
-        .select_from(Meaning)
-        .where(col(Meaning.deleted_at).is_(None))
-    )
+    statement = select(func.count()).select_from(Meaning).where(col(Meaning.deleted_at).is_(None))
     return session.exec(statement).one()
 
 

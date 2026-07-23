@@ -42,6 +42,7 @@ def test_merge_meanings_moves_terms_occurrences_and_inboxes() -> None:
     source_inbox = service.get_inbox(captured_source.inbox.inbox_id)
     assert source_inbox.resolved_meaning_id == target.meaning_id
 
+
 def test_merge_validation_and_rollback(monkeypatch: pytest.MonkeyPatch) -> None:
     service = TermKeeperService()
     source = service.create_meaning("Source", terms=("source-alias",))

@@ -25,6 +25,7 @@ def test_occurrences_are_preserved_and_linked_after_resolve() -> None:
     assert {item.source for item in occurrences} == {"Teams", "Slack"}
     assert all(item.meaning_id == meaning.meaning_id for item in occurrences)
 
+
 def test_occurrence_history_supports_filters_and_limit() -> None:
     service = TermKeeperService()
     captured = service.add("\uff2d\uff24\uff2d", memo="meeting", source="Teams")
@@ -45,6 +46,7 @@ def test_occurrence_history_supports_filters_and_limit() -> None:
     since = all_items[-1].occurred_at + timedelta(microseconds=1)
     assert len(service.occurrences(OccurrenceQuery(since=since))) == 2
 
+
 def test_occurrence_history_validates_limit() -> None:
     service = TermKeeperService()
 
@@ -52,6 +54,7 @@ def test_occurrence_history_validates_limit() -> None:
         service.occurrences(OccurrenceQuery(limit=0))
     with pytest.raises(ValidationError):
         service.occurrences(OccurrenceQuery(limit=501))
+
 
 def test_edit_occurrence_updates_context_audit_and_normalized_search() -> None:
     service = TermKeeperService()
@@ -79,6 +82,7 @@ def test_edit_occurrence_updates_context_audit_and_normalized_search() -> None:
     )
     assert cleared.memo is None
     assert cleared.source is None
+
 
 def test_edit_occurrence_validation_and_missing_record() -> None:
     service = TermKeeperService()

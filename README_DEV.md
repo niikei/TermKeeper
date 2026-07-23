@@ -45,8 +45,14 @@ src/termkeeper/
 │   ├── mapping.py          # SQLModelレコードからDTOへの変換
 │   ├── support.py          # Application層の共有処理
 │   └── errors.py           # Application層の例外
-├── infrastructure/         # SQLModelテーブル、Repository、Unit of Work
-├── presentation/           # CLI、表示、CSV
+├── infrastructure/
+│   ├── repositories/       # 機能別Repository
+│   └── ...                 # SQLModelテーブル、接続、Unit of Work
+├── presentation/
+│   ├── cli/
+│   │   └── handlers/       # 機能別CLI Handler
+│   └── csv_io.py           # CSV境界
+├── adapters/               # HTTP API、MCP
 └── config.py               # 実行時設定
 ```
 

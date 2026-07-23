@@ -22,6 +22,7 @@ def test_validation_and_missing_records_are_explicit() -> None:
     with pytest.raises(NotFoundError):
         service.get_inbox(999)
 
+
 def test_alias_is_idempotent() -> None:
     service = TermKeeperService()
     add_result = service.add("MDM")
@@ -32,6 +33,7 @@ def test_alias_is_idempotent() -> None:
     updated = service.add_alias(meaning.meaning_id, "master data management")
 
     assert len(updated.terms) == 2
+
 
 def test_edit_lists_and_searches_meanings() -> None:
     service = TermKeeperService()
@@ -46,6 +48,7 @@ def test_edit_lists_and_searches_meanings() -> None:
     assert service.meanings()[0].meaning_id == meaning.meaning_id
     assert service.search("SUITE").hits[0].meaning.meaning_id == meaning.meaning_id
 
+
 def test_user_profile_is_recorded_in_audit_columns() -> None:
     service = TermKeeperService()
     service.set_config("user.name", "Taro")
@@ -56,6 +59,7 @@ def test_user_profile_is_recorded_in_audit_columns() -> None:
     assert captured.inbox.created_by_id is not None
     assert meaning.created_by_id == captured.inbox.created_by_id
     assert meaning.updated_by_id == captured.inbox.created_by_id
+
 
 def test_alias_removal_meaning_deletion_and_config_unset() -> None:
     service = TermKeeperService()
@@ -74,6 +78,7 @@ def test_alias_removal_meaning_deletion_and_config_unset() -> None:
     service.delete_meaning(meaning.meaning_id)
     with pytest.raises(NotFoundError):
         service.get_meaning(meaning.meaning_id)
+
 
 def test_trash_restore_and_purge_preserve_then_remove_related_data() -> None:
     service = TermKeeperService()

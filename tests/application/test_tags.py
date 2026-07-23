@@ -27,6 +27,7 @@ def test_tags_are_idempotent_listed_and_filter_meanings_and_search() -> None:
     assert updated.tags == ()
     assert [tag.name for tag in service.tags()] == ["Sales"]
 
+
 def test_tag_validation_and_missing_assignment() -> None:
     service = TermKeeperService()
     meaning = service.create_meaning("Meaning")

@@ -31,6 +31,7 @@ def test_related_meanings_are_symmetric_idempotent_and_removable() -> None:
     with pytest.raises(NotFoundError):
         service.unrelate(erp.meaning_id, mrp.meaning_id)
 
+
 def test_related_meanings_hide_soft_deleted_targets() -> None:
     service = TermKeeperService()
     source = service.create_meaning("Source")

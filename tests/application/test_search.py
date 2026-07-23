@@ -21,6 +21,7 @@ def test_search_ranks_matches_and_reports_reason() -> None:
     assert hits[0].matched_field == SearchField.TERM
     assert hits[0].matched_text == "ERP"
 
+
 def test_search_supports_multiple_words_fields_modes_and_limit() -> None:
     service = TermKeeperService()
     erp = service.create_meaning(
@@ -42,6 +43,7 @@ def test_search_supports_multiple_words_fields_modes_and_limit() -> None:
     assert service.search(SearchQuery("enterprise", field=SearchField.DESCRIPTION)).hits == ()
     assert len(service.search(SearchQuery("enterprise", limit=1)).hits) == 1
 
+
 def test_search_treats_sql_wildcards_as_text_and_validates_limit() -> None:
     service = TermKeeperService()
     percent = service.create_meaning("100% Completion")
@@ -56,6 +58,7 @@ def test_search_treats_sql_wildcards_as_text_and_validates_limit() -> None:
         service.search(SearchQuery("term", limit=101))
     with pytest.raises(ValidationError):
         service.search(SearchQuery("term", suggestion_limit=11))
+
 
 def test_search_suggests_similar_active_meanings_only_when_no_hits() -> None:
     service = TermKeeperService()
@@ -78,6 +81,7 @@ def test_search_suggests_similar_active_meanings_only_when_no_hits() -> None:
     assert exact.hits
     assert exact.suggestions == ()
     assert service.search(SearchQuery("ERPP", suggestion_limit=0)).suggestions == ()
+
 
 def test_description_search_has_no_suggestion_without_descriptions() -> None:
     service = TermKeeperService()

@@ -20,6 +20,7 @@ def test_capture_duplicate_increments_occurrence_count() -> None:
     assert second.inbox.memo == "meeting"
     assert second.inbox.source == "chat"
 
+
 def test_edit_open_inbox_validates_state_and_duplicates() -> None:
     service = TermKeeperService()
     service.set_config("user.name", "Editor")
@@ -42,6 +43,7 @@ def test_edit_open_inbox_validates_state_and_duplicates() -> None:
     with pytest.raises(ValidationError):
         service.edit_inbox(first.inbox.inbox_id, "ERP updated")
 
+
 def test_resolve_creates_searchable_meaning_and_closes_inbox() -> None:
     service = TermKeeperService()
     add_result = service.add("BTP")
@@ -53,6 +55,7 @@ def test_resolve_creates_searchable_meaning_and_closes_inbox() -> None:
     assert service.get_inbox(item.inbox_id).status == "Closed"
     assert service.search("sap").hits[0].meaning.meaning_id == meaning.meaning_id
     assert service.add("btp").outcome == "registered"
+
 
 def test_discard_updates_history_and_prevents_repeated_actions() -> None:
     service = TermKeeperService()
@@ -68,6 +71,7 @@ def test_discard_updates_history_and_prevents_repeated_actions() -> None:
     with pytest.raises(ValidationError):
         service.resolve(captured.inbox.inbox_id, "Obsolete")
 
+
 def test_resolve_and_alias_validation() -> None:
     service = TermKeeperService()
     captured = service.add("blank")
@@ -80,6 +84,7 @@ def test_resolve_and_alias_validation() -> None:
         service.add_alias(meaning.meaning_id, " ")
     with pytest.raises(ValidationError):
         service.edit(meaning.meaning_id, " ", None)
+
 
 def test_resolve_rolls_back_all_changes_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     service = TermKeeperService()
