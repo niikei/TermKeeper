@@ -1,4 +1,4 @@
-"""Create the original inbox-oriented TermKeeper schema."""
+"""Create the initial TermKeeper schema."""
 
 import sqlalchemy as sa
 from alembic import op
@@ -23,6 +23,9 @@ def upgrade() -> None:
         sa.Column("meaning_id", sa.Integer(), primary_key=True),
         sa.Column("public_id", sa.Uuid(), nullable=False),
         sa.Column("full_name", sa.String(), nullable=False),
+        sa.Column("full_name_norm", sa.String(), nullable=False),
+        sa.Column("scope", sa.String(), nullable=False),
+        sa.Column("scope_norm", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=True),
         sa.Column("is_favorite", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
@@ -32,6 +35,7 @@ def upgrade() -> None:
         sa.Column("updated_by_id", sa.Integer(), nullable=True),
         sa.Column("deleted_by_id", sa.Integer(), nullable=True),
         sa.CheckConstraint("length(trim(full_name)) > 0"),
+        sa.CheckConstraint("length(trim(scope)) > 0"),
         sa.ForeignKeyConstraint(["created_by_id"], ["userprofile.user_id"]),
         sa.ForeignKeyConstraint(["updated_by_id"], ["userprofile.user_id"]),
         sa.ForeignKeyConstraint(["deleted_by_id"], ["userprofile.user_id"]),
@@ -39,39 +43,12 @@ def upgrade() -> None:
     op.create_index("ix_meaning_public_id", "meaning", ["public_id"], unique=True)
     op.create_index("ix_meaning_deleted_at", "meaning", ["deleted_at"])
     op.create_index("ix_meaning_is_favorite", "meaning", ["is_favorite"])
-    op.create_table(
-        "inbox",
-        sa.Column("inbox_id", sa.Integer(), primary_key=True),
-        sa.Column("public_id", sa.Uuid(), nullable=False),
-        sa.Column("keyword", sa.String(), nullable=False),
-        sa.Column("keyword_norm", sa.String(), nullable=False),
-        sa.Column(
-            "status",
-            sa.Enum("NEW", "CLOSED", "DISCARDED", name="inboxstatus"),
-            nullable=False,
-        ),
-        sa.Column("resolved_meaning_id", sa.Integer(), nullable=True),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
-        sa.Column("closed_at", sa.DateTime(), nullable=True),
-        sa.Column("created_by_id", sa.Integer(), nullable=True),
-        sa.Column("updated_by_id", sa.Integer(), nullable=True),
-        sa.CheckConstraint("length(trim(keyword)) > 0"),
-        sa.ForeignKeyConstraint(
-            ["resolved_meaning_id"],
-            ["meaning.meaning_id"],
-            ondelete="SET NULL",
-        ),
-        sa.ForeignKeyConstraint(["created_by_id"], ["userprofile.user_id"]),
-        sa.ForeignKeyConstraint(["updated_by_id"], ["userprofile.user_id"]),
-    )
-    op.create_index("ix_inbox_public_id", "inbox", ["public_id"], unique=True)
     op.create_index(
-        "uq_inbox_open_keyword",
-        "inbox",
-        ["keyword_norm"],
+        "uq_meaning_active_scope_name",
+        "meaning",
+        ["scope_norm", "full_name_norm"],
         unique=True,
-        sqlite_where=sa.text("status = 'NEW'"),
+        sqlite_where=sa.text("deleted_at IS NULL"),
     )
     op.create_table(
         "term",
@@ -161,21 +138,38 @@ def upgrade() -> None:
         sa.Column("public_id", sa.Uuid(), nullable=False),
         sa.Column("keyword", sa.String(), nullable=False),
         sa.Column("keyword_norm", sa.String(), nullable=False),
-        sa.Column("inbox_id", sa.Integer(), nullable=True),
+        sa.Column(
+            "status",
+            sa.Enum("PENDING", "RESOLVED", "DISCARDED", name="occurrencestatus"),
+            nullable=False,
+        ),
         sa.Column("meaning_id", sa.Integer(), nullable=True),
         sa.Column("memo", sa.String(), nullable=True),
         sa.Column("source", sa.String(), nullable=True),
         sa.Column("occurred_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.Column("resolved_at", sa.DateTime(), nullable=True),
+        sa.Column("discarded_at", sa.DateTime(), nullable=True),
         sa.Column("created_by_id", sa.Integer(), nullable=True),
         sa.Column("updated_by_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["inbox_id"], ["inbox.inbox_id"]),
-        sa.ForeignKeyConstraint(["meaning_id"], ["meaning.meaning_id"], ondelete="SET NULL"),
+        sa.Column("resolved_by_id", sa.Integer(), nullable=True),
+        sa.Column("discarded_by_id", sa.Integer(), nullable=True),
+        sa.CheckConstraint("length(trim(keyword)) > 0"),
+        sa.CheckConstraint(
+            "(status = 'PENDING' AND meaning_id IS NULL) OR "
+            "(status = 'RESOLVED' AND meaning_id IS NOT NULL) OR "
+            "(status = 'DISCARDED' AND meaning_id IS NULL)",
+            name="ck_occurrence_status_meaning",
+        ),
+        sa.ForeignKeyConstraint(["meaning_id"], ["meaning.meaning_id"], ondelete="RESTRICT"),
         sa.ForeignKeyConstraint(["created_by_id"], ["userprofile.user_id"]),
         sa.ForeignKeyConstraint(["updated_by_id"], ["userprofile.user_id"]),
+        sa.ForeignKeyConstraint(["resolved_by_id"], ["userprofile.user_id"]),
+        sa.ForeignKeyConstraint(["discarded_by_id"], ["userprofile.user_id"]),
     )
     op.create_index("ix_occurrence_public_id", "occurrence", ["public_id"], unique=True)
     op.create_index("ix_occurrence_keyword_norm", "occurrence", ["keyword_norm"])
+    op.create_index("ix_occurrence_status", "occurrence", ["status"])
     op.create_index("ix_occurrence_occurred_at", "occurrence", ["occurred_at"])
 
 
@@ -186,6 +180,5 @@ def downgrade() -> None:
     op.drop_table("meaningtag")
     op.drop_table("tag")
     op.drop_table("term")
-    op.drop_table("inbox")
     op.drop_table("meaning")
     op.drop_table("userprofile")

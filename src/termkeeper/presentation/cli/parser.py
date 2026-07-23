@@ -23,6 +23,11 @@ def create_parser() -> argparse.ArgumentParser:
         version=f"%(prog)s {__version__}",
     )
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Show technical details when an unexpected error occurs",
+    )
     sub = _Subparsers(parser)
     sub.add("init", "Initialize or migrate the database")
     _add_capture_commands(sub)

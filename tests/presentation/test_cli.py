@@ -61,6 +61,39 @@ def test_json_error_is_machine_readable(capsys: pytest.CaptureFixture[str]) -> N
     assert error["error"] == "NotFoundError"
 
 
+def test_initialization_error_hides_internal_traceback(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def fail_initialization() -> None:
+        message = "database exploded"
+        raise RuntimeError(message)
+
+    monkeypatch.setattr("termkeeper.application.service.init_db", fail_initialization)
+
+    assert main(["config"]) == 1
+    captured = capsys.readouterr()
+    assert "Could not initialize the TermKeeper database" in captured.err
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
+
+
+def test_debug_initialization_error_includes_original_traceback(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def fail_initialization() -> None:
+        message = "database exploded"
+        raise RuntimeError(message)
+
+    monkeypatch.setattr("termkeeper.application.service.init_db", fail_initialization)
+
+    assert main(["--debug", "config"]) == 1
+    captured = capsys.readouterr()
+    assert "Traceback" in captured.err
+    assert "database exploded" in captured.err
+
+
 def test_human_readable_management_commands(
     capsys: pytest.CaptureFixture[str],
 ) -> None:

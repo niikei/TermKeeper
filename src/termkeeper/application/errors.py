@@ -7,3 +7,7 @@ class ValidationError(ValueError):
 
 class NotFoundError(LookupError):
     pass
+
+
+class InitializationError(RuntimeError):
+    """Raised when TermKeeper cannot initialize its local resources."""
