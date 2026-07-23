@@ -28,6 +28,7 @@ def create_parser() -> argparse.ArgumentParser:
         epilog=(
             "Everyday workflow:\n"
             "  tk add TERM          Capture a term as encountered\n"
+            "  tk add-many          Capture multiple terms safely\n"
             "  tk inbox             Review unresolved occurrences\n"
             "  tk list              Browse known meanings\n"
             "  tk search QUERY      Find a meaning\n"

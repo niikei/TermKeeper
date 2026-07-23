@@ -19,6 +19,7 @@ from termkeeper.adapters.cli.style import (
 )
 from termkeeper.adapters.cli.types import CommandResult
 from termkeeper.domain import (
+    CaptureBatchResult,
     CaptureResult,
     ImportResult,
     Meaning,
@@ -38,6 +39,7 @@ def print_json(value: CommandResult) -> None:
     if isinstance(
         value,
         (
+            CaptureBatchResult,
             CaptureResult,
             ImportResult,
             Meaning,

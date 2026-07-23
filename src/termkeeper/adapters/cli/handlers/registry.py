@@ -2,6 +2,7 @@
 
 from termkeeper.adapters.cli.handlers.capture import (
     handle_add,
+    handle_add_many,
     handle_discard,
     handle_history,
     handle_inbox,
@@ -66,6 +67,7 @@ HANDLERS: dict[str, CommandHandler] = {
     "dashboard": handle_dashboard,
     "init": handle_init,
     "add": handle_add,
+    "add-many": handle_add_many,
     "inbox": handle_inbox,
     "inbox-search": handle_inbox_search,
     "history": handle_history,

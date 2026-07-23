@@ -32,6 +32,34 @@ def add_primary_commands(commands: Commands) -> None:
         help="Keep matching occurrences pending without asking",
     )
 
+    add_many = commands.add(
+        "add-many",
+        "Capture multiple terms safely",
+        handler="add-many",
+        examples=(
+            "Examples:\n"
+            "  tk add-many\n"
+            "  tk add-many --term ERP --term CRM\n"
+            "  tk add-many --file terms.txt\n"
+            "  pbpaste | tk add-many --file - --yes"
+        ),
+    )
+    inputs = add_many.add_mutually_exclusive_group()
+    inputs.add_argument(
+        "--term",
+        action="append",
+        dest="terms",
+        help="Term to capture; repeat the option for each term",
+    )
+    inputs.add_argument("--file", help="UTF-8 file with one term per line; use - for stdin")
+    add_many.add_argument("--memo", help="Context or reminder shared by every term")
+    add_many.add_argument("--source", help="Source shared by every term")
+    add_many.add_argument(
+        "--yes",
+        action="store_true",
+        help="Skip the interactive preview confirmation",
+    )
+
     inbox = commands.add("inbox", "Show pending occurrences", handler="inbox")
     add_pagination_arguments(inbox)
     inbox_actions = Commands(

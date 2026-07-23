@@ -73,6 +73,84 @@ def test_json_workflow(capsys: pytest.CaptureFixture[str]) -> None:
     assert matches["suggestions"] == []
 
 
+def test_add_many_json_captures_explicit_terms_atomically(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert (
+        main(
+            [
+                "add-many",
+                "--term",
+                "ERP",
+                "--term",
+                "Business Unit",
+                "--source",
+                "Teams",
+                "--json",
+            ],
+        )
+        == 0
+    )
+
+    result = json.loads(capsys.readouterr().out)
+    assert [item["occurrence"]["keyword"] for item in result["items"]] == [
+        "ERP",
+        "Business Unit",
+    ]
+    assert all(item["occurrence"]["source"] == "Teams" for item in result["items"])
+
+
+def test_add_many_interactive_input_previews_before_capture(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    answers = iter(("ERP", "Business Unit", "", "y"))
+    monkeypatch.setattr(
+        "termkeeper.adapters.cli.batch_input.can_confirm",
+        lambda: True,
+    )
+    monkeypatch.setattr("builtins.input", lambda _prompt: next(answers))
+
+    assert main(["add-many"]) == 0
+
+    output = capsys.readouterr().out
+    assert "2 terms to capture:" in output
+    assert "Captured 2 occurrences." in output
+    assert [item.keyword for item in TermKeeperService().inbox().items] == [
+        "Business Unit",
+        "ERP",
+    ]
+
+
+def test_add_many_file_errors_do_not_partially_write(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    path = tmp_path / "terms.txt"
+    path.write_text("ERP\n\nCRM\n", encoding="utf-8")
+
+    assert main(["add-many", "--file", str(path), "--yes"]) == 2
+
+    assert "empty value at line 2" in capsys.readouterr().err
+    assert TermKeeperService().history().items == ()
+
+
+def test_add_many_rejects_ambiguous_positional_terms() -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["add-many", "Business", "Unit"])
+
+    assert exc_info.value.code == 2
+
+
+def test_add_many_json_requires_an_explicit_input(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["add-many", "--json"]) == 2
+
+    error = json.loads(capsys.readouterr().out)
+    assert "--term or --file" in error["message"]
+
+
 def test_cli_error_has_nonzero_exit_code(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["show", "404"]) == 2
     assert "not found" in capsys.readouterr().err.lower()

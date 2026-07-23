@@ -5,6 +5,7 @@ from collections.abc import Callable, Mapping
 
 from termkeeper.application import TermKeeperService
 from termkeeper.domain import (
+    CaptureBatchResult,
     CaptureResult,
     ImportResult,
     Meaning,
@@ -20,7 +21,8 @@ from termkeeper.domain import (
 )
 
 type CommandResult = (
-    CaptureResult
+    CaptureBatchResult
+    | CaptureResult
     | ImportResult
     | Meaning
     | MergeResult
