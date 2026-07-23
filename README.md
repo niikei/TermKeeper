@@ -25,7 +25,10 @@ pip install -e .
 tk init
 ```
 
-データベースは標準で `data/termkeeper.db` に保存されます。保存先は環境変数で変更できます。
+データベースはOS標準のユーザーデータ領域に保存されます。macOSでは通常
+`~/Library/Application Support/TermKeeper/termkeeper.db`です。保存先は環境変数で変更できます。
+旧既定値の`data/termkeeper.db`は自動移行しません。継続利用する場合は`TERMKEEPER_DB`で
+明示してください。
 
 ```bash
 TERMKEEPER_DB=~/Documents/terms.db tk inbox

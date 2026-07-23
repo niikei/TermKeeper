@@ -96,6 +96,17 @@ def get_by_public_id(
     return session.exec(statement).first()
 
 
+def get_public_ids(session: Session, meaning_ids: set[int]) -> dict[int, UUID]:
+    if not meaning_ids:
+        return {}
+    rows = session.exec(
+        select(Meaning.meaning_id, Meaning.public_id).where(
+            col(Meaning.meaning_id).in_(meaning_ids),
+        ),
+    ).all()
+    return {meaning_id: public_id for meaning_id, public_id in rows if meaning_id is not None}
+
+
 def get_terms(session: Session, meaning_id: int) -> list[Term]:
     statement = select(Term).where(Term.meaning_id == meaning_id).order_by(Term.keyword_norm)
     return list(session.exec(statement).all())

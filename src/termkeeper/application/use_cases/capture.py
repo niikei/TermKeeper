@@ -31,6 +31,8 @@ class CaptureUseCases:
         meaning_id: int | None = None,
     ) -> CaptureResult:
         keyword = _required_text(keyword, "Keyword")
+        memo = _optional_text(memo, "Memo")
+        source = _optional_text(source, "Source")
         with UnitOfWork() as uow:
             actor_id = user_id(settings_repository.get_profile(uow.session))
             if meaning_id is not None:
@@ -156,6 +158,12 @@ def _required_text(value: str, label: str) -> str:
         message = f"{label} must not be empty."
         raise ValidationError(message)
     return normalized
+
+
+def _optional_text(value: str | None, label: str) -> str | None:
+    if value is None:
+        return None
+    return _required_text(value, label)
 
 
 def _require_status(actual: OccurrenceStatus, expected: OccurrenceStatus) -> None:

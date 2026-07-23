@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.18,<2",
+    "platformdirs>=4,<5",
     "sqlmodel>=0.0.39,<0.1",
 ]
 

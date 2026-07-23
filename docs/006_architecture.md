@@ -44,6 +44,7 @@ CSVファイルの読み取りはPresentationで`ImportRow`へ変換し、検証
 Meaning Repositoryの通常取得は`deleted_at IS NULL`を共通条件とする。Trash操作だけが
 削除済みMeaningを明示的に取得する。Meaning統合は参照移動後に統合元を完全削除するが、
 利用者による通常削除は必ず論理削除とする。
+Tag集計も有効Meaningだけを対象とし、削除・復元に応じて件数へ反映する。
 Meaningは`scope_norm`と`full_name_norm`の組を有効行内で一意にし、同一製品・業務領域での
 重複概念を防ぐ。同じTermは複数Meaningに属せるため、候補取得は全件を返す。
 お気に入りはMeaningの属性として保持し、一覧・検索の絞り込みはRepositoryで行う。
@@ -57,6 +58,8 @@ Meaning間の関連は小さいIDを先にした対称ペアとして正規化�
 Captureは毎回OccurrenceをPendingで保存し、Term一致は候補として返すだけにする。Inboxは
 Pending Occurrenceの読み取りビューであり永続テーブルを持たない。Meaningへの分類・再分類・
 解除・破棄・再開はApplicationの明示ユースケースとする。
+Capture時のkeyword、memo、sourceはApplication境界で前後空白を除去し、指定された空文字列を
+拒否する。
 
 出現分析はOccurrence、Meaningに対する読み取り専用の集約として実装する。集計SQLは
 Repositoryへ閉じ込め、Applicationからは`StatsSummary`として返す。
@@ -74,6 +77,8 @@ HTTP APIとMCPがMeaningを入力として受け取る場合は`public_id`（UUI
 CLIだけで使用する。
 Referenceの編集・削除にもReference自身の`public_id`を使用する。HTTP/MCPレスポンスは専用の
 外部DTOへ変換し、DB連番や内部ユーザーIDを公開しない。
+OccurrenceやReferenceの一覧変換では、関連Meaningの内部IDから`public_id`への対応を一括取得し、
+項目ごとのRepository呼び出しを行わない。
 
 外部の一覧応答は`items`、`offset`、`limit`、`has_more`を持つ共通ページ形式とする。
 検索応答も同じページ情報を持ち、HTTPとMCPで境界の意味を統一する。
@@ -96,6 +101,8 @@ RouteとMCP Toolは機能単位のモジュールへ分割し、アプリケー�
 
 ## スキーマ管理
 
+既定DBはOS標準のユーザーデータ領域へ保存し、カレントディレクトリには依存させない。
+開発・テスト・外部アダプターでは`TERMKEEPER_DB`による明示パスを優先する。
 `tk init` および各CLI起動時にAlembicを実行し、最新Revisionまでupgradeする。
 現行モデルを`0001_initial`の初期ベースラインとする。各Revisionは固定DDLとして保持し、
 スキーマ変更時は適用済みRevisionを書き換えず、新しいRevisionを追加して順番に適用する。

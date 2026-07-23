@@ -32,10 +32,9 @@ class ReferenceTools(ToolContext):
     ) -> ExternalPage[ExternalReference]:
         """List reference URLs attached to a meaning."""
         return page(
-            [
-                self._mapper.reference(item)
-                for item in self._service.references(self._local_meaning_id(meaning_id))
-            ],
+            self._mapper.references(
+                self._service.references(self._local_meaning_id(meaning_id)),
+            ),
             offset,
             limit,
         )

@@ -127,6 +127,20 @@ def test_occurrence_public_id_and_validation_errors_are_explicit() -> None:
         service.add("ERP", meaning_id=999)
 
 
+def test_capture_normalizes_and_validates_optional_context() -> None:
+    service = TermKeeperService()
+
+    captured = service.add(" ERP ", memo=" planning ", source=" Teams ")
+
+    assert captured.occurrence.keyword == "ERP"
+    assert captured.occurrence.memo == "planning"
+    assert captured.occurrence.source == "Teams"
+    with pytest.raises(ValidationError, match="Memo must not be empty"):
+        service.add("ERP", memo=" ")
+    with pytest.raises(ValidationError, match="Source must not be empty"):
+        service.add("ERP", source=" ")
+
+
 def test_resolve_rolls_back_all_changes_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     service = TermKeeperService()
     captured = service.add("TX")

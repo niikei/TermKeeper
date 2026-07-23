@@ -40,3 +40,19 @@ def test_tag_validation_and_missing_assignment() -> None:
         service.remove_tag(meaning.meaning_id, "missing")
     with pytest.raises(NotFoundError):
         service.remove_tag(meaning.meaning_id, "existing")
+
+
+def test_tag_summaries_exclude_soft_deleted_meanings() -> None:
+    service = TermKeeperService()
+    active = service.create_meaning("Active")
+    deleted = service.create_meaning("Deleted")
+    service.add_tag(active.meaning_id, "Shared")
+    service.add_tag(deleted.meaning_id, "Shared")
+
+    service.delete_meaning(deleted.meaning_id)
+
+    assert [(tag.name, tag.meaning_count) for tag in service.tags()] == [("Shared", 1)]
+
+    service.restore_meaning(deleted.meaning_id)
+
+    assert [(tag.name, tag.meaning_count) for tag in service.tags()] == [("Shared", 2)]

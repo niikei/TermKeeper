@@ -4,7 +4,7 @@ from sqlalchemy import func
 from sqlmodel import Session, col, select
 
 from termkeeper.infrastructure.sqlite_utils import normalize_keyword
-from termkeeper.infrastructure.tables import MeaningTag, Tag
+from termkeeper.infrastructure.tables import Meaning, MeaningTag, Tag
 
 
 def add(session: Session, meaning_id: int, name: str, user_id: int | None) -> bool:
@@ -49,6 +49,11 @@ def list_summaries(session: Session) -> list[tuple[str, int]]:
     statement = (
         select(Tag.name, func.count(col(MeaningTag.meaning_id)))
         .join(MeaningTag)
+        .join(
+            Meaning,
+            col(Meaning.meaning_id) == col(MeaningTag.meaning_id),
+        )
+        .where(col(Meaning.deleted_at).is_(None))
         .group_by(col(Tag.tag_id))
         .order_by(col(Tag.name_norm))
     )

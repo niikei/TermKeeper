@@ -39,6 +39,10 @@ class MeaningUseCases:
                 raise NotFoundError(message)
             return to_meaning(uow.session, record)
 
+    def meaning_public_ids(self, meaning_ids: set[int]) -> dict[int, UUID]:
+        with UnitOfWork() as uow:
+            return meaning_repository.get_public_ids(uow.session, meaning_ids)
+
     def create_meaning(
         self,
         full_name: str,

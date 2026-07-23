@@ -24,10 +24,7 @@ def _register_reference_routes(
         limit: Annotated[int, Query(ge=1, le=100)] = 20,
     ) -> ExternalPage[ExternalReference]:
         return page(
-            [
-                mapper.reference(item)
-                for item in service.references(_local_meaning_id(service, meaning_id))
-            ],
+            mapper.references(service.references(_local_meaning_id(service, meaning_id))),
             offset,
             limit,
         )
