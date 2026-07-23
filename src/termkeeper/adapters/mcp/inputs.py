@@ -7,6 +7,8 @@ from uuid import UUID
 
 from pydantic import Field
 
+from termkeeper.domain import GENERAL_SCOPE_PUBLIC_ID
+
 type Offset = Annotated[
     int,
     Field(ge=0, description="Zero-based result offset; add returned item count for next page"),
@@ -67,6 +69,21 @@ class MeaningFilters:
     favorite_only: bool = False
     offset: Offset = 0
     limit: Limit = 20
+
+
+@dataclass(frozen=True)
+class MeaningCreateInput:
+    full_name: str
+    scope_id: UUID = GENERAL_SCOPE_PUBLIC_ID
+    description: str | None = None
+    aliases: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class MeaningEditInput:
+    full_name: str
+    scope_id: UUID = GENERAL_SCOPE_PUBLIC_ID
+    description: str | None = None
 
 
 @dataclass(frozen=True)

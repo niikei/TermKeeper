@@ -24,6 +24,13 @@ def create_server(service: TermKeeperService | None = None) -> FastMCP:
     )
     for tool in (
         tools.capture_term,
+        tools.create_meaning,
+        tools.edit_meaning,
+        tools.add_alias,
+        tools.remove_alias,
+        tools.delete_meaning,
+        tools.list_trash,
+        tools.restore_meaning,
         tools.list_inbox,
         tools.search_inbox,
         tools.search_meanings,

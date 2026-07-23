@@ -3,6 +3,8 @@ from datetime import UTC
 
 from termkeeper.adapters.mcp import (
     InboxSearchFilters,
+    MeaningCreateInput,
+    MeaningEditInput,
     MeaningFilters,
     OccurrenceFilters,
     OccurrenceSearchFilters,
@@ -24,13 +26,17 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
 
     assert {tool.name for tool in tools} == {
         "add_reference",
+        "add_alias",
         "add_tag",
         "assign_occurrence",
         "capture_term",
         "create_scope",
+        "create_meaning",
+        "delete_meaning",
         "delete_scope",
         "discard_occurrence",
         "edit_occurrence",
+        "edit_meaning",
         "edit_reference",
         "edit_scope",
         "favorite_meaning",
@@ -38,6 +44,7 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
         "get_stats",
         "list_inbox",
         "list_meanings",
+        "list_trash",
         "list_occurrences",
         "list_references",
         "list_related",
@@ -46,7 +53,9 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
         "relate_meanings",
         "remove_tag",
         "remove_reference",
+        "remove_alias",
         "reopen_occurrence",
+        "restore_meaning",
         "resolve_occurrence",
         "search_meanings",
         "search_inbox",
@@ -90,6 +99,34 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
     assert "next page" in search_definitions["Offset"]["description"]
     assert definitions["resolve_occurrence"]["properties"]["occurrence_id"]["format"] == "uuid"
     assert definitions["edit_occurrence"]["properties"]["occurrence_id"]["format"] == "uuid"
+
+
+def test_mcp_meaning_lifecycle_is_safe_and_reversible() -> None:
+    tools = TermKeeperMcpTools(TermKeeperService())
+    scope = tools.create_scope("SAP")
+    created = tools.create_meaning(
+        MeaningCreateInput(
+            "Enterprise Resource Planning",
+            scope.public_id,
+            aliases=("ERP",),
+        ),
+    )
+
+    assert tools.add_alias(created.public_id, "ERP System").terms == (
+        "Enterprise Resource Planning",
+        "ERP",
+        "ERP System",
+    )
+    assert tools.remove_alias(created.public_id, "ERP System").public_id == created.public_id
+    edited = tools.edit_meaning(
+        created.public_id,
+        MeaningEditInput("Enterprise Resource Planning Suite", scope.public_id),
+    )
+    assert edited.full_name == "Enterprise Resource Planning Suite"
+
+    assert tools.delete_meaning(created.public_id) == {"meaning_id": created.public_id}
+    assert tools.list_trash().items[0].public_id == created.public_id
+    assert tools.restore_meaning(created.public_id).public_id == created.public_id
 
 
 def test_mcp_tools_delegate_complete_workflow() -> None:

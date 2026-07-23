@@ -374,6 +374,8 @@ Scopeは`/api/v1/scopes`で管理し、HTTP/MCPからMeaningのScopeを指定す
 MCPでは`list_meanings`で検索語なしのMeaning巡回、`search_meanings`で関連度付き検索を
 使い分けます。どちらも`has_more`が真なら、現在の`offset`に返却件数を足して次ページを
 取得します。
+Meaningの作成・編集・Alias追加削除・論理削除・Trash確認・復元も型付きMCPツールで行えます。
+不可逆なpurgeはAI向けツールとして公開せず、人間がCLIで明示確認して実行します。
 
 検索エンドポイントは`/api/v1/meanings/search`、`/api/v1/occurrences/search`、
 `/api/v1/inbox/search`、`/api/v1/scopes/search`です。

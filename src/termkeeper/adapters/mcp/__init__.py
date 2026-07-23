@@ -2,6 +2,8 @@
 
 from termkeeper.adapters.mcp.inputs import (
     InboxSearchFilters,
+    MeaningCreateInput,
+    MeaningEditInput,
     MeaningFilters,
     OccurrenceFilters,
     OccurrenceSearchFilters,
@@ -14,6 +16,8 @@ from termkeeper.adapters.mcp.tools import TermKeeperMcpTools
 __all__ = [
     "InboxSearchFilters",
     "MeaningFilters",
+    "MeaningCreateInput",
+    "MeaningEditInput",
     "OccurrenceFilters",
     "OccurrenceSearchFilters",
     "ScopeSearchFilters",

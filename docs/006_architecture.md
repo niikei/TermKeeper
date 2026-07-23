@@ -84,6 +84,8 @@ MCPアダプターは公式Python SDKのFastMCPを使用し、標準入出力tra
 `TermKeeperMcpTools`は具体的なDomain DTOを返し、FastMCPが型注釈から構造化出力スキーマを
 生成・検証する。検証・トランザクション・検索などの業務ロジックは`TermKeeperService`へ
 委譲する。SDKは安定版v1系へ上限を設け、v2の破壊的変更を暗黙に取り込まない。
+AI向けMeaning管理は作成、編集、Alias、論理削除、復元までを公開する。不可逆なpurgeはMCPへ
+公開せず、CLIの確認付き操作に限定する。
 HTTP APIとMCPがMeaningを入力として受け取る場合は`public_id`（UUID）だけを使用する。
 分類・Occurrence編集にはOccurrence自身の`public_id`を使用する。整数IDはローカルDBと
 CLIだけで使用する。
