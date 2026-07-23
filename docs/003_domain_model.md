@@ -18,6 +18,7 @@ erDiagram
     MEANING ||--o{ MEANINGTAG : "classified by"
     MEANING ||--o{ MEANINGRELATION : "related as low id"
     MEANING ||--o{ MEANINGRELATION : "related as high id"
+    MEANING ||--o{ MEANINGREFERENCE : "has sources"
     TAG ||--o{ MEANINGTAG : "assigned through"
     MEANING o|--o{ INBOX : "resolves captures"
     INBOX o|--o{ OCCURRENCE : "records encounters"
@@ -79,6 +80,17 @@ erDiagram
         integer created_by_id FK "nullable"
     }
 
+    MEANINGREFERENCE {
+        integer reference_id PK
+        integer meaning_id FK
+        text url
+        text title "nullable"
+        datetime created_at "UTC"
+        datetime updated_at "UTC"
+        integer created_by_id FK "nullable"
+        integer updated_by_id FK "nullable"
+    }
+
     INBOX {
         integer inbox_id PK
         text keyword
@@ -122,6 +134,7 @@ erDiagram
 - Termの `(keyword_norm, meaning_id)` は一意で、同じMeaningへの別表記の重複を防ぐ。
 - Tagの `name_norm` は一意で、MeaningTagによりMeaningと多対多で関連付ける。
 - MeaningRelationは小さいMeaning IDを`meaning_id_low`へ格納し、対称な関連を一意に保つ。
+- MeaningReferenceの`(meaning_id, url)`は一意で、Meaning削除時に連動して削除される。
 - `keyword_norm` はNFKC正規化と大文字・小文字の統一後の検索値を保持する。
 
 ### インデックス

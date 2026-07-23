@@ -7,6 +7,7 @@ from termkeeper.application.use_cases.inbox import InboxUseCases
 from termkeeper.application.use_cases.meaning import MeaningUseCases
 from termkeeper.application.use_cases.merge import MergeUseCases
 from termkeeper.application.use_cases.occurrence import OccurrenceUseCases
+from termkeeper.application.use_cases.reference import ReferenceUseCases
 from termkeeper.application.use_cases.relation import RelationUseCases
 from termkeeper.application.use_cases.tag import TagUseCases
 
@@ -18,6 +19,7 @@ __all__ = [
     "MeaningUseCases",
     "MergeUseCases",
     "OccurrenceUseCases",
+    "ReferenceUseCases",
     "RelationUseCases",
     "TagUseCases",
 ]

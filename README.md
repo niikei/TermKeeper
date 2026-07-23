@@ -119,6 +119,10 @@ tk unfavorite 1
 tk relate 1 2
 tk related 1
 tk unrelate 1 2
+tk reference-add 1 https://example.com/erp --title "ERP guide"
+tk references 1
+tk reference-edit 1 --title "Official ERP guide"
+tk reference-remove 1
 tk merge 2 1 --dry-run
 tk merge 2 1
 tk delete 1
@@ -134,6 +138,10 @@ tk history
 
 `relate A B`は2つのMeaningを双方向に関連付けます。`related ID`で関連Meaningを一覧表示し、
 `unrelate A B`で関連を解除できます。
+
+`reference-add`は調査資料などのHTTP/HTTPS URLをMeaningへ保存します。同じMeaningへの同一URLは
+重複登録されません。`reference-edit`でURL・タイトルを修正し、`--clear-title`でタイトルを
+消去できます。
 
 `delete`はMeaningをTrashへ移す論理削除です。通常の一覧・検索・Term照合・CSV Exportから
 除外されます。`restore`で復元し、`purge`でTrash内のMeaningを完全削除できます。

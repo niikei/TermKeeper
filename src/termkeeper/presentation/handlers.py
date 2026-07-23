@@ -12,6 +12,8 @@ from termkeeper.domain import (
     OccurrenceItem,
     OccurrenceQuery,
     OccurrenceUpdate,
+    ReferenceLink,
+    ReferenceUpdate,
     SearchQuery,
     SearchResult,
     StatsSummary,
@@ -22,6 +24,7 @@ from termkeeper.presentation.rendering import (
     print_inbox,
     print_meaning,
     print_occurrences,
+    print_references,
     print_search_hit,
     print_search_suggestion,
     print_stats,
@@ -282,6 +285,51 @@ def handle_related(args: argparse.Namespace, service: TermKeeperService) -> list
     return result
 
 
+def handle_reference_add(
+    args: argparse.Namespace,
+    service: TermKeeperService,
+) -> ReferenceLink:
+    result = service.add_reference(args.meaning_id, args.url, args.title)
+    if not args.json:
+        print(f"Added reference #{result.reference_id} to meaning #{args.meaning_id}.")
+    return result
+
+
+def handle_reference_edit(
+    args: argparse.Namespace,
+    service: TermKeeperService,
+) -> ReferenceLink:
+    update = ReferenceUpdate(
+        url=args.url,
+        title=args.title,
+        clear_title=args.clear_title,
+    )
+    result = service.edit_reference(args.reference_id, update)
+    if not args.json:
+        print(f"Updated reference #{args.reference_id}.")
+    return result
+
+
+def handle_reference_remove(
+    args: argparse.Namespace,
+    service: TermKeeperService,
+) -> ReferenceLink:
+    result = service.remove_reference(args.reference_id)
+    if not args.json:
+        print(f"Removed reference #{args.reference_id}.")
+    return result
+
+
+def handle_references(
+    args: argparse.Namespace,
+    service: TermKeeperService,
+) -> list[ReferenceLink]:
+    result = service.references(args.meaning_id)
+    if not args.json:
+        print_references(result)
+    return result
+
+
 def handle_edit(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
     current = service.get_meaning(args.meaning_id)
     name = args.name
@@ -386,6 +434,10 @@ HANDLERS: dict[str, CommandHandler] = {
     "relate": handle_relate,
     "unrelate": handle_unrelate,
     "related": handle_related,
+    "reference-add": handle_reference_add,
+    "reference-edit": handle_reference_edit,
+    "reference-remove": handle_reference_remove,
+    "references": handle_references,
     "edit": handle_edit,
     "meanings": handle_meanings,
     "config": handle_config,

@@ -116,6 +116,22 @@ class MeaningRelation(SQLModel, table=True):
     created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
 
 
+class MeaningReference(SQLModel, table=True):
+    __table_args__ = (
+        CheckConstraint("length(trim(url)) > 0"),
+        UniqueConstraint("meaning_id", "url"),
+    )
+
+    reference_id: int | None = Field(default=None, primary_key=True)
+    meaning_id: int = Field(foreign_key="meaning.meaning_id", ondelete="CASCADE", index=True)
+    url: str
+    title: str | None = None
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+    created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
+    updated_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
+
+
 class Occurrence(SQLModel, table=True):
     occurrence_id: int | None = Field(default=None, primary_key=True)
     keyword: str

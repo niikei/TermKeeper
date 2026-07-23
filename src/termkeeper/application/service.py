@@ -8,6 +8,7 @@ from termkeeper.application.use_cases import (
     MeaningUseCases,
     MergeUseCases,
     OccurrenceUseCases,
+    ReferenceUseCases,
     RelationUseCases,
     TagUseCases,
 )
@@ -21,6 +22,7 @@ class TermKeeperService(
     MeaningUseCases,
     MergeUseCases,
     OccurrenceUseCases,
+    ReferenceUseCases,
     RelationUseCases,
     TagUseCases,
     ConfigUseCases,

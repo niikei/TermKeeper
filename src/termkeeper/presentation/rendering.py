@@ -9,6 +9,7 @@ from termkeeper.domain import (
     Meaning,
     MergeResult,
     OccurrenceItem,
+    ReferenceLink,
     SearchHit,
     SearchResult,
     SearchSuggestion,
@@ -27,6 +28,7 @@ def print_json(value: CommandResult) -> None:
             Meaning,
             MergeResult,
             OccurrenceItem,
+            ReferenceLink,
             SearchResult,
             StatsSummary,
         ),
@@ -88,6 +90,14 @@ def print_stats(stats: StatsSummary) -> None:
     print("Top sources:")
     for item in stats.top_sources:
         print(f"  {item.value}: {item.count} (last seen: {item.last_seen_at})")
+
+
+def print_references(items: list[ReferenceLink]) -> None:
+    for item in items:
+        label = item.title or item.url
+        print(f"[{item.reference_id}] {label}")
+        if item.title:
+            print(f"    {item.url}")
 
 
 def print_meaning(item: Meaning) -> None:

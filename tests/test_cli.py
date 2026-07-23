@@ -247,6 +247,38 @@ def test_related_meaning_commands(capsys: pytest.CaptureFixture[str]) -> None:
     assert "Unrelated meaning #2 from #1." in capsys.readouterr().out
 
 
+def test_reference_commands(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["add", "ERP"]) == 0
+    assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
+    capsys.readouterr()
+
+    assert (
+        main(
+            [
+                "reference-add",
+                "1",
+                "https://example.com/erp",
+                "--title",
+                "ERP guide",
+            ],
+        )
+        == 0
+    )
+    assert "Added reference #1" in capsys.readouterr().out
+    assert main(["--json", "reference-add", "1", "https://example.com/erp"]) == 0
+    reference = json.loads(capsys.readouterr().out)
+    assert reference["reference_id"] == 1
+
+    assert main(["references", "1"]) == 0
+    output = capsys.readouterr().out
+    assert "ERP guide" in output
+    assert "https://example.com/erp" in output
+    assert main(["reference-edit", "1", "--clear-title"]) == 0
+    assert "Updated reference #1." in capsys.readouterr().out
+    assert main(["reference-remove", "1"]) == 0
+    assert "Removed reference #1." in capsys.readouterr().out
+
+
 def test_search_suggestions_human_json_and_disabled(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
