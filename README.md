@@ -83,6 +83,8 @@ tk search ICMR
 tk search "enterprise planning" --all
 tk search "planning document" --any --in description --limit 10
 tk search ERP --tag SAP
+tk search ERPP --suggestions 3
+tk search ERPP --no-suggestions
 tk show 1
 tk meanings --tag SAP
 ```
@@ -91,6 +93,8 @@ tk meanings --tag SAP
 複数語は標準ですべての語に一致するMeaningを探します。`--any`でいずれかの語、
 `--in term|name|description|all`で検索対象、`--limit`で最大件数を指定できます。
 `--tag`を指定すると、そのタグを持つMeaningだけに絞り込みます。
+検索結果がない場合は、Term・正式名称などの類似度から候補を表示します。候補数は
+`--suggestions`、無効化は`--no-suggestions`で指定できます。
 
 ### 整理
 
@@ -152,6 +156,7 @@ tk --json add BTP --source Slack
 ```
 
 エラー時もJSON形式でエラー種別とメッセージを返し、終了コードは `2` になります。
+検索JSONは`hits`と`suggestions`を持つオブジェクトです。
 
 ## Python APIと将来のMCP連携
 

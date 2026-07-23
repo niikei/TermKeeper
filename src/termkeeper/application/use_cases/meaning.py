@@ -4,9 +4,9 @@ from uuid import UUID
 
 from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_meaning
-from termkeeper.application.search import rank_search, search_tokens
+from termkeeper.application.search import rank_search, rank_suggestions, search_tokens
 from termkeeper.application.support import get_meaning, required_id, user_id
-from termkeeper.domain import InboxStatus, Meaning, SearchHit, SearchQuery
+from termkeeper.domain import InboxStatus, Meaning, SearchQuery, SearchResult
 from termkeeper.infrastructure import inbox_repository, meaning_repository, settings_repository
 from termkeeper.infrastructure.sqlite_utils import normalize_keyword
 from termkeeper.infrastructure.tables import Meaning as MeaningRecord
@@ -55,7 +55,7 @@ class MeaningUseCases:
     def search(
         self,
         query: SearchQuery | str,
-    ) -> list[SearchHit]:
+    ) -> SearchResult:
         query = SearchQuery(query) if isinstance(query, str) else query
         tokens = search_tokens(query.text)
         if not tokens:
@@ -64,17 +64,26 @@ class MeaningUseCases:
         if not 1 <= query.limit <= 100:
             message = "Search limit must be between 1 and 100."
             raise ValidationError(message)
+        if not 0 <= query.suggestion_limit <= 10:
+            message = "Suggestion limit must be between 0 and 10."
+            raise ValidationError(message)
         with UnitOfWork() as uow:
             records = meaning_repository.search(uow.session, tokens, query.field)
-            meanings = [to_meaning(uow.session, row) for row in records]
-            if query.tag:
-                tag_norm = normalize_keyword(query.tag)
-                meanings = [
-                    meaning
-                    for meaning in meanings
-                    if any(normalize_keyword(tag) == tag_norm for tag in meaning.tags)
-                ]
-            return rank_search(meanings, query)
+            meanings = _filter_tag(
+                [to_meaning(uow.session, row) for row in records],
+                query.tag,
+            )
+            hits = rank_search(meanings, query)
+            if hits or query.suggestion_limit == 0:
+                return SearchResult(tuple(hits))
+            all_meanings = _filter_tag(
+                [to_meaning(uow.session, row) for row in meaning_repository.list_all(uow.session)],
+                query.tag,
+            )
+            return SearchResult(
+                (),
+                tuple(rank_suggestions(all_meanings, query)),
+            )
 
     def meanings(self, tag: str | None = None) -> list[Meaning]:
         with UnitOfWork() as uow:
@@ -177,3 +186,14 @@ def _get_deleted_meaning(uow: UnitOfWork, meaning_id: int) -> MeaningRecord:
         message = f"Deleted meaning {meaning_id} was not found."
         raise NotFoundError(message)
     return meaning
+
+
+def _filter_tag(meanings: list[Meaning], tag: str | None) -> list[Meaning]:
+    if not tag:
+        return meanings
+    tag_norm = normalize_keyword(tag)
+    return [
+        meaning
+        for meaning in meanings
+        if any(normalize_keyword(name) == tag_norm for name in meaning.tags)
+    ]

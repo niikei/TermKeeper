@@ -21,6 +21,7 @@ class SearchQuery:
     field: SearchField = SearchField.ALL
     limit: int = 20
     tag: str | None = None
+    suggestion_limit: int = 3
 
 
 @dataclass(frozen=True)
@@ -36,4 +37,32 @@ class SearchHit:
             "score": self.score,
             "matched_field": self.matched_field,
             "matched_text": self.matched_text,
+        }
+
+
+@dataclass(frozen=True)
+class SearchSuggestion:
+    meaning: Meaning
+    similarity: int
+    matched_field: SearchField
+    matched_text: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "meaning": self.meaning.to_dict(),
+            "similarity": self.similarity,
+            "matched_field": self.matched_field,
+            "matched_text": self.matched_text,
+        }
+
+
+@dataclass(frozen=True)
+class SearchResult:
+    hits: tuple[SearchHit, ...]
+    suggestions: tuple[SearchSuggestion, ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "hits": [hit.to_dict() for hit in self.hits],
+            "suggestions": [suggestion.to_dict() for suggestion in self.suggestions],
         }

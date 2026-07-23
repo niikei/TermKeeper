@@ -129,6 +129,7 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 - Occurrence一覧の入力は`OccurrenceQuery`、出力は`OccurrenceItem`で表現する
 - DB内部IDを外部連携の識別子にせず、Meaningの`public_id`を使用する
 - 検索条件と結果は`SearchQuery`／`SearchHit`で表現し、CLI固有の型を持ち込まない
+- 検索応答は`SearchResult`で通常ヒットと類似候補を分離し、候補は0件時だけ計算する
 - CLI固有の処理をApplication層へ持ち込まない
 - APIやMCPを追加するときも既存のApplicationユースケースを再利用する
 - `service.py`を肥大化させず、機能別の`use_cases/`へ実装する

@@ -59,6 +59,14 @@ def _add_meaning_commands(sub: _Subparsers) -> None:
     )
     search.add_argument("--limit", type=int, default=20)
     search.add_argument("--tag")
+    suggestions = search.add_mutually_exclusive_group()
+    suggestions.add_argument("--suggestions", type=int, default=3, dest="suggestion_limit")
+    suggestions.add_argument(
+        "--no-suggestions",
+        action="store_const",
+        const=0,
+        dest="suggestion_limit",
+    )
     show = sub.add_parser("show", help="Show a meaning")
     show.add_argument("meaning_id", type=int)
     alias = sub.add_parser("alias", help="Add an alias to a meaning")

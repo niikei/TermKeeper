@@ -10,12 +10,14 @@ from termkeeper.domain import (
     MergeResult,
     OccurrenceItem,
     SearchHit,
+    SearchResult,
+    SearchSuggestion,
 )
 from termkeeper.presentation.types import CommandResult
 
 
 def print_json(value: CommandResult) -> None:
-    if isinstance(value, (AddResult, ImportResult, Meaning, MergeResult)):
+    if isinstance(value, (AddResult, ImportResult, Meaning, MergeResult, SearchResult)):
         _print_json_value(value.to_dict())
         return
     if isinstance(value, list):
@@ -78,3 +80,11 @@ def print_meaning(item: Meaning) -> None:
 def print_search_hit(hit: SearchHit) -> None:
     print_meaning(hit.meaning)
     print(f"Match: {hit.matched_field} {hit.matched_text!r} (score: {hit.score})")
+
+
+def print_search_suggestion(suggestion: SearchSuggestion) -> None:
+    print(
+        f"  [{suggestion.meaning.meaning_id}] {suggestion.meaning.full_name} "
+        f"({suggestion.similarity}% via {suggestion.matched_field} "
+        f"{suggestion.matched_text!r})",
+    )

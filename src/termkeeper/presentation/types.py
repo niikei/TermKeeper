@@ -12,6 +12,7 @@ from termkeeper.domain import (
     MergeResult,
     OccurrenceItem,
     SearchHit,
+    SearchResult,
     TagSummary,
 )
 
@@ -20,6 +21,7 @@ type CommandResult = (
     | ImportResult
     | Meaning
     | MergeResult
+    | SearchResult
     | list[InboxItem]
     | list[Meaning]
     | list[OccurrenceItem]

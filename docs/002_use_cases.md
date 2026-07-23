@@ -76,6 +76,7 @@ tk search ICMR
 tk search "enterprise planning" --all
 tk search "planning document" --any --in description --limit 10
 tk search ERP --tag SAP
+tk search ERPP --suggestions 3
 tk show 1
 tk meanings
 ```
@@ -84,6 +85,8 @@ tk meanings
 複数語は標準ですべての語に一致する結果を返し、`--any`でいずれかの語に切り替える。
 結果にはスコア、一致フィールド、一致文字列を含む。`--tag`でタグを持つMeaningだけに
 絞り込める。詳細表示では別名・タグと作成・更新日時も表示する。
+通常ヒットがない場合は、Term・正式名称・指定検索対象との類似度が60%以上のMeaningを候補として
+返す。削除済みMeaningとタグ条件外Meaningは候補から除外する。
 
 ## 8. Meaningを整理する
 

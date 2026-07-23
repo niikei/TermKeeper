@@ -11,8 +11,8 @@ from termkeeper.domain import (
     MergeResult,
     OccurrenceItem,
     OccurrenceQuery,
-    SearchHit,
     SearchQuery,
+    SearchResult,
     TagSummary,
 )
 from termkeeper.presentation.csv_io import export_meanings, import_meanings
@@ -21,6 +21,7 @@ from termkeeper.presentation.rendering import (
     print_meaning,
     print_occurrences,
     print_search_hit,
+    print_search_suggestion,
 )
 from termkeeper.presentation.types import CommandHandler
 
@@ -98,19 +99,24 @@ def handle_resolve(args: argparse.Namespace, service: TermKeeperService) -> Mean
     return result
 
 
-def handle_search(args: argparse.Namespace, service: TermKeeperService) -> list[SearchHit]:
+def handle_search(args: argparse.Namespace, service: TermKeeperService) -> SearchResult:
     query = SearchQuery(
         text=args.keyword,
         match_all=args.match_all,
         field=args.search_field,
         limit=args.limit,
         tag=args.tag,
+        suggestion_limit=args.suggestion_limit,
     )
     result = service.search(query)
     if not args.json:
-        print(f"{len(result)} match(es)")
-        for item in result:
+        print(f"{len(result.hits)} match(es)")
+        for item in result.hits:
             print_search_hit(item)
+        if result.suggestions:
+            print("Did you mean:")
+            for suggestion in result.suggestions:
+                print_search_suggestion(suggestion)
     return result
 
 

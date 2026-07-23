@@ -22,8 +22,9 @@ def test_json_workflow(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert main(["--json", "search", "ICMR", "--in", "term", "--limit", "1"]) == 0
     matches = json.loads(capsys.readouterr().out)
-    assert matches[0]["meaning"]["meaning_id"] == meaning["meaning_id"]
-    assert matches[0]["matched_field"] == "term"
+    assert matches["hits"][0]["meaning"]["meaning_id"] == meaning["meaning_id"]
+    assert matches["hits"][0]["matched_field"] == "term"
+    assert matches["suggestions"] == []
 
 
 def test_cli_error_has_nonzero_exit_code(capsys: pytest.CaptureFixture[str]) -> None:
@@ -161,6 +162,29 @@ def test_tag_commands_and_filters(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["--json", "untag", "1", "sap"]) == 0
     result = json.loads(capsys.readouterr().out)
     assert result["tags"] == []
+
+
+def test_search_suggestions_human_json_and_disabled(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["add", "ERP"]) == 0
+    assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
+    capsys.readouterr()
+
+    assert main(["search", "ERPP"]) == 0
+    output = capsys.readouterr().out
+    assert "0 match(es)" in output
+    assert "Did you mean:" in output
+    assert "Enterprise Resource Planning" in output
+
+    assert main(["--json", "search", "ERPP", "--suggestions", "1"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["hits"] == []
+    assert result["suggestions"][0]["matched_text"] == "ERP"
+
+    assert main(["--json", "search", "ERPP", "--no-suggestions"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["suggestions"] == []
 
 
 def test_trash_restore_and_purge_commands(capsys: pytest.CaptureFixture[str]) -> None:

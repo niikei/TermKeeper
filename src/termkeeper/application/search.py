@@ -1,6 +1,14 @@
 """Relevance scoring for Meaning search results."""
 
-from termkeeper.domain import Meaning, SearchField, SearchHit, SearchQuery
+from difflib import SequenceMatcher
+
+from termkeeper.domain import (
+    Meaning,
+    SearchField,
+    SearchHit,
+    SearchQuery,
+    SearchSuggestion,
+)
 from termkeeper.infrastructure.sqlite_utils import normalize_keyword
 
 
@@ -19,6 +27,23 @@ def rank_search(meanings: list[Meaning], query: SearchQuery) -> list[SearchHit]:
 
 def search_tokens(text: str) -> tuple[str, ...]:
     return _tokens(text)
+
+
+def rank_suggestions(meanings: list[Meaning], query: SearchQuery) -> list[SearchSuggestion]:
+    query_text = normalize_keyword(query.text)
+    suggestions = [
+        suggestion
+        for meaning in meanings
+        if (suggestion := _suggestion(meaning, query_text, query.field)) is not None
+    ]
+    suggestions.sort(
+        key=lambda item: (
+            -item.similarity,
+            item.meaning.full_name.casefold(),
+            item.meaning.meaning_id,
+        ),
+    )
+    return suggestions[: query.suggestion_limit]
 
 
 def _score_meaning(
@@ -79,6 +104,58 @@ def _match_text(
     else:
         score = 0
     return score, field, text
+
+
+def _suggestion(
+    meaning: Meaning,
+    query_text: str,
+    field: SearchField,
+) -> SearchSuggestion | None:
+    candidates: list[tuple[float, SearchField, str]] = []
+    if field in {SearchField.ALL, SearchField.TERM}:
+        candidates.extend(
+            (
+                SequenceMatcher(None, query_text, normalize_keyword(term)).ratio(),
+                SearchField.TERM,
+                term,
+            )
+            for term in meaning.terms
+        )
+    if field in {SearchField.ALL, SearchField.NAME}:
+        candidates.append(
+            (
+                SequenceMatcher(
+                    None,
+                    query_text,
+                    normalize_keyword(meaning.full_name),
+                ).ratio(),
+                SearchField.NAME,
+                meaning.full_name,
+            ),
+        )
+    if field in {SearchField.ALL, SearchField.DESCRIPTION} and meaning.description:
+        candidates.append(
+            (
+                SequenceMatcher(
+                    None,
+                    query_text,
+                    normalize_keyword(meaning.description),
+                ).ratio(),
+                SearchField.DESCRIPTION,
+                meaning.description,
+            ),
+        )
+    if not candidates:
+        return None
+    ratio, matched_field, matched_text = max(candidates, key=lambda candidate: candidate[0])
+    if ratio < 0.6:
+        return None
+    return SearchSuggestion(
+        meaning=meaning,
+        similarity=round(ratio * 100),
+        matched_field=matched_field,
+        matched_text=matched_text,
+    )
 
 
 def _tokens(text: str) -> tuple[str, ...]:

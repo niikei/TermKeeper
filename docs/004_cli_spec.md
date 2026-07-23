@@ -20,7 +20,7 @@ tk [--json] <command> [options]
 | `history` | 全Inbox履歴 | なし |
 | `occurrences` | 遭遇履歴を表示・絞り込み | `--meaning`, `--inbox`, `--keyword`, `--source`, `--since`, `--limit` |
 | `resolve` | InboxをMeaningへ解決 | `inbox_id`, `--name`, `--description` |
-| `search` | Term・正式名称・説明を関連度順で検索 | `keyword`, `--all`, `--any`, `--in`, `--limit`, `--tag` |
+| `search` | 関連度検索と類似候補 | `keyword`, `--all`, `--any`, `--in`, `--limit`, `--tag`, `--suggestions`, `--no-suggestions` |
 | `show` | Meaning詳細 | `meaning_id` |
 | `meanings` | Meaning一覧 | `--tag` |
 | `alias` | Meaningへ別名を追加 | `meaning_id`, `keyword` |
@@ -113,10 +113,17 @@ Tag名はNFKC正規化と大文字小文字の統一により一意に管理す�
 - `--in all|term|name|description`: 検索対象。標準は`all`
 - `--limit N`: 最大件数。標準20、指定可能範囲は1〜100
 - `--tag NAME`: 指定タグを持つMeaningだけに絞り込み
+- `--suggestions N`: 0件時の候補数。標準3、指定可能範囲は0〜10
+- `--no-suggestions`: 候補計算を無効化
 
 Term完全一致、正式名称完全一致、前方一致、部分一致、説明一致の順に重み付けし、合計スコアの
 降順で返す。同点では正式名称、Meaning IDの順に並べる。結果はMeaningに加えて`score`、
 `matched_field`、`matched_text`を含む。SQLの`%`と`_`はワイルドカードではなく文字として扱う。
+
+通常ヒットが0件の場合のみ、`difflib.SequenceMatcher`で検索対象のTerm・正式名称・説明との
+類似度を計算する。類似度60%以上を降順で返し、削除済みMeaningとタグ条件外Meaningは除外する。
+JSONは`hits`と`suggestions`を持ち、候補には`meaning`、`similarity`、`matched_field`、
+`matched_text`を含む。
 
 ### `tk export` / `tk import`
 
