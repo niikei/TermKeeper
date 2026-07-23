@@ -2,6 +2,8 @@ from fastapi.testclient import TestClient
 
 from termkeeper.adapters.http import create_app
 from termkeeper.application import TermKeeperService
+from termkeeper.infrastructure.connection import get_session
+from termkeeper.infrastructure.tables import Occurrence
 
 
 def test_http_api_workflow_and_openapi() -> None:
@@ -21,6 +23,8 @@ def _exercise_core_workflow(client: TestClient) -> str:
     assert captured.status_code == 201
     occurrence_id = captured.json()["occurrence"]["public_id"]
     assert captured.json()["occurrence"]["status"] == "Pending"
+    assert captured.json()["occurrence"]["occurred_at"].endswith("Z")
+    assert captured.json()["occurrence"]["updated_at"].endswith("Z")
     assert captured.json()["candidates"] == []
     inbox_page = client.get("/api/v1/inbox").json()
     assert inbox_page["items"][0]["keyword"] == "ERP"
@@ -69,6 +73,8 @@ def _exercise_core_workflow(client: TestClient) -> str:
         json={"memo": "Updated through HTTP"},
     )
     assert occurrence.json()["memo"] == "Updated through HTTP"
+    assert occurrence.json()["occurred_at"].endswith("Z")
+    assert occurrence.json()["updated_at"].endswith("Z")
 
     assert (
         client.post(f"/api/v1/occurrences/{occurrence_id}/unresolve").json()["status"] == "Pending"
@@ -227,6 +233,30 @@ def test_http_api_maps_application_and_request_errors() -> None:
     )
     assert invalid_update.status_code == 422
     assert invalid_update.json()["error"] == "ValidationError"
+
+
+def test_http_occurrence_pages_reach_beyond_500() -> None:
+    with get_session() as session:
+        session.add_all(
+            [
+                Occurrence(keyword=f"TERM-{index}", keyword_norm=f"term-{index}")
+                for index in range(505)
+            ],
+        )
+        session.commit()
+    client = TestClient(create_app())
+
+    first = client.get("/api/v1/inbox", params={"limit": 100}).json()
+    tail = client.get(
+        "/api/v1/occurrences",
+        params={"offset": 500, "limit": 10},
+    ).json()
+
+    assert len(first["items"]) == 100
+    assert first["has_more"] is True
+    assert len(tail["items"]) == 5
+    assert tail["offset"] == 500
+    assert tail["has_more"] is False
 
     request_error = client.get("/api/v1/search", params={"text": "ERP", "limit": 0})
     assert request_error.status_code == 422

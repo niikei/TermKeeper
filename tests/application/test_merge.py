@@ -62,8 +62,20 @@ def test_merge_meanings_moves_terms_and_occurrences() -> None:
     merged = service.get_meaning(target.meaning_id)
     assert {"SRC", "Source Meaning", "shared", "source-only"} <= set(merged.terms)
     assert set(merged.tags) == {"source-tag", "shared-tag"}
-    assert service.occurrences(OccurrenceQuery(meaning_id=source.meaning_id)) == []
-    assert len(service.occurrences(OccurrenceQuery(meaning_id=target.meaning_id))) == 3
+    assert (
+        service.occurrences(
+            OccurrenceQuery(meaning_id=source.meaning_id),
+        ).items
+        == ()
+    )
+    assert (
+        len(
+            service.occurrences(
+                OccurrenceQuery(meaning_id=target.meaning_id),
+            ).items,
+        )
+        == 3
+    )
     references = service.references(target.meaning_id)
     assert {item.url for item in references} == {
         "https://example.com/shared",

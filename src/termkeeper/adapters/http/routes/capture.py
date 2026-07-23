@@ -9,7 +9,6 @@ from termkeeper.adapters.external import (
     ExternalMapper,
     ExternalOccurrence,
     ExternalPage,
-    page,
 )
 from termkeeper.adapters.http.common import _local_meaning_id
 from termkeeper.adapters.http.requests import CaptureRequest
@@ -44,4 +43,4 @@ def _register_capture_routes(
         offset: Annotated[int, Query(ge=0)] = 0,
         limit: Annotated[int, Query(ge=1, le=100)] = 20,
     ) -> ExternalPage[ExternalOccurrence]:
-        return page([mapper.occurrence(item) for item in service.inbox()], offset, limit)
+        return mapper.occurrence_page(service.inbox(offset=offset, limit=limit))

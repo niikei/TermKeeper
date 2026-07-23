@@ -10,6 +10,7 @@ from termkeeper.domain import (
     Meaning,
     OccurrenceItem,
     OccurrenceStatus,
+    Page,
     ReferenceLink,
     SearchField,
     SearchResult,
@@ -133,6 +134,17 @@ class ExternalMapper:
             meaning_id=self._meaning_public_id(item.meaning_id),
             resolved_at=item.resolved_at,
             discarded_at=item.discarded_at,
+        )
+
+    def occurrence_page(
+        self,
+        result: Page[OccurrenceItem],
+    ) -> ExternalPage[ExternalOccurrence]:
+        return ExternalPage(
+            items=tuple(self.occurrence(item) for item in result.items),
+            offset=result.offset,
+            limit=result.limit,
+            has_more=result.has_more,
         )
 
     def reference(self, item: ReferenceLink) -> ExternalReference:

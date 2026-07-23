@@ -159,6 +159,7 @@ ERP [Radio] → Effective Radiated Power
 - MeaningRelationは小さいMeaning IDを先にした対称ペア。
 - MeaningReferenceの`(meaning_id, url)`は一意。
 - `keyword_norm`、`scope_norm`、`full_name_norm`はNFKCとcasefold相当の正規化検索値。
+- 全日時はUTCで保存し、アプリケーション境界ではUTC情報付きのdatetimeとして扱う。
 - 外部境界ではMeaning、Occurrence、MeaningReferenceのUUID `public_id`を使用する。
 
 ## インデックス

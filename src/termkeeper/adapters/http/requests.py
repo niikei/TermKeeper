@@ -32,7 +32,7 @@ class OccurrenceFilters(BaseModel):
     keyword: str | None = None
     source: str | None = None
     since: datetime | None = None
-    offset: int = Field(default=0, ge=0, le=399)
+    offset: int = Field(default=0, ge=0)
     limit: int = Field(default=50, ge=1, le=100)
 
 

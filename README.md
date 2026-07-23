@@ -71,6 +71,7 @@ tk occurrences --meaning 1
 tk occurrences --status Pending
 tk occurrences --keyword MDM --source Slack
 tk occurrences --since 2026-07-01 --limit 20
+tk occurrences --offset 20 --limit 20
 tk occurrence-edit 3 --memo "訂正後のメモ" --source Teams
 tk occurrence-edit 3 --clear-memo
 tk stats --limit 10
@@ -78,6 +79,8 @@ tk stats --limit 10
 
 遭遇ごとの用語、memo、source、状態、日時、Meaningとの関連を確認できます。
 個別Occurrenceのkeyword・memo・sourceを修正できます。
+`inbox`、`history`、`occurrences`は`--offset`と`--limit`に対応します。一覧はDBでページングされ、
+JSON出力は`items`、`offset`、`limit`、`has_more`を返します。
 `stats`では総遭遇数、未解決数、Meaning数と、頻出語・出典を確認できます。
 
 ### 解決

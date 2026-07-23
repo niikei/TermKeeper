@@ -36,16 +36,27 @@ def test_occurrence_history_supports_filters_and_limit() -> None:
     third = service.add("MDM", source="teams")
     service.assign(third.occurrence.occurrence_id, meaning.meaning_id)
 
-    all_items = service.occurrences(OccurrenceQuery(meaning_id=meaning.meaning_id))
+    all_items = service.occurrences(
+        OccurrenceQuery(meaning_id=meaning.meaning_id),
+    ).items
 
     assert len(all_items) == 3
-    assert len(service.occurrences(OccurrenceQuery(keyword="mdm"))) == 3
-    assert len(service.occurrences(OccurrenceQuery(source="TEAMS"))) == 2
-    assert len(service.occurrences(OccurrenceQuery(limit=1))) == 1
-    aware_since = all_items[-1].occurred_at.replace(tzinfo=UTC)
-    assert len(service.occurrences(OccurrenceQuery(since=aware_since))) == 3
+    assert len(service.occurrences(OccurrenceQuery(keyword="mdm")).items) == 3
+    assert len(service.occurrences(OccurrenceQuery(source="TEAMS")).items) == 2
+    limited = service.occurrences(OccurrenceQuery(limit=1))
+    assert len(limited.items) == 1
+    assert limited.has_more is True
+    assert all(item.occurred_at.tzinfo is UTC for item in all_items)
+    assert (
+        len(
+            service.occurrences(
+                OccurrenceQuery(since=all_items[-1].occurred_at),
+            ).items,
+        )
+        == 3
+    )
     since = all_items[-1].occurred_at + timedelta(microseconds=1)
-    assert len(service.occurrences(OccurrenceQuery(since=since))) == 2
+    assert len(service.occurrences(OccurrenceQuery(since=since)).items) == 2
 
 
 def test_occurrence_history_validates_limit() -> None:
@@ -55,13 +66,40 @@ def test_occurrence_history_validates_limit() -> None:
         service.occurrences(OccurrenceQuery(limit=0))
     with pytest.raises(ValidationError):
         service.occurrences(OccurrenceQuery(limit=501))
+    with pytest.raises(ValidationError):
+        service.occurrences(OccurrenceQuery(offset=-1))
+
+
+def test_occurrence_pages_reach_records_beyond_500() -> None:
+    with get_session() as session:
+        session.add_all(
+            [
+                Occurrence(keyword=f"TERM-{index}", keyword_norm=f"term-{index}")
+                for index in range(505)
+            ],
+        )
+        session.commit()
+    service = TermKeeperService()
+
+    first = service.inbox(limit=500)
+    tail = service.inbox(offset=500, limit=50)
+
+    assert len(first.items) == 500
+    assert first.has_more is True
+    assert len(tail.items) == 5
+    assert tail.offset == 500
+    assert tail.limit == 50
+    assert tail.has_more is False
+    assert {item.public_id for item in first.items}.isdisjoint(
+        item.public_id for item in tail.items
+    )
 
 
 def test_edit_occurrence_updates_context_audit_and_normalized_search() -> None:
     service = TermKeeperService()
     service.set_config("user.name", "Editor")
     service.add("ERPP", memo="typo", source="Meeting")
-    occurrence = service.occurrences()[0]
+    occurrence = service.occurrences().items[0]
 
     updated = service.edit_occurrence(
         occurrence.occurrence_id,
@@ -71,10 +109,11 @@ def test_edit_occurrence_updates_context_audit_and_normalized_search() -> None:
     assert updated.keyword == "ERP"
     assert updated.memo == "corrected"
     assert updated.source == "Teams"
-    assert updated.updated_at.replace(tzinfo=None) >= occurrence.updated_at.replace(tzinfo=None)
+    assert updated.updated_at >= occurrence.updated_at
     assert updated.updated_by_id is not None
-    assert service.occurrences(OccurrenceQuery(keyword="erp"))[0].occurrence_id == (
-        occurrence.occurrence_id
+    assert (
+        service.occurrences(OccurrenceQuery(keyword="erp")).items[0].occurrence_id
+        == occurrence.occurrence_id
     )
 
     cleared = service.edit_occurrence(
@@ -94,7 +133,7 @@ def test_edit_occurrence_updates_context_audit_and_normalized_search() -> None:
 def test_edit_occurrence_validation_and_missing_record() -> None:
     service = TermKeeperService()
     service.add("ERP")
-    occurrence_id = service.occurrences()[0].occurrence_id
+    occurrence_id = service.occurrences().items[0].occurrence_id
 
     invalid_updates = (
         OccurrenceUpdate(),

@@ -15,6 +15,7 @@ class OccurrenceQuery:
     keyword: str | None = None
     source: str | None = None
     since: datetime | None = None
+    offset: int = 0
     limit: int = 50
 
 

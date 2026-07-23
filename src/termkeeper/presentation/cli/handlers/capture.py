@@ -9,9 +9,11 @@ from termkeeper.domain import (
     OccurrenceItem,
     OccurrenceQuery,
     OccurrenceUpdate,
+    Page,
     StatsSummary,
 )
 from termkeeper.presentation.cli.rendering import (
+    print_has_more,
     print_inbox,
     print_occurrences,
     print_stats,
@@ -39,35 +41,45 @@ def handle_add(args: argparse.Namespace, service: TermKeeperService) -> CaptureR
     return result
 
 
-def handle_inbox(args: argparse.Namespace, service: TermKeeperService) -> list[OccurrenceItem]:
-    result = service.inbox()
+def handle_inbox(
+    args: argparse.Namespace,
+    service: TermKeeperService,
+) -> Page[OccurrenceItem]:
+    result = service.inbox(offset=args.offset, limit=args.limit)
     if not args.json:
-        print_inbox(result)
+        print_inbox(result.items)
+        print_has_more(result)
     return result
 
 
-def handle_history(args: argparse.Namespace, service: TermKeeperService) -> list[OccurrenceItem]:
-    result = service.history()
+def handle_history(
+    args: argparse.Namespace,
+    service: TermKeeperService,
+) -> Page[OccurrenceItem]:
+    result = service.history(offset=args.offset, limit=args.limit)
     if not args.json:
-        print_occurrences(result)
+        print_occurrences(result.items)
+        print_has_more(result)
     return result
 
 
 def handle_occurrences(
     args: argparse.Namespace,
     service: TermKeeperService,
-) -> list[OccurrenceItem]:
+) -> Page[OccurrenceItem]:
     query = OccurrenceQuery(
         meaning_id=args.meaning_id,
         status=args.status,
         keyword=args.keyword,
         source=args.source,
         since=args.since,
+        offset=args.offset,
         limit=args.limit,
     )
     result = service.occurrences(query)
     if not args.json:
-        print_occurrences(result)
+        print_occurrences(result.items)
+        print_has_more(result)
     return result
 
 

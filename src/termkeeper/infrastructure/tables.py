@@ -7,6 +7,7 @@ from sqlalchemy import CheckConstraint, Index, UniqueConstraint, text
 from sqlmodel import Field, SQLModel
 
 from termkeeper.domain.status import OccurrenceStatus
+from termkeeper.infrastructure.types import UTCDateTime
 
 
 def utc_now() -> datetime:
@@ -17,8 +18,8 @@ class UserProfile(SQLModel, table=True):
     user_id: int | None = Field(default=None, primary_key=True)
     name: str | None = None
     email: str | None = None
-    created_at: datetime = Field(default_factory=utc_now)
-    updated_at: datetime = Field(default_factory=utc_now)
+    created_at: datetime = Field(default_factory=utc_now, sa_type=UTCDateTime)
+    updated_at: datetime = Field(default_factory=utc_now, sa_type=UTCDateTime)
 
 
 class Meaning(SQLModel, table=True):
@@ -42,9 +43,9 @@ class Meaning(SQLModel, table=True):
     scope_norm: str = "general"
     description: str | None = None
     is_favorite: bool = Field(default=False, index=True)
-    created_at: datetime = Field(default_factory=utc_now)
-    updated_at: datetime = Field(default_factory=utc_now)
-    deleted_at: datetime | None = Field(default=None, index=True)
+    created_at: datetime = Field(default_factory=utc_now, sa_type=UTCDateTime)
+    updated_at: datetime = Field(default_factory=utc_now, sa_type=UTCDateTime)
+    deleted_at: datetime | None = Field(default=None, index=True, sa_type=UTCDateTime)
     created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
     updated_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
     deleted_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
@@ -61,8 +62,8 @@ class Term(SQLModel, table=True):
     meaning_id: int = Field(foreign_key="meaning.meaning_id", ondelete="CASCADE")
     keyword: str
     keyword_norm: str
-    created_at: datetime = Field(default_factory=utc_now)
-    updated_at: datetime = Field(default_factory=utc_now)
+    created_at: datetime = Field(default_factory=utc_now, sa_type=UTCDateTime)
+    updated_at: datetime = Field(default_factory=utc_now, sa_type=UTCDateTime)
     created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
 
 
@@ -70,7 +71,7 @@ class Tag(SQLModel, table=True):
     tag_id: int | None = Field(default=None, primary_key=True)
     name: str
     name_norm: str = Field(unique=True, index=True)
-    created_at: datetime = Field(default_factory=utc_now)
+    created_at: datetime = Field(default_factory=utc_now, sa_type=UTCDateTime)
     created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
 
 
@@ -81,7 +82,7 @@ class MeaningTag(SQLModel, table=True):
         ondelete="CASCADE",
     )
     tag_id: int = Field(primary_key=True, foreign_key="tag.tag_id", ondelete="CASCADE")
-    created_at: datetime = Field(default_factory=utc_now)
+    created_at: datetime = Field(default_factory=utc_now, sa_type=UTCDateTime)
     created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
 
 
@@ -98,7 +99,7 @@ class MeaningRelation(SQLModel, table=True):
         foreign_key="meaning.meaning_id",
         ondelete="CASCADE",
     )
-    created_at: datetime = Field(default_factory=utc_now)
+    created_at: datetime = Field(default_factory=utc_now, sa_type=UTCDateTime)
     created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
 
 
@@ -113,8 +114,8 @@ class MeaningReference(SQLModel, table=True):
     meaning_id: int = Field(foreign_key="meaning.meaning_id", ondelete="CASCADE", index=True)
     url: str
     title: str | None = None
-    created_at: datetime = Field(default_factory=utc_now)
-    updated_at: datetime = Field(default_factory=utc_now)
+    created_at: datetime = Field(default_factory=utc_now, sa_type=UTCDateTime)
+    updated_at: datetime = Field(default_factory=utc_now, sa_type=UTCDateTime)
     created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
     updated_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
 
@@ -142,10 +143,10 @@ class Occurrence(SQLModel, table=True):
     )
     memo: str | None = None
     source: str | None = None
-    occurred_at: datetime = Field(default_factory=utc_now, index=True)
-    updated_at: datetime = Field(default_factory=utc_now)
-    resolved_at: datetime | None = None
-    discarded_at: datetime | None = None
+    occurred_at: datetime = Field(default_factory=utc_now, index=True, sa_type=UTCDateTime)
+    updated_at: datetime = Field(default_factory=utc_now, sa_type=UTCDateTime)
+    resolved_at: datetime | None = Field(default=None, sa_type=UTCDateTime)
+    discarded_at: datetime | None = Field(default=None, sa_type=UTCDateTime)
     created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
     updated_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
     resolved_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")

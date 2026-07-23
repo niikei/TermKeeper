@@ -6,7 +6,6 @@ from termkeeper.adapters.external import (
     ExternalCaptureResult,
     ExternalOccurrence,
     ExternalPage,
-    page,
 )
 from termkeeper.adapters.mcp.inputs import Limit, Offset
 from termkeeper.adapters.mcp.tools.context import ToolContext
@@ -37,8 +36,6 @@ class CaptureTools(ToolContext):
         limit: Limit = 20,
     ) -> ExternalPage[ExternalOccurrence]:
         """List unresolved captured terms."""
-        return page(
-            [self._mapper.occurrence(item) for item in self._service.inbox()],
-            offset,
-            limit,
+        return self._mapper.occurrence_page(
+            self._service.inbox(offset=offset, limit=limit),
         )

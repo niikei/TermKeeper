@@ -42,8 +42,10 @@ def _add_capture_commands(sub: _Subparsers) -> None:
     add.add_argument("--memo", help="Context or a short reminder")
     add.add_argument("--source", help="Where the term was encountered")
     add.add_argument("--meaning", type=int, dest="meaning_id", help="Explicit meaning ID")
-    sub.add("inbox", "Show unresolved items")
-    sub.add("history", "Show all captured items")
+    inbox = sub.add("inbox", "Show unresolved items")
+    _add_pagination_arguments(inbox)
+    history = sub.add("history", "Show all captured items")
+    _add_pagination_arguments(history)
     occurrences = sub.add("occurrences", "Show occurrence history")
     occurrences.add_argument("--meaning", type=int, dest="meaning_id")
     occurrences.add_argument(
@@ -54,7 +56,7 @@ def _add_capture_commands(sub: _Subparsers) -> None:
     occurrences.add_argument("--keyword")
     occurrences.add_argument("--source")
     occurrences.add_argument("--since", type=_parse_datetime)
-    occurrences.add_argument("--limit", type=int, default=50)
+    _add_pagination_arguments(occurrences)
     occurrence_edit = sub.add("occurrence-edit", "Edit occurrence context")
     occurrence_edit.add_argument("occurrence_id", type=int)
     occurrence_edit.add_argument("--keyword")
@@ -82,6 +84,11 @@ def _add_meaning_commands(sub: _Subparsers) -> None:
     _add_search_command(sub)
     _add_meaning_lifecycle_commands(sub)
     _add_meaning_metadata_commands(sub)
+
+
+def _add_pagination_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--offset", type=int, default=0)
+    parser.add_argument("--limit", type=int, default=50)
 
 
 def _add_search_command(sub: _Subparsers) -> None:

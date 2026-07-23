@@ -10,7 +10,6 @@ from termkeeper.adapters.external import (
     ExternalMeaning,
     ExternalOccurrence,
     ExternalPage,
-    page,
 )
 from termkeeper.adapters.http.common import _local_meaning_id, _local_occurrence_id
 from termkeeper.adapters.http.requests import (
@@ -36,20 +35,19 @@ def _register_occurrence_routes(
             if filters.meaning_id is not None
             else None
         )
-        items = [
-            mapper.occurrence(item)
-            for item in service.occurrences(
+        return mapper.occurrence_page(
+            service.occurrences(
                 OccurrenceQuery(
                     meaning_id=meaning_id,
                     status=OccurrenceStatus(filters.status) if filters.status else None,
                     keyword=filters.keyword,
                     source=filters.source,
                     since=filters.since,
-                    limit=filters.offset + filters.limit + 1,
+                    offset=filters.offset,
+                    limit=filters.limit,
                 ),
-            )
-        ]
-        return page(items, filters.offset, filters.limit)
+            ),
+        )
 
     @app.put("/api/v1/occurrences/{occurrence_id}")
     def edit_occurrence(

@@ -10,6 +10,7 @@ from termkeeper.domain import (
     Meaning,
     MergeResult,
     OccurrenceItem,
+    Page,
     ReferenceLink,
     SearchHit,
     SearchResult,
@@ -23,6 +24,7 @@ type CommandResult = (
     | Meaning
     | MergeResult
     | OccurrenceItem
+    | Page[OccurrenceItem]
     | ReferenceLink
     | SearchResult
     | StatsSummary

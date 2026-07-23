@@ -17,9 +17,9 @@ DB初期化エラー時は終了コード`1`を返す。内部トレースバッ
 | --- | --- | --- |
 | `init` | DBを最新Alembic Revisionへ更新 | なし |
 | `add` | 遭遇を捕捉 | `keyword`, `--memo`, `--source`, `--meaning` |
-| `inbox` | Pending Occurrence一覧 | なし |
-| `history` | 全Occurrence履歴 | なし |
-| `occurrences` | 遭遇履歴を絞り込み | `--meaning`, `--status`, `--keyword`, `--source`, `--since`, `--limit` |
+| `inbox` | Pending Occurrence一覧 | `--offset`, `--limit` |
+| `history` | 全Occurrence履歴 | `--offset`, `--limit` |
+| `occurrences` | 遭遇履歴を絞り込み | filter、`--offset`、`--limit` |
 | `occurrence-edit` | 遭遇情報を修正 | `occurrence_id`, keyword/memo/source更新・clear |
 | `resolve` | 新規・既存Meaningへ分類 | `occurrence_id`, `--meaning`または`--name`, `--scope`, `--description` |
 | `unresolve` | 分類をPendingへ戻す | `occurrence_id` |
@@ -80,9 +80,12 @@ Occurrenceを`occurred_at`の新しい順で表示する。
 - `--keyword TEXT`
 - `--source TEXT`
 - `--since ISO-8601`
+- `--offset N`
 - `--limit N`
 
-JSONにはID、public_id、keyword、memo、source、status、meaning_id、各日時・監査列を含む。
+DB側で`offset`と`limit + 1`を適用し、500件を超える履歴も取得できる。JSONは`items`、
+`offset`、`limit`、`has_more`を持つページ形式で、各itemにID、public_id、keyword、memo、
+source、status、meaning_id、各日時・監査列を含む。
 
 ## `tk search`
 

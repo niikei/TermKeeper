@@ -1,4 +1,5 @@
 import asyncio
+from datetime import UTC
 
 from termkeeper.adapters.mcp import (
     OccurrenceFilters,
@@ -8,6 +9,8 @@ from termkeeper.adapters.mcp import (
 )
 from termkeeper.application import TermKeeperService
 from termkeeper.domain import OccurrenceUpdate, ReferenceUpdate
+from termkeeper.infrastructure.connection import get_session
+from termkeeper.infrastructure.tables import Occurrence
 
 
 def test_mcp_server_registers_expected_typed_tools() -> None:
@@ -76,6 +79,8 @@ def test_mcp_tools_delegate_complete_workflow() -> None:
     captured = tools.capture_term("ERP", "planning", "Teams")
     occurrence_id = captured.occurrence.public_id
     assert captured.occurrence.status == "Pending"
+    assert captured.occurrence.occurred_at.tzinfo is UTC
+    assert captured.occurrence.updated_at.tzinfo is UTC
     assert tools.list_inbox().items[0].keyword == "ERP"
     meaning = tools.resolve_occurrence(
         occurrence_id,
@@ -91,6 +96,7 @@ def test_mcp_tools_delegate_complete_workflow() -> None:
         OccurrenceFilters(meaning_id=public_id),
     ).items[0]
     assert occurrence.source == "Teams"
+    assert occurrence.occurred_at.tzinfo is UTC
     edited = tools.edit_occurrence(
         occurrence.public_id,
         OccurrenceUpdate(memo="updated by MCP"),
@@ -144,3 +150,24 @@ def test_mcp_tools_delegate_complete_workflow() -> None:
         .meaning_id
         == public_id
     )
+
+
+def test_mcp_occurrence_pages_reach_beyond_500() -> None:
+    with get_session() as session:
+        session.add_all(
+            [
+                Occurrence(keyword=f"TERM-{index}", keyword_norm=f"term-{index}")
+                for index in range(505)
+            ],
+        )
+        session.commit()
+    tools = TermKeeperMcpTools(TermKeeperService())
+
+    first = tools.list_inbox(limit=100)
+    tail = tools.list_occurrences(OccurrenceFilters(offset=500, limit=10))
+
+    assert len(first.items) == 100
+    assert first.has_more is True
+    assert len(tail.items) == 5
+    assert tail.offset == 500
+    assert tail.has_more is False

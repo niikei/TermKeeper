@@ -9,7 +9,6 @@ from termkeeper.domain import (
     CaptureResult,
     Meaning,
     OccurrenceItem,
-    OccurrenceQuery,
     OccurrenceStatus,
 )
 from termkeeper.infrastructure.repositories import (
@@ -69,21 +68,6 @@ class CaptureUseCases:
                 message = f"Occurrence {public_id} was not found."
                 raise NotFoundError(message)
             return to_occurrence(record)
-
-    def inbox(self) -> list[OccurrenceItem]:
-        return self._list_occurrences(
-            OccurrenceQuery(status=OccurrenceStatus.PENDING, limit=500),
-        )
-
-    def history(self) -> list[OccurrenceItem]:
-        return self._list_occurrences(OccurrenceQuery(limit=500))
-
-    def _list_occurrences(self, query: OccurrenceQuery) -> list[OccurrenceItem]:
-        with UnitOfWork() as uow:
-            return [
-                to_occurrence(record)
-                for record in occurrence_repository.list_occurrences(uow.session, query)
-            ]
 
     def resolve(
         self,

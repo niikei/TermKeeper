@@ -22,7 +22,9 @@ def test_json_workflow(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert main(["--json", "inbox"]) == 0
     inbox = json.loads(capsys.readouterr().out)
-    assert inbox[0]["keyword"] == "ICMR"
+    assert inbox["items"][0]["keyword"] == "ICMR"
+    assert inbox["offset"] == 0
+    assert inbox["has_more"] is False
 
     assert (
         main(
@@ -179,13 +181,32 @@ def test_occurrence_history_human_and_json(capsys: pytest.CaptureFixture[str]) -
 
     assert main(["--json", "occurrences", "--status", "Pending", "--limit", "1"]) == 0
     occurrences = json.loads(capsys.readouterr().out)
-    assert occurrences[0]["keyword"] == "ERP"
-    assert occurrences[0]["status"] == "Pending"
+    assert occurrences["items"][0]["keyword"] == "ERP"
+    assert occurrences["items"][0]["status"] == "Pending"
+    assert occurrences["items"][0]["occurred_at"].endswith("+00:00")
+    assert occurrences["items"][0]["updated_at"].endswith("+00:00")
 
     assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
     capsys.readouterr()
     assert main(["occurrences"]) == 0
     assert "meaning: 1" in capsys.readouterr().out
+
+
+def test_occurrence_page_shows_how_to_continue(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["add", "FIRST"]) == 0
+    assert main(["add", "SECOND"]) == 0
+    capsys.readouterr()
+
+    assert main(["inbox", "--limit", "1"]) == 0
+    assert "Continue with --offset 1" in capsys.readouterr().out
+
+    assert main(["--json", "inbox", "--offset", "1", "--limit", "1"]) == 0
+    page = json.loads(capsys.readouterr().out)
+    assert len(page["items"]) == 1
+    assert page["offset"] == 1
+    assert page["has_more"] is False
 
 
 def test_occurrence_edit_and_classification_commands(capsys: pytest.CaptureFixture[str]) -> None:

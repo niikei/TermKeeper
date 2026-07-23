@@ -32,12 +32,14 @@ tk occurrences --meaning 1
 tk occurrences --status Pending
 tk occurrences --keyword MDM --source Slack
 tk occurrences --since 2026-07-01 --limit 20
+tk occurrences --offset 20 --limit 20
 tk occurrence-edit 3 --keyword ERP --memo "訂正" --source Teams
 tk occurrence-edit 3 --clear-memo --clear-source
 ```
 
 Occurrenceのraw keyword、memo、source、日時、分類状態、Meaningを表示する。編集は対象Occurrence
 だけに作用し、他の遭遇やMeaningのTermは暗黙に変更しない。
+`inbox`、`history`、`occurrences`はDB側でページングし、500件を超える履歴も取得できる。
 
 ## 4. 新しいMeaningとして解決する
 

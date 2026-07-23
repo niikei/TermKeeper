@@ -1,7 +1,6 @@
 """Persistence operations for occurrence capture and classification."""
 
 from dataclasses import dataclass
-from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import func
@@ -91,16 +90,16 @@ def list_occurrences(session: Session, query: OccurrenceQuery) -> list[Occurrenc
     if query.source:
         statement = statement.where(func.lower(Occurrence.source) == query.source.casefold())
     if query.since is not None:
-        statement = statement.where(Occurrence.occurred_at >= _sqlite_datetime(query.since))
-    statement = statement.order_by(
-        col(Occurrence.occurred_at).desc(),
-        col(Occurrence.occurrence_id).desc(),
-    ).limit(query.limit)
+        statement = statement.where(Occurrence.occurred_at >= query.since)
+    statement = (
+        statement.order_by(
+            col(Occurrence.occurred_at).desc(),
+            col(Occurrence.occurrence_id).desc(),
+        )
+        .offset(query.offset)
+        .limit(query.limit + 1)
+    )
     return list(session.exec(statement).all())
-
-
-def _sqlite_datetime(value: datetime) -> datetime:
-    return value.replace(tzinfo=None)
 
 
 def assign(

@@ -6,7 +6,13 @@ from uuid import UUID
 from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_occurrence
 from termkeeper.application.support import user_id
-from termkeeper.domain import OccurrenceItem, OccurrenceQuery, OccurrenceUpdate
+from termkeeper.domain import (
+    OccurrenceItem,
+    OccurrenceQuery,
+    OccurrenceStatus,
+    OccurrenceUpdate,
+    Page,
+)
 from termkeeper.infrastructure.repositories import occurrence_repository, settings_repository
 from termkeeper.infrastructure.tables import Occurrence
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
@@ -16,8 +22,11 @@ class OccurrenceUseCases:
     def occurrences(
         self,
         query: OccurrenceQuery | None = None,
-    ) -> list[OccurrenceItem]:
+    ) -> Page[OccurrenceItem]:
         query = query or OccurrenceQuery()
+        if query.offset < 0:
+            message = "Occurrence offset must not be negative."
+            raise ValidationError(message)
         if not 1 <= query.limit <= 500:
             message = "Occurrence limit must be between 1 and 500."
             raise ValidationError(message)
@@ -27,13 +36,30 @@ class OccurrenceUseCases:
             keyword=query.keyword.strip() if query.keyword else None,
             source=query.source.strip() if query.source else None,
             since=_to_utc(query.since),
+            offset=query.offset,
             limit=query.limit,
         )
         with UnitOfWork() as uow:
-            return [
-                to_occurrence(row)
-                for row in occurrence_repository.list_occurrences(uow.session, normalized)
-            ]
+            records = occurrence_repository.list_occurrences(uow.session, normalized)
+            items = tuple(to_occurrence(row) for row in records[: normalized.limit])
+            return Page(
+                items=items,
+                offset=normalized.offset,
+                limit=normalized.limit,
+                has_more=len(records) > normalized.limit,
+            )
+
+    def inbox(self, *, offset: int = 0, limit: int = 50) -> Page[OccurrenceItem]:
+        return self.occurrences(
+            OccurrenceQuery(
+                status=OccurrenceStatus.PENDING,
+                offset=offset,
+                limit=limit,
+            ),
+        )
+
+    def history(self, *, offset: int = 0, limit: int = 50) -> Page[OccurrenceItem]:
+        return self.occurrences(OccurrenceQuery(offset=offset, limit=limit))
 
     def edit_occurrence(
         self,
@@ -79,8 +105,10 @@ def _update_occurrence(
 
 
 def _to_utc(value: datetime | None) -> datetime | None:
-    if value is None or value.tzinfo is None:
-        return value
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
 
 

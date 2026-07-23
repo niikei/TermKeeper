@@ -18,7 +18,7 @@ def test_capture_always_creates_independent_pending_occurrences() -> None:
     assert first.occurrence.occurrence_id != second.occurrence.occurrence_id
     assert first.occurrence.status == OccurrenceStatus.PENDING
     assert second.occurrence.status == OccurrenceStatus.PENDING
-    assert len(service.inbox()) == 2
+    assert len(service.inbox().items) == 2
 
 
 def test_capture_suggests_all_matching_meanings_without_assigning() -> None:
@@ -71,7 +71,7 @@ def test_resolve_creates_scoped_meaning_and_classifies_only_one_occurrence() -> 
     assert set(meaning.terms) == {"ERP", "Enterprise Resource Planning"}
     assert service.get_occurrence(first.occurrence.occurrence_id).status == "Resolved"
     assert service.get_occurrence(second.occurrence.occurrence_id).status == "Pending"
-    assert len(service.inbox()) == 1
+    assert len(service.inbox().items) == 1
 
 
 def test_assignment_can_be_corrected_and_discard_can_be_reopened() -> None:

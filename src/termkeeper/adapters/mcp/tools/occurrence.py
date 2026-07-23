@@ -6,7 +6,6 @@ from termkeeper.adapters.external import (
     ExternalMeaning,
     ExternalOccurrence,
     ExternalPage,
-    page,
 )
 from termkeeper.adapters.mcp.inputs import OccurrenceFilters
 from termkeeper.adapters.mcp.tools.context import ToolContext
@@ -25,20 +24,19 @@ class OccurrenceTools(ToolContext):
             if query.meaning_id is not None
             else None
         )
-        items = [
-            self._mapper.occurrence(item)
-            for item in self._service.occurrences(
+        return self._mapper.occurrence_page(
+            self._service.occurrences(
                 OccurrenceQuery(
                     meaning_id=meaning_id,
                     status=OccurrenceStatus(query.status) if query.status else None,
                     keyword=query.keyword,
                     source=query.source,
                     since=query.since,
-                    limit=query.offset + query.limit + 1,
+                    offset=query.offset,
+                    limit=query.limit,
                 ),
-            )
-        ]
-        return page(items, query.offset, query.limit)
+            ),
+        )
 
     def edit_occurrence(
         self,

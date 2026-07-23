@@ -7,7 +7,7 @@ from uuid import UUID
 
 from pydantic import Field
 
-type Offset = Annotated[int, Field(ge=0, le=399)]
+type Offset = Annotated[int, Field(ge=0)]
 type Limit = Annotated[int, Field(ge=1, le=100)]
 
 

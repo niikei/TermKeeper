@@ -1,6 +1,7 @@
 """Human-readable and JSON output rendering."""
 
 import json
+from collections.abc import Sequence
 
 from termkeeper.domain import (
     CaptureResult,
@@ -8,6 +9,7 @@ from termkeeper.domain import (
     Meaning,
     MergeResult,
     OccurrenceItem,
+    Page,
     ReferenceLink,
     SearchHit,
     SearchResult,
@@ -26,6 +28,7 @@ def print_json(value: CommandResult) -> None:
             Meaning,
             MergeResult,
             OccurrenceItem,
+            Page,
             ReferenceLink,
             SearchResult,
             StatsSummary,
@@ -43,7 +46,7 @@ def _print_json_value(value: object) -> None:
     print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
 
 
-def print_inbox(items: list[OccurrenceItem]) -> None:
+def print_inbox(items: Sequence[OccurrenceItem]) -> None:
     if not items:
         print("Inbox is empty.")
         return
@@ -58,7 +61,7 @@ def print_inbox(items: list[OccurrenceItem]) -> None:
             print(f"      {details}")
 
 
-def print_occurrences(items: list[OccurrenceItem]) -> None:
+def print_occurrences(items: Sequence[OccurrenceItem]) -> None:
     if not items:
         print("No occurrences found.")
         return
@@ -74,6 +77,12 @@ def print_occurrences(items: list[OccurrenceItem]) -> None:
             details.append(f"meaning: {item.meaning_id}")
         if details:
             print("      " + " / ".join(details))
+
+
+def print_has_more(result: Page[OccurrenceItem]) -> None:
+    if result.has_more:
+        next_offset = result.offset + len(result.items)
+        print(f"More items are available. Continue with --offset {next_offset}.")
 
 
 def print_stats(stats: StatsSummary) -> None:

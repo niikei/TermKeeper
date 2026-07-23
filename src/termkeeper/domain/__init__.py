@@ -5,6 +5,7 @@ from termkeeper.domain.importing import ImportIssue, ImportResult, ImportRow
 from termkeeper.domain.merge import MergeResult
 from termkeeper.domain.models import CaptureResult, Meaning
 from termkeeper.domain.occurrence import OccurrenceItem, OccurrenceQuery, OccurrenceUpdate
+from termkeeper.domain.pagination import Page
 from termkeeper.domain.reference import ReferenceLink, ReferenceUpdate
 from termkeeper.domain.search import (
     SearchField,
@@ -28,6 +29,7 @@ __all__ = [
     "OccurrenceQuery",
     "OccurrenceStatus",
     "OccurrenceUpdate",
+    "Page",
     "ReferenceLink",
     "ReferenceUpdate",
     "SearchField",
