@@ -8,12 +8,16 @@ from termkeeper.presentation.types import CommandResult
 
 def print_json(value: CommandResult) -> None:
     if isinstance(value, (AddResult, Meaning)):
-        payload = value.to_dict()
-    elif isinstance(value, list):
-        payload = [item.to_dict() for item in value]
-    else:
-        payload = dict(value)
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
+        _print_json_value(value.to_dict())
+        return
+    if isinstance(value, list):
+        _print_json_value([item.to_dict() for item in value])
+        return
+    _print_json_value(dict(value))
+
+
+def _print_json_value(value: object) -> None:
+    print(json.dumps(value, ensure_ascii=False, indent=2))
 
 
 def print_inbox(items: list[InboxItem]) -> None:
