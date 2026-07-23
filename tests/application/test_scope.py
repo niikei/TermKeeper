@@ -3,6 +3,7 @@ from uuid import uuid4
 import pytest
 
 from termkeeper.application import NotFoundError, TermKeeperService, ValidationError
+from termkeeper.domain import ScopeSearchQuery
 
 
 def test_scope_lifecycle_and_stable_identity() -> None:
@@ -57,13 +58,13 @@ def test_scope_search_covers_name_description_pagination_and_validation() -> Non
 
     assert [item.name for item in service.search_scopes("sap").items] == ["SAP"]
     assert [item.name for item in service.search_scopes("planning").items] == ["Finance"]
-    first = service.search_scopes("a", limit=1)
+    first = service.search_scopes(ScopeSearchQuery("a", limit=1))
     assert len(first.items) == 1
     assert first.has_more is True
 
     with pytest.raises(ValidationError, match="text must not be empty"):
         service.search_scopes(" ")
     with pytest.raises(ValidationError, match="offset"):
-        service.search_scopes("SAP", offset=-1)
+        service.search_scopes(ScopeSearchQuery("SAP", offset=-1))
     with pytest.raises(ValidationError, match="limit"):
-        service.search_scopes("SAP", limit=0)
+        service.search_scopes(ScopeSearchQuery("SAP", limit=0))

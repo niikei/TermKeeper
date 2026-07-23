@@ -38,7 +38,7 @@ def rank_search(meanings: list[Meaning], query: SearchQuery) -> list[SearchHit]:
             hit.meaning.meaning_id,
         ),
     )
-    return hits[: query.limit]
+    return hits
 
 
 def search_tokens(text: str) -> tuple[str, ...]:

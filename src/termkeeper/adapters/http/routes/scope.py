@@ -12,6 +12,7 @@ from termkeeper.adapters.http.requests import (
     ScopeUpdateRequest,
 )
 from termkeeper.application import TermKeeperService
+from termkeeper.domain import ScopeSearchQuery
 
 
 def _register_scope_routes(
@@ -32,9 +33,11 @@ def _register_scope_routes(
     ) -> ExternalPage[ExternalScope]:
         return mapper.scope_page(
             service.search_scopes(
-                filters.text,
-                offset=filters.offset,
-                limit=filters.limit,
+                ScopeSearchQuery(
+                    filters.text,
+                    offset=filters.offset,
+                    limit=filters.limit,
+                ),
             ),
         )
 

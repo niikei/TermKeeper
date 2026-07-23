@@ -4,7 +4,6 @@ from uuid import UUID
 
 from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_meaning
-from termkeeper.application.search import rank_search, rank_suggestions, search_tokens
 from termkeeper.application.support import (
     get_meaning,
     get_scope,
@@ -12,7 +11,7 @@ from termkeeper.application.support import (
     required_id,
     user_id,
 )
-from termkeeper.domain import Meaning, SearchQuery, SearchResult
+from termkeeper.domain import Meaning
 from termkeeper.infrastructure.normalization import normalize_keyword
 from termkeeper.infrastructure.repositories import (
     meaning_repository,
@@ -81,57 +80,6 @@ class MeaningUseCases:
             result = to_meaning(uow.session, record)
             uow.commit()
             return result
-
-    def search(
-        self,
-        query: SearchQuery | str,
-    ) -> SearchResult:
-        query = SearchQuery(query) if isinstance(query, str) else query
-        tokens = search_tokens(query.text)
-        if not tokens:
-            message = "Search keyword must not be empty."
-            raise ValidationError(message)
-        if not 1 <= query.limit <= 500:
-            message = "Search limit must be between 1 and 500."
-            raise ValidationError(message)
-        if not 0 <= query.suggestion_limit <= 10:
-            message = "Suggestion limit must be between 0 and 10."
-            raise ValidationError(message)
-        with UnitOfWork() as uow:
-            scope_id = (
-                required_id(get_scope_by_name(uow, query.scope).scope_id)
-                if query.scope
-                else None
-            )
-            records = meaning_repository.search(
-                uow.session,
-                tokens,
-                query.field,
-                scope_id=scope_id,
-                favorite_only=query.favorite_only,
-            )
-            meanings = _filter_tag(
-                [to_meaning(uow.session, row) for row in records],
-                query.tag,
-            )
-            hits = rank_search(meanings, query)
-            if hits or query.suggestion_limit == 0:
-                return SearchResult(tuple(hits))
-            all_meanings = _filter_tag(
-                [
-                    to_meaning(uow.session, row)
-                    for row in meaning_repository.list_all(
-                        uow.session,
-                        scope_id=scope_id,
-                        favorite_only=query.favorite_only,
-                    )
-                ],
-                query.tag,
-            )
-            return SearchResult(
-                (),
-                tuple(rank_suggestions(all_meanings, query)),
-            )
 
     def meanings(
         self,

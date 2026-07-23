@@ -16,14 +16,14 @@ def test_favorites_filter_meanings_search_and_suggestions() -> None:
         erp.meaning_id,
     ]
     assert (
-        service.search(
+        service.search_meanings(
             SearchQuery("ERP", favorite_only=True),
         )
         .hits[0]
         .meaning.meaning_id
         == erp.meaning_id
     )
-    assert service.search(SearchQuery("CRMM", favorite_only=True)).suggestions == ()
+    assert service.search_meanings(SearchQuery("CRMM", favorite_only=True)).suggestions == ()
 
     unfavorited = service.unfavorite_meaning(erp.meaning_id)
     assert unfavorited.is_favorite is False

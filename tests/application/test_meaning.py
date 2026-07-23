@@ -10,7 +10,7 @@ def test_validation_and_missing_records_are_explicit() -> None:
     with pytest.raises(ValidationError):
         service.add("  ")
     with pytest.raises(ValidationError):
-        service.search(" ")
+        service.search_meanings(" ")
     with pytest.raises(NotFoundError):
         service.get_meaning(999)
     with pytest.raises(NotFoundError):
@@ -51,7 +51,7 @@ def test_edit_lists_and_searches_meanings() -> None:
     assert edited.scope == "SAP S/4HANA"
     assert "Enterprise Resource Planning System" in edited.terms
     assert service.meanings()[0].meaning_id == meaning.meaning_id
-    assert service.search("SUITE").hits[0].meaning.meaning_id == meaning.meaning_id
+    assert service.search_meanings("SUITE").hits[0].meaning.meaning_id == meaning.meaning_id
 
 
 def test_user_profile_is_recorded_in_audit_columns() -> None:
@@ -101,7 +101,7 @@ def test_trash_restore_and_purge_protect_occurrence_history() -> None:
     service.delete_meaning(meaning.meaning_id)
 
     assert service.meanings() == []
-    assert service.search("ERP").hits == ()
+    assert service.search_meanings("ERP").hits == ()
     recaptured = service.add("ERP")
     assert recaptured.candidates == ()
     trashed = service.trash()[0]
@@ -112,7 +112,7 @@ def test_trash_restore_and_purge_protect_occurrence_history() -> None:
     restored = service.restore_meaning(meaning.meaning_id)
 
     assert restored.deleted_at is None
-    assert service.search("ERP").hits[0].meaning.meaning_id == meaning.meaning_id
+    assert service.search_meanings("ERP").hits[0].meaning.meaning_id == meaning.meaning_id
     assert service.get_occurrence(recaptured.occurrence.occurrence_id).meaning_id is None
     with pytest.raises(NotFoundError):
         service.restore_meaning(meaning.meaning_id)

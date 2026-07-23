@@ -1,6 +1,6 @@
 # アーキテクチャと拡張方針
 
-依存方向は `Presentation / future API / future MCP → Application → Infrastructure`
+依存方向は `CLI / HTTP / MCP → Application → Infrastructure`
 とする。Domainは他レイヤーへ依存しない。
 
 - `domain/`: 外部境界でも使えるシリアライズ可能なDTO
@@ -26,8 +26,8 @@ Repositoryは`infrastructure/repositories/`へ集約し、テーブル・接続�
 ディレクトリ上でも責務を分ける。
 `TermKeeperService` 自体は薄いファサードとし、実装は `use_cases/capture.py`、
 `use_cases/meaning.py`、`use_cases/merge.py`、`use_cases/occurrence.py`、
-`use_cases/analytics.py`、`use_cases/relation.py`、`use_cases/reference.py`、`use_cases/tag.py`、
-`use_cases/config.py` に分割する。
+`use_cases/search.py`、`use_cases/analytics.py`、`use_cases/relation.py`、
+`use_cases/reference.py`、`use_cases/tag.py`、`use_cases/config.py` に分割する。
 共有するレコード取得とDTO変換だけを`support.py` と `mapping.py` に置き、機能間の
 直接呼び出しは避ける。
 
@@ -54,9 +54,11 @@ Meaningは`scope_id`と`full_name_norm`の組を有効行内で一意にし、�
 Meaning間の関連は小さいIDを先にした対称ペアとして正規化し、同一ペアを一意に保つ。
 参考URLはMeaning配下の独立エンティティとし、同一Meaning内でURLを一意に保つ。
 
-検索はRepositoryで部分一致候補を取得し、Applicationで関連度を計算する。通常ヒットが0件の
-場合だけ有効Meaningを読み込み、`SearchSuggestion`を生成する。Presentationは候補ロジックを
-持たず、`SearchResult`を表示・JSON化する。
+検索は`SearchUseCases`をCLI・HTTP・MCP共通の唯一のApplication境界とする。
+Repositoryで部分一致候補を取得し、Applicationで関連度、ページング、`has_more`を計算する。
+通常ヒットが0件の場合だけ有効Meaningを読み込み、`SearchSuggestion`を生成する。
+各アダプターは入力契約とID表現の変換、出力表現だけを担当し、検索・候補・ページ判定の
+ロジックを持たない。
 Occurrence検索はkeyword、memo、sourceをRepositoryで横断し、status、source、since、Meaningの
 構造化条件を同じqueryへ適用する。Inbox検索はこのユースケースをPendingへ固定して再利用する。
 Scope検索はnameとdescriptionを対象にし、Applicationから`Page[Scope]`として返す。

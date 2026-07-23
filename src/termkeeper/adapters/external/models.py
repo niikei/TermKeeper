@@ -222,11 +222,7 @@ class ExternalMapper:
     def search_result(
         self,
         result: SearchResult,
-        *,
-        offset: int = 0,
-        limit: int = 20,
     ) -> ExternalSearchResult:
-        hits = result.hits[offset : offset + limit + 1]
         return ExternalSearchResult(
             hits=tuple(
                 ExternalSearchHit(
@@ -235,7 +231,7 @@ class ExternalMapper:
                     matched_field=hit.matched_field,
                     matched_text=hit.matched_text,
                 )
-                for hit in hits[:limit]
+                for hit in result.hits
             ),
             suggestions=tuple(
                 ExternalSearchSuggestion(
@@ -246,9 +242,9 @@ class ExternalMapper:
                 )
                 for item in result.suggestions
             ),
-            offset=offset,
-            limit=limit,
-            has_more=len(hits) > limit,
+            offset=result.offset,
+            limit=result.limit,
+            has_more=result.has_more,
         )
 
     def _meaning_public_ids(self, local_ids: Iterable[int | None]) -> dict[int, UUID]:

@@ -10,7 +10,7 @@ def test_search_ranks_matches_and_reports_reason() -> None:
     prefix = service.create_meaning("ERP Cloud")
     description = service.create_meaning("Finance Suite", "Supports ERP workflows")
 
-    hits = service.search("ERP").hits
+    hits = service.search_meanings("ERP").hits
 
     assert [hit.meaning.meaning_id for hit in hits] == [
         exact.meaning_id,
@@ -31,17 +31,21 @@ def test_search_supports_multiple_words_fields_modes_and_limit() -> None:
     )
     service.create_meaning("Enterprise Content Management", "Document platform", ("ECM",))
 
-    assert service.search("enterprise planning").hits[0].meaning.meaning_id == erp.meaning_id
-    assert service.search("enterprise missing").hits == ()
-    assert len(service.search(SearchQuery("planning document", match_all=False)).hits) == 2
     assert (
-        service.search(SearchQuery("business", field=SearchField.DESCRIPTION))
+        service.search_meanings("enterprise planning").hits[0].meaning.meaning_id == erp.meaning_id
+    )
+    assert service.search_meanings("enterprise missing").hits == ()
+    assert len(service.search_meanings(SearchQuery("planning document", match_all=False)).hits) == 2
+    assert (
+        service.search_meanings(SearchQuery("business", field=SearchField.DESCRIPTION))
         .hits[0]
         .meaning.meaning_id
         == erp.meaning_id
     )
-    assert service.search(SearchQuery("enterprise", field=SearchField.DESCRIPTION)).hits == ()
-    assert len(service.search(SearchQuery("enterprise", limit=1)).hits) == 1
+    assert (
+        service.search_meanings(SearchQuery("enterprise", field=SearchField.DESCRIPTION)).hits == ()
+    )
+    assert len(service.search_meanings(SearchQuery("enterprise", limit=1)).hits) == 1
 
 
 def test_search_treats_sql_wildcards_as_text_and_validates_limit() -> None:
@@ -49,15 +53,33 @@ def test_search_treats_sql_wildcards_as_text_and_validates_limit() -> None:
     percent = service.create_meaning("100% Completion")
     service.create_meaning("Unrelated")
 
-    hits = service.search("%").hits
+    hits = service.search_meanings("%").hits
 
     assert [hit.meaning.meaning_id for hit in hits] == [percent.meaning_id]
     with pytest.raises(ValidationError):
-        service.search(SearchQuery("term", limit=0))
+        service.search_meanings(SearchQuery("term", limit=0))
     with pytest.raises(ValidationError):
-        service.search(SearchQuery("term", limit=501))
+        service.search_meanings(SearchQuery("term", limit=101))
     with pytest.raises(ValidationError):
-        service.search(SearchQuery("term", suggestion_limit=11))
+        service.search_meanings(SearchQuery("term", suggestion_limit=11))
+
+
+def test_search_pages_ranked_results_inside_application_boundary() -> None:
+    service = TermKeeperService()
+    service.create_meaning("Alpha One")
+    service.create_meaning("Alpha Two")
+    service.create_meaning("Alpha Three")
+
+    first = service.search_meanings(SearchQuery("Alpha", limit=2))
+    second = service.search_meanings(SearchQuery("Alpha", offset=2, limit=2))
+
+    assert first.offset == 0
+    assert first.limit == 2
+    assert first.has_more is True
+    assert len(first.hits) == 2
+    assert second.offset == 2
+    assert second.has_more is False
+    assert len(second.hits) == 1
 
 
 def test_search_suggests_similar_active_meanings_only_when_no_hits() -> None:
@@ -67,7 +89,7 @@ def test_search_suggests_similar_active_meanings_only_when_no_hits() -> None:
     archived = service.create_meaning("ERPP Archive", terms=("ERPP",))
     service.delete_meaning(archived.meaning_id)
 
-    result = service.search(SearchQuery("ERPP", tag="SAP"))
+    result = service.search_meanings(SearchQuery("ERPP", tag="SAP"))
 
     assert result.hits == ()
     assert len(result.suggestions) == 1
@@ -77,17 +99,17 @@ def test_search_suggests_similar_active_meanings_only_when_no_hits() -> None:
     assert suggestion.matched_text == "ERP"
     assert suggestion.similarity == 86
 
-    exact = service.search("ERP")
+    exact = service.search_meanings("ERP")
     assert exact.hits
     assert exact.suggestions == ()
-    assert service.search(SearchQuery("ERPP", suggestion_limit=0)).suggestions == ()
+    assert service.search_meanings(SearchQuery("ERPP", suggestion_limit=0)).suggestions == ()
 
 
 def test_description_search_has_no_suggestion_without_descriptions() -> None:
     service = TermKeeperService()
     service.create_meaning("Enterprise Resource Planning")
 
-    result = service.search(SearchQuery("planning", field=SearchField.DESCRIPTION))
+    result = service.search_meanings(SearchQuery("planning", field=SearchField.DESCRIPTION))
 
     assert result.hits == ()
     assert result.suggestions == ()
@@ -101,8 +123,8 @@ def test_search_normalizes_unicode_names_and_descriptions() -> None:
         "ＳＡＰ　Ｐｌａｎｎｉｎｇ",
     )
 
-    name_result = service.search(SearchQuery("STRASSE", field=SearchField.NAME))
-    description_result = service.search(
+    name_result = service.search_meanings(SearchQuery("STRASSE", field=SearchField.NAME))
+    description_result = service.search_meanings(
         SearchQuery("sap planning", field=SearchField.DESCRIPTION),
     )
 
@@ -117,7 +139,7 @@ def test_search_normalizes_unicode_names_and_descriptions() -> None:
         "Ｃｕｓｔｏｍｅｒ　Ｄａｔａ",
     )
     assert (
-        service.search(SearchQuery("customer data", field=SearchField.DESCRIPTION))
+        service.search_meanings(SearchQuery("customer data", field=SearchField.DESCRIPTION))
         .hits[0]
         .meaning.meaning_id
         == full_width.meaning_id
@@ -139,7 +161,7 @@ def test_search_and_list_filter_ambiguous_terms_by_scope() -> None:
         scope="Radio",
     )
 
-    result = service.search(SearchQuery("ERP", scope="sap"))
+    result = service.search_meanings(SearchQuery("ERP", scope="sap"))
 
     assert [hit.meaning.meaning_id for hit in result.hits] == [sap.meaning_id]
     assert [item.meaning_id for item in service.meanings(scope="SAP")] == [

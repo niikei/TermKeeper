@@ -17,16 +17,13 @@ class SearchTools(ToolContext):
         domain_query = SearchQuery(
             text=query.text,
             field=SearchField(query.field),
-            limit=query.offset + query.limit + 1,
+            offset=query.offset,
+            limit=query.limit,
             tag=query.tag,
             scope=self._scope_name(query.scope_id) if query.scope_id is not None else None,
             favorite_only=query.favorite_only,
         )
-        return self._mapper.search_result(
-            self._service.search(domain_query),
-            offset=query.offset,
-            limit=query.limit,
-        )
+        return self._mapper.search_result(self._service.search_meanings(domain_query))
 
     def get_meaning(self, meaning_id: UUID) -> ExternalMeaning:
         """Get one active meaning by its stable UUID."""

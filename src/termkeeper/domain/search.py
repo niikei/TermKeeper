@@ -19,6 +19,7 @@ class SearchQuery:
     text: str
     match_all: bool = True
     field: SearchField = SearchField.ALL
+    offset: int = 0
     limit: int = 20
     tag: str | None = None
     scope: str | None = None
@@ -62,9 +63,15 @@ class SearchSuggestion:
 class SearchResult:
     hits: tuple[SearchHit, ...]
     suggestions: tuple[SearchSuggestion, ...] = ()
+    offset: int = 0
+    limit: int = 20
+    has_more: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "hits": [hit.to_dict() for hit in self.hits],
             "suggestions": [suggestion.to_dict() for suggestion in self.suggestions],
+            "offset": self.offset,
+            "limit": self.limit,
+            "has_more": self.has_more,
         }

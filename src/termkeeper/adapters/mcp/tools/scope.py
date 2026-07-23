@@ -5,6 +5,7 @@ from uuid import UUID
 from termkeeper.adapters.external import ExternalPage, ExternalScope, page
 from termkeeper.adapters.mcp.inputs import Limit, Offset, ScopeSearchFilters
 from termkeeper.adapters.mcp.tools.context import ToolContext
+from termkeeper.domain import ScopeSearchQuery
 
 
 class ScopeTools(ToolContext):
@@ -15,9 +16,11 @@ class ScopeTools(ToolContext):
         """Search scope names and descriptions."""
         return self._mapper.scope_page(
             self._service.search_scopes(
-                query.text,
-                offset=query.offset,
-                limit=query.limit,
+                ScopeSearchQuery(
+                    query.text,
+                    offset=query.offset,
+                    limit=query.limit,
+                ),
             ),
         )
 

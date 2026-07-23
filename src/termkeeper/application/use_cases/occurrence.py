@@ -1,11 +1,11 @@
 """Occurrence history use cases."""
 
-from datetime import UTC, datetime
 from uuid import UUID
 
 from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_occurrence
 from termkeeper.application.support import user_id
+from termkeeper.application.use_cases.search import occurrence_page
 from termkeeper.domain import (
     OccurrenceItem,
     OccurrenceQuery,
@@ -23,50 +23,7 @@ class OccurrenceUseCases:
         self,
         query: OccurrenceQuery | None = None,
     ) -> Page[OccurrenceItem]:
-        query = query or OccurrenceQuery()
-        if query.offset < 0:
-            message = "Occurrence offset must not be negative."
-            raise ValidationError(message)
-        if not 1 <= query.limit <= 500:
-            message = "Occurrence limit must be between 1 and 500."
-            raise ValidationError(message)
-        normalized = OccurrenceQuery(
-            meaning_id=query.meaning_id,
-            status=query.status,
-            text=query.text.strip() if query.text else None,
-            keyword=query.keyword.strip() if query.keyword else None,
-            source=query.source.strip() if query.source else None,
-            since=_to_utc(query.since),
-            offset=query.offset,
-            limit=query.limit,
-        )
-        with UnitOfWork() as uow:
-            records = occurrence_repository.list_occurrences(uow.session, normalized)
-            items = tuple(to_occurrence(row) for row in records[: normalized.limit])
-            return Page(
-                items=items,
-                offset=normalized.offset,
-                limit=normalized.limit,
-                has_more=len(records) > normalized.limit,
-            )
-
-    def search_occurrences(self, query: OccurrenceQuery) -> Page[OccurrenceItem]:
-        if query.text is None or not query.text.strip():
-            message = "Occurrence search text must not be empty."
-            raise ValidationError(message)
-        return self.occurrences(query)
-
-    def search_inbox(self, query: OccurrenceQuery) -> Page[OccurrenceItem]:
-        return self.search_occurrences(
-            OccurrenceQuery(
-                status=OccurrenceStatus.PENDING,
-                text=query.text,
-                source=query.source,
-                since=query.since,
-                offset=query.offset,
-                limit=query.limit,
-            ),
-        )
+        return occurrence_page(query or OccurrenceQuery())
 
     def inbox(self, *, offset: int = 0, limit: int = 50) -> Page[OccurrenceItem]:
         return self.occurrences(
@@ -121,14 +78,6 @@ def _update_occurrence(
     result = to_occurrence(occurrence)
     uow.commit()
     return result
-
-
-def _to_utc(value: datetime | None) -> datetime | None:
-    if value is None:
-        return None
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-    return value.astimezone(UTC)
 
 
 def _validate_update(update: OccurrenceUpdate) -> None:

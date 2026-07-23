@@ -12,6 +12,7 @@ from termkeeper.application.use_cases import (
     ReferenceUseCases,
     RelationUseCases,
     ScopeUseCases,
+    SearchUseCases,
     TagUseCases,
 )
 from termkeeper.config import database_target
@@ -28,6 +29,7 @@ class TermKeeperService(
     ReferenceUseCases,
     RelationUseCases,
     ScopeUseCases,
+    SearchUseCases,
     TagUseCases,
     ConfigUseCases,
 ):

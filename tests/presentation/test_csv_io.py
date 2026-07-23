@@ -128,7 +128,7 @@ def test_import_creates_meaning_and_aliases(tmp_path: Path) -> None:
     result = import_meanings(str(path), TermKeeperService())
 
     assert (result.created, result.updated, result.skipped) == (1, 0, 0)
-    imported = TermKeeperService().search("MDM").hits[0].meaning
+    imported = TermKeeperService().search_meanings("MDM").hits[0].meaning
     assert imported.description == "governance"
     assert imported.tags == ("Data",)
 

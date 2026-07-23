@@ -26,13 +26,10 @@ def meaning_search_result(
             else None
         ),
         favorite_only=filters.favorite_only,
-        limit=filters.offset + filters.limit + 1,
-    )
-    return mapper.search_result(
-        service.search(query),
         offset=filters.offset,
         limit=filters.limit,
     )
+    return mapper.search_result(service.search_meanings(query))
 
 
 def _register_query_routes(

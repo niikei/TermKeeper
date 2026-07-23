@@ -25,7 +25,7 @@ def handle_search(args: argparse.Namespace, service: TermKeeperService) -> Searc
         favorite_only=args.favorite_only,
         suggestion_limit=args.suggestion_limit,
     )
-    result = service.search(query)
+    result = service.search_meanings(query)
     if not args.json:
         print(f"{len(result.hits)} match(es)")
         for item in result.hits:
