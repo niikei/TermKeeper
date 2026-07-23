@@ -1,42 +1,43 @@
-# MVPスコープ
+# 現在のスコープ
 
-## MVP対象
+## 実装済み
 
-- SQLite
-- CLI
-- INBOX管理
-- TERM管理
-- MEANING管理
-- 検索
-- 解決
-- 破棄
+- SQLiteによるローカル永続化と追加マイグレーション
+- Inboxの捕捉、一覧、履歴、破棄
+- memoとsourceによる遭遇コンテキスト
+- 同一未解決語の出現回数と最終確認日時
+- Meaningの作成、編集、一覧、詳細表示
+- Termと別名の管理
+- Term・正式名称・説明の検索
+- 対話／非対話での解決と編集
+- CSV Import／Export
+- JSON出力
+- UTCの作成・更新・最終確認・終了日時
+- Applicationサービスを介した外部アダプター向け境界
 
-## MVP対象外
+## 未実装
 
-- AI候補生成
-- Teams Bot
-- Power Automate連携
-- SharePoint連携
-- Dataverse
+- AIによる意味候補生成
+- HTTP API / FastAPI
+- MCPサーバー
 - Web UI
-- タグ
-- カテゴリ
-- 添付ファイル
-- URL管理
-- 関連用語管理
+- Teams、Slack、メールなどからの自動捕捉
+- Power Automate、SharePoint、Dataverse連携
+- タグ、カテゴリ、関連用語
+- URL、添付ファイル
 - お気に入り
-- 利用回数分析
+- 出現回数を利用した分析・ランキング・ダッシュボード
+- Meaningの統合・削除
+- 同期、複数ユーザー、認証・認可
 
-## 将来構想
+## 拡張順序
 
 ```text
-CLI
-↓
-FastAPI
-↓
-Web UI
-↓
-Teams連携
+Application Service
+├── CLI（実装済み）
+├── MCP adapter
+├── HTTP API
+└── Web / collaboration adapters
 ```
 
-ただしMVPでは実施しない。
+外部連携ではCLI出力やSQLiteを直接操作せず、`TermKeeperService` を利用する。

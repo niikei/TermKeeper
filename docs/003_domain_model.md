@@ -2,14 +2,10 @@
 
 ## 概念
 
-TermKeeperは以下の流れで情報を管理する。
+TermKeeperは、捕捉したInboxをMeaningへ解決し、Meaningに複数の検索語Termを関連付ける。
 
 ```text
-INBOX
-↓
-TERM
-↓
-MEANING
+INBOX ── resolves to ──> MEANING <── belongs to ── TERM
 ```
 
 ## ER図
@@ -17,49 +13,57 @@ MEANING
 ```mermaid
 erDiagram
 
-    MEANING ||--o{ TERM : has
-
-    MEANING ||--o{ INBOX : resolved_to
+    MEANING ||--o{ TERM : "has aliases"
+    MEANING o|--o{ INBOX : "resolves captures"
 
     MEANING {
-        int MeaningID
-
-    string FullName
-        string Description
-
-    datetime CreatedAt
-        datetime UpdatedAt
+        integer meaning_id PK
+        text full_name
+        text description "nullable"
+        datetime created_at "UTC ISO 8601"
+        datetime updated_at "UTC ISO 8601"
     }
 
     TERM {
-        int TermID
-
-    int MeaningID
-
-    string Keyword
-        string KeywordNorm
-
-    datetime CreatedAt
-        datetime UpdatedAt
+        integer term_id PK
+        integer meaning_id FK
+        text keyword
+        text keyword_norm
+        datetime created_at "UTC ISO 8601"
+        datetime updated_at "UTC ISO 8601"
     }
 
     INBOX {
-        int InboxID
-
-    string Keyword
-        string KeywordNorm
-
-    string Memo
-
-    string Status
-
-    int ResolvedMeaningID
-
-    datetime CreatedAt
-        datetime UpdatedAt
-        datetime ClosedAt
+        integer inbox_id PK
+        text keyword
+        text keyword_norm
+        text memo "nullable"
+        text source "nullable"
+        text status "New Pending Closed Discarded"
+        integer resolved_meaning_id FK "nullable"
+        integer occurrence_count
+        datetime created_at "UTC ISO 8601"
+        datetime updated_at "UTC ISO 8601"
+        datetime last_seen_at "UTC ISO 8601"
+        datetime closed_at "nullable"
     }
 ```
+
+### リレーションと制約
+
+- 1つのMeaningは0個以上のTermを持つ。
+- Termは必ず1つのMeaningに属し、Meaning削除時に連動して削除される。
+- Inboxは未解決・破棄状態ではMeaningを持たず、解決後に1つのMeaningを参照する。
+- Termの `(keyword_norm, meaning_id)` は一意で、同じMeaningへの別表記の重複を防ぐ。
+- `keyword_norm` はNFKC正規化と大文字・小文字の統一後の検索値を保持する。
+
+### インデックス
+
+| インデックス | 対象列 | 用途 |
+| --- | --- | --- |
+| `idx_inbox_open_keyword` | `inbox.keyword_norm, status` | 未解決Inboxの重複確認 |
+| `idx_term_keyword` | `term.keyword_norm` | 用語検索 |
+| `idx_term_meaning` | `term.meaning_id` | Meaningから別名を取得 |
 
 ## TERM
 
@@ -99,10 +103,9 @@ stateDiagram-v2
 
     [*] --> New
 
-    New --> Pending
     New --> Closed
     New --> Discarded
-
-    Pending --> Closed
-    Pending --> Discarded
 ```
+
+現行CLIが作成する未解決状態は `New` のみ。`Pending` は既存DBとの互換性および将来の
+調査中ワークフロー用にスキーマ上予約されているが、状態へ遷移するコマンドは未実装である。

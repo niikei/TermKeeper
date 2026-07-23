@@ -1,79 +1,58 @@
 # CLI仕様
 
-## tk add
-
-用途:
-
-未整理用語を登録する。
-
-例:
+## 共通仕様
 
 ```text
-tk add ICMR
+tk [--json] <command> [options]
 ```
 
-処理:
+- `--json`: 結果をUTF-8のJSONで標準出力へ出力する。サブコマンドより前に指定する。
+- 成功時の終了コードは `0`、入力・未検出・ファイル操作エラーは `2`。
+- CLI起動時にデータベースの初期化と追加マイグレーションを実行する。
 
-1. Meaning検索
-2. 未解決Inbox検索
-3. 必要に応じてInbox登録
+## コマンド一覧
 
-## tk inbox
+| コマンド | 用途 | 主な引数・オプション |
+|---|---|---|
+| `init` | DBを初期化・更新 | なし |
+| `add` | Inboxへ捕捉 | `keyword`, `--memo`, `--source` |
+| `inbox` | 未解決Inbox一覧 | なし |
+| `history` | 全Inbox履歴 | なし |
+| `resolve` | InboxをMeaningへ解決 | `inbox_id`, `--name`, `--description` |
+| `search` | Term・正式名称・説明を検索 | `keyword` |
+| `show` | Meaning詳細 | `meaning_id` |
+| `meanings` | Meaning一覧 | なし |
+| `alias` | Meaningへ別名を追加 | `meaning_id`, `keyword` |
+| `edit` | Meaningを編集 | `meaning_id`, `--name`, `--description` |
+| `discard` | 未解決Inboxを破棄 | `inbox_id` |
+| `export` | MeaningをCSV出力 | `[path]` |
+| `import` | MeaningをCSV取込 | `path` |
 
-用途:
+## 主要な処理規則
 
-未処理一覧表示
+### `tk add`
 
-例:
+1. 入力をNFKC正規化し、大文字・小文字を統一する。
+2. 登録済みTermがあればMeaningを返す。
+3. 同じ未解決Inboxがあれば出現回数と最終確認日時を更新する。
+4. どちらもなければ新しいInboxを作成する。
+
+### `tk resolve`
+
+`--name` を省略すると正式名称と説明を対話入力する。解決時にMeaningを作成し、Inboxの
+keywordと正式名称をTermとして登録する。
+
+### `tk edit`
+
+`--name` を省略すると対話形式になる。空入力は現在値を維持する。新しい正式名称は検索用
+Termにも追加する。
+
+### `tk export` / `tk import`
+
+CSV列は以下の通り。
 
 ```text
-tk inbox
+meaning_id,full_name,description,terms,created_at,updated_at
 ```
 
-## tk resolve
-
-用途:
-
-InboxをMeaningへ変換
-
-例:
-
-```text
-tk resolve 1
-```
-
-## tk search
-
-用途:
-
-用語検索
-
-例:
-
-```text
-tk search MDM
-```
-
-## tk show
-
-用途:
-
-Meaning詳細表示
-
-例:
-
-```text
-tk show 100
-```
-
-## tk discard
-
-用途:
-
-Inbox破棄
-
-例:
-
-```text
-tk discard 10
-```
+`terms` はセミコロン区切り。Import時、存在する `meaning_id` は更新し、それ以外は新規作成する。
