@@ -9,6 +9,9 @@ from datetime import datetime
 class HelpFormatter(argparse.RawDescriptionHelpFormatter):
     """Show meaningful defaults while preserving multiline examples."""
 
+    def __init__(self, prog: str) -> None:
+        super().__init__(prog, max_help_position=30)
+
     def _get_help_string(self, action: argparse.Action) -> str:
         help_text = action.help or ""
         default = action.default
@@ -28,8 +31,15 @@ class Commands:
         *,
         dest: str,
         required: bool = True,
+        title: str = "Commands",
+        metavar: str = "COMMAND",
     ) -> None:
-        self._action = parser.add_subparsers(dest=dest, required=required)
+        self._action = parser.add_subparsers(
+            dest=dest,
+            required=required,
+            title=title,
+            metavar=metavar,
+        )
 
     def add(
         self,
@@ -59,7 +69,13 @@ class Commands:
             formatter_class=HelpFormatter,
         )
         add_runtime_options(parser, suppress_default=True)
-        return Commands(parser, dest=f"{name}_action")
+        parser.epilog = f"Run 'tk {name} ACTION --help' for action-specific help."
+        return Commands(
+            parser,
+            dest=f"{name}_action",
+            title="Actions",
+            metavar="ACTION",
+        )
 
 
 def add_runtime_options(

@@ -45,6 +45,16 @@ DB初期化エラー時は終了コード`1`を返す。内部トレースバッ
 stdoutとstderrは個別にTTY判定する。JSON出力は`--color=always`が併用されても色を使わず、
 ANSI制御文字を含めない。`completion`と`--version`もプレーンテキストのままとする。
 
+### Help
+
+`tk --help`のusageはコマンド名をすべて展開せず、`tk [OPTIONS] COMMAND ...`として表示する。
+コマンド一覧に加え、`Everyday workflow`、`Management`、`System and data`の用途別ガイドと
+`tk COMMAND --help`への案内を表示する。
+
+管理グループのhelpは`tk meaning ACTION ...`のように表現し、有効なAction一覧と
+`tk GROUP ACTION --help`への案内を表示する。末端コマンドでは位置引数、オプション、
+具体例を表示する。Helpは`--color=always`が指定されてもANSIカラーを使用しない。
+
 ## コマンド一覧
 
 | コマンド | 用途 | 主な引数 |

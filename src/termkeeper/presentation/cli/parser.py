@@ -22,13 +22,31 @@ from termkeeper.presentation.cli.parser_builders.primary import add_primary_comm
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="tk",
-        description="Capture now, understand later.",
+        description=(
+            "Capture unfamiliar terms, organize their meanings by scope, "
+            "and find them later."
+        ),
         epilog=(
-            "Quick start:\n"
-            "  tk add ERP --source meeting\n"
-            "  tk inbox\n"
-            "  tk resolve 1 --name \"Enterprise Resource Planning\"\n"
-            "  tk search ERP"
+            "Everyday workflow:\n"
+            "  tk add TERM          Capture a term as encountered\n"
+            "  tk inbox             Review unresolved occurrences\n"
+            "  tk list              Browse known meanings\n"
+            "  tk search QUERY      Find a meaning\n"
+            "  tk resolve ID        Classify an occurrence\n"
+            "\n"
+            "Management:\n"
+            "  tk occurrence --help   Occurrence history and state\n"
+            "  tk meaning --help      Meaning lifecycle and relationships\n"
+            "  tk scope --help        Meaning namespaces\n"
+            "  tk tag --help          Tags\n"
+            "  tk reference --help    Reference URLs\n"
+            "\n"
+            "System and data:\n"
+            "  tk data --help         Import and export\n"
+            "  tk config --help       User configuration\n"
+            "  tk doctor              Diagnose the environment\n"
+            "\n"
+            "Run 'tk COMMAND --help' for command-specific options and examples."
         ),
         formatter_class=HelpFormatter,
     )

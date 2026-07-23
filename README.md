@@ -72,6 +72,14 @@ tk
 tk --version
 ```
 
+コマンドを日常操作・管理・システムに分けたガイドと、個別のオプション・実行例を確認できます。
+
+```bash
+tk --help
+tk meaning --help
+tk add --help
+```
+
 ### 捕捉
 
 ```bash

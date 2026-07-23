@@ -749,14 +749,37 @@ def test_help_is_grouped_and_contains_examples(
         main(["--help"])
     assert exc_info.value.code == 0
     root_help = capsys.readouterr().out
-    assert "Quick start:" in root_help
-    assert "occurrence" in root_help
+    assert "COMMAND ..." in root_help
+    assert "{init,add" not in root_help
+    assert "Everyday workflow:" in root_help
+    assert "Management:" in root_help
+    assert "System and data:" in root_help
+    assert "tk list" in root_help
+    assert "tk COMMAND --help" in root_help
     assert "scope-add" not in root_help
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit) as exc_info:
+        main(["meaning", "--help"])
+    assert exc_info.value.code == 0
+    meaning_help = capsys.readouterr().out
+    assert "ACTION ..." in meaning_help
+    assert "{list,edit" not in meaning_help
+    assert "tk meaning ACTION --help" in meaning_help
+
+    with pytest.raises(SystemExit) as exc_info:
         main(["scope", "add", "--help"])
+    assert exc_info.value.code == 0
     scope_help = capsys.readouterr().out
     assert "tk scope add SAP" in scope_help
+
+
+def test_help_never_contains_ansi_styling(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--color", "always", "--help"])
+    assert exc_info.value.code == 0
+    assert "\033[" not in capsys.readouterr().out
 
 
 def test_search_human_output_is_compact(capsys: pytest.CaptureFixture[str]) -> None:
