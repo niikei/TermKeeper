@@ -43,7 +43,7 @@ src/termkeeper/
 ├── domain/                 # DTO、Enum
 ├── application/
 │   ├── service.py          # 公開ファサード
-│   ├── use_cases/          # capture、meaning、merge、occurrence、tag、configのユースケース
+│   ├── use_cases/          # 照会・更新・状態遷移など責務別のユースケース
 │   ├── mapping.py          # SQLModelレコードからDTOへの変換
 │   ├── support.py          # Application層の共有処理
 │   └── errors.py           # Application層の例外
@@ -166,6 +166,7 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 - CLI固有の処理をApplication層へ持ち込まない
 - APIやMCPを追加するときも既存のApplicationユースケースを再利用する
 - `service.py`を肥大化させず、機能別の`use_cases/`へ実装する
+- Meaningの照会・更新・Trash lifecycle、OccurrenceのCapture・分類状態遷移を混在させない
 - 互換レイヤーは追加せず、必要になった時点で明示的なマイグレーションを設計する
 - スキーマ変更はAlembic Revisionとして追加し、`tk init`で最新状態へupgradeする
 - 適用済みRevisionは書き換えず、次のRevisionにforward migrationを追加する

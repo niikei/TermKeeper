@@ -24,10 +24,11 @@ Applicationの各更新ユースケースはUnit of Workを使用し、1つのSe
 完結する。Repositoryはcommitせず、トランザクション境界をApplicationへ集約する。
 Repositoryは`infrastructure/repositories/`へ集約し、テーブル・接続・Unit of Workとは
 ディレクトリ上でも責務を分ける。
-`TermKeeperService` 自体は薄いファサードとし、実装は `use_cases/capture.py`、
-`use_cases/meaning.py`、`use_cases/merge.py`、`use_cases/occurrence.py`、
-`use_cases/search.py`、`use_cases/analytics.py`、`use_cases/relation.py`、
-`use_cases/reference.py`、`use_cases/tag.py`、`use_cases/config.py` に分割する。
+`TermKeeperService` 自体は薄いファサードとする。Meaningは照会、更新、Trash lifecycle、
+Occurrence intakeはCaptureと明示的な分類状態遷移へ分け、それぞれ
+`meaning_query.py`、`meaning_command.py`、`meaning_lifecycle.py`、`capture.py`、
+`classification.py`へ配置する。検索、統合、Occurrence照会・編集、分析、Relation、
+Reference、Tag、Configも`use_cases/`内の機能別モジュールへ分割する。
 共有するレコード取得とDTO変換だけを`support.py` と `mapping.py` に置き、機能間の
 直接呼び出しは避ける。
 
