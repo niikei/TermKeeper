@@ -1,10 +1,16 @@
 [project]
 name = "termkeeper"
-version = "0.1.0"
+version = "0.2.0"
 description = "Don't lose unknown terms."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
 
 [project.scripts]
 tk = "termkeeper.cli:main"
@@ -12,3 +18,20 @@ tk = "termkeeper.cli:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# Use the D211/D212 docstring convention; their counterparts are mutually exclusive.
+ignore = ["D203", "D213"]
+
+[tool.ruff.lint.per-file-ignores]
+# Assertions, descriptive test names, and literal expected values are idiomatic in pytest.
+"tests/**" = ["D100", "D103", "D104", "PLR2004", "S101"]

@@ -1,6 +1,73 @@
 # TermKeeper
 
-知らない言葉を捨てないためのCLIツール。
+知らない言葉を捨てないためのCLIツール。会議中は一瞬で捕捉し、後から意味を整理できます。
+
+## セットアップ
+
+Python 3.12以降を使用します。
+
+```bash
+python -m venv .venv
+. .venv/bin/activate
+pip install -e '.[dev]'
+tk init
+```
+
+データベースの保存先は `TERMKEEPER_DB` で変更できます。
+
+```bash
+TERMKEEPER_DB=~/Documents/terms.db tk inbox
+```
+
+## 基本操作
+
+```bash
+tk add ICMR --memo "月次決算会議" --source "Teams"
+tk inbox
+tk resolve 1 --name "Intercompany Matching and Reconciliation" \
+  --description "グループ間取引の照合"
+tk search ICMR
+tk show 1
+```
+
+同じ未解決語を再登録すると重複行は作らず、出現回数と最終確認日時を更新します。
+
+## API / MCP連携
+
+CLIの全主要コマンドは `--json` に対応しています。
+
+```bash
+tk --json search MDM
+```
+
+PythonからはCLIを介さず、安定したユースケース層を利用できます。将来のFastAPIやMCP
+サーバーはこの層をアダプターから呼び出します。
+
+```python
+from termkeeper import TermKeeperService
+
+service = TermKeeperService()
+service.initialize()
+result = service.add("BTP", source="Slack")
+```
+
+## 開発
+
+```bash
+pytest
+ruff check .
+```
+
+構成は責務ごとに分離しています。
+
+```text
+src/termkeeper/
+├── models.py   # API/MCPでも共有するドメインDTO
+├── service.py  # ユースケース
+├── db.py       # SQLiteアダプターとマイグレーション
+├── config.py   # 実行時設定
+└── cli.py      # CLIアダプター
+```
 
 ## コンセプト
 
