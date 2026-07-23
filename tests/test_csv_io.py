@@ -1,5 +1,6 @@
 import csv
 from pathlib import Path
+from uuid import uuid4
 
 from termkeeper.application import TermKeeperService
 from termkeeper.presentation.csv_io import export_meanings, import_meanings, split_terms
@@ -49,3 +50,21 @@ def test_import_creates_meaning_and_aliases(tmp_path: Path) -> None:
 
     assert result == {"created": 1, "updated": 0, "skipped": 0}
     assert TermKeeperService().search("MDM")[0].description == "governance"
+
+
+def test_import_preserves_unknown_public_id(tmp_path: Path) -> None:
+    public_id = uuid4()
+    path = tmp_path / "external.csv"
+    path.write_text(
+        "public_id,full_name,description,terms\n"
+        f"{public_id},Customer Relationship Management,customers,CRM\n",
+        encoding="utf-8",
+    )
+    service = TermKeeperService()
+
+    result = import_meanings(str(path), service)
+
+    assert result == {"created": 1, "updated": 0, "skipped": 0}
+    assert service.get_meaning_by_public_id(public_id).full_name == (
+        "Customer Relationship Management"
+    )
