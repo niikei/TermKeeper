@@ -7,11 +7,9 @@
 - `application/`: 公開Serviceファサード、機能別ユースケース、DTO変換、アプリケーション例外
 - `infrastructure/`: SQLModelテーブル、Engine／Session、スキーマ作成
   - `repositories/`: Analytics、Occurrence、Meaningなど機能単位の永続化処理
-- `presentation/`: 利用者との入出力境界
-  - `cli/`: CLI引数、表示、CLI固有型
+- `adapters/`: CLI・外部プロトコルからApplication Serviceへの変換
+  - `cli/`: 人間向けのCLI引数、対話、表示、CSV入出力
   - `cli/handlers/`: Capture、Meaning、Metadata、Config、Transfer単位のコマンド処理
-  - `csv_io.py`: CSV入出力
-- `adapters/`: 外部プロトコルからApplication Serviceへの変換
   - `external/`: HTTP・MCPで共有する外部DTO、ページング、Domain DTOからの変換
   - `http/`: FastAPIアプリケーション構築、リクエストモデル、機能別Route
   - `mcp/`: FastMCPサーバー構築、入力モデル、機能別Tool
@@ -32,7 +30,7 @@ Repositoryは`infrastructure/repositories/`へ集約し、テーブル・接続�
 直接呼び出しは避ける。
 
 CLIの`main.py`はパース、Service初期化、エラー処理、JSON出力だけを担当する。
-各コマンドの入出力変換は`presentation/cli/handlers/`へユースケース単位で配置し、
+各コマンドの入出力変換は`adapters/cli/handlers/`へユースケース単位で配置し、
 `registry.py`だけがコマンド名とHandlerの対応を管理する。
 JSONモードは自動化向けの非対話境界とし、標準入力を読まず、標準出力には単一のJSON値だけを
 書き出す。不足入力も構造化エラーへ変換する。

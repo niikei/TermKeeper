@@ -1,10 +1,10 @@
 """Primary workflow command parsers."""
 
-from termkeeper.presentation.cli.parser_builders.common import (
+from termkeeper.adapters.cli.parser_builders.common import (
     Commands,
     add_pagination_arguments,
 )
-from termkeeper.presentation.cli.parser_builders.search import (
+from termkeeper.adapters.cli.parser_builders.search import (
     add_inbox_search_arguments,
     add_meaning_search_arguments,
 )

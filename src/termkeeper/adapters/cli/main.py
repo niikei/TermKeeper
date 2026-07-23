@@ -4,16 +4,16 @@ import sys
 import traceback
 from collections.abc import Sequence
 
+from termkeeper.adapters.cli.handlers.registry import HANDLERS
+from termkeeper.adapters.cli.parser import create_parser
+from termkeeper.adapters.cli.rendering import print_json
+from termkeeper.adapters.cli.style import configure_color, danger
 from termkeeper.application import (
     InitializationError,
     NotFoundError,
     TermKeeperService,
     ValidationError,
 )
-from termkeeper.presentation.cli.handlers.registry import HANDLERS
-from termkeeper.presentation.cli.parser import create_parser
-from termkeeper.presentation.cli.rendering import print_json
-from termkeeper.presentation.cli.style import configure_color, danger
 
 
 def main(argv: Sequence[str] | None = None) -> int:

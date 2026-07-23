@@ -3,10 +3,7 @@
 import argparse
 
 from termkeeper import __version__
-from termkeeper.application import TermKeeperService
-from termkeeper.infrastructure.connection import get_engine
-from termkeeper.infrastructure.schema import schema_issues, schema_revisions
-from termkeeper.presentation.cli.style import (
+from termkeeper.adapters.cli.style import (
     command,
     danger,
     heading,
@@ -14,6 +11,9 @@ from termkeeper.presentation.cli.style import (
     success,
     warning,
 )
+from termkeeper.application import TermKeeperService
+from termkeeper.infrastructure.connection import get_engine
+from termkeeper.infrastructure.schema import schema_issues, schema_revisions
 
 _ROOT_COMMANDS = (
     "add inbox list resolve search show history stats occurrence meaning tag reference "

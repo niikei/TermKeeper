@@ -3,6 +3,14 @@
 import argparse
 import sys
 
+from termkeeper.adapters.cli.rendering import (
+    print_has_more,
+    print_inbox,
+    print_meaning_candidates,
+    print_occurrences,
+    print_stats,
+)
+from termkeeper.adapters.cli.style import danger, heading, identifier, success, warning
 from termkeeper.application import TermKeeperService, ValidationError
 from termkeeper.domain import (
     CaptureResult,
@@ -13,14 +21,6 @@ from termkeeper.domain import (
     Page,
     StatsSummary,
 )
-from termkeeper.presentation.cli.rendering import (
-    print_has_more,
-    print_inbox,
-    print_meaning_candidates,
-    print_occurrences,
-    print_stats,
-)
-from termkeeper.presentation.cli.style import danger, heading, identifier, success, warning
 
 
 def handle_add(args: argparse.Namespace, service: TermKeeperService) -> CaptureResult:

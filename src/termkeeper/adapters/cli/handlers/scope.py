@@ -2,11 +2,11 @@
 
 import argparse
 
+from termkeeper.adapters.cli.handlers.common import confirm_destructive
+from termkeeper.adapters.cli.rendering import print_has_more, print_scopes
+from termkeeper.adapters.cli.style import danger, heading, identifier, success
 from termkeeper.application import TermKeeperService, ValidationError
 from termkeeper.domain import Page, Scope, ScopeSearchQuery
-from termkeeper.presentation.cli.handlers.common import confirm_destructive
-from termkeeper.presentation.cli.rendering import print_has_more, print_scopes
-from termkeeper.presentation.cli.style import danger, heading, identifier, success
 
 
 def handle_scope_add(args: argparse.Namespace, service: TermKeeperService) -> Scope:

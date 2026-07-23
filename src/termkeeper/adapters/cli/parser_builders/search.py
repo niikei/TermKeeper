@@ -2,11 +2,11 @@
 
 import argparse
 
-from termkeeper.domain import OccurrenceStatus, SearchField
-from termkeeper.presentation.cli.parser_builders.common import (
+from termkeeper.adapters.cli.parser_builders.common import (
     add_pagination_arguments,
     parse_datetime,
 )
+from termkeeper.domain import OccurrenceStatus, SearchField
 
 
 def add_meaning_search_arguments(parser: argparse.ArgumentParser) -> None:

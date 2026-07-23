@@ -1,10 +1,10 @@
 """Tag, reference, and scope command parsers."""
 
-from termkeeper.presentation.cli.parser_builders.common import (
+from termkeeper.adapters.cli.parser_builders.common import (
     Commands,
     add_confirmation_argument,
 )
-from termkeeper.presentation.cli.parser_builders.search import add_scope_search_arguments
+from termkeeper.adapters.cli.parser_builders.search import add_scope_search_arguments
 
 
 def add_tag_commands(commands: Commands) -> None:

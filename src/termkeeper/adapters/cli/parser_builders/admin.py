@@ -1,6 +1,6 @@
 """Configuration and transfer command parsers."""
 
-from termkeeper.presentation.cli.parser_builders.common import Commands
+from termkeeper.adapters.cli.parser_builders.common import Commands
 
 
 def add_admin_commands(commands: Commands) -> None:

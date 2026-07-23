@@ -5,14 +5,14 @@ from uuid import uuid4
 import pytest
 from sqlmodel import Session
 
-from termkeeper.application import TermKeeperService, ValidationError
-from termkeeper.infrastructure.repositories import tag_repository
-from termkeeper.presentation.csv_io import (
+from termkeeper.adapters.cli.csv_io import (
     decode_values,
     encode_values,
     export_meanings,
     import_meanings,
 )
+from termkeeper.application import TermKeeperService, ValidationError
+from termkeeper.infrastructure.repositories import tag_repository
 
 CSV_FIELDS: list[str] = [
     "public_id",

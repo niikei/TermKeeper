@@ -2,8 +2,8 @@
 
 import argparse
 
+from termkeeper.adapters.cli.style import command, muted, success, warning
 from termkeeper.application import TermKeeperService
-from termkeeper.presentation.cli.style import command, muted, success, warning
 
 
 def handle_config(args: argparse.Namespace, service: TermKeeperService) -> dict[str, str]:

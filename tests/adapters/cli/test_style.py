@@ -2,7 +2,7 @@
 
 import pytest
 
-from termkeeper.presentation.cli import style
+from termkeeper.adapters.cli import style
 
 
 def test_styled_adds_ansi_codes_when_color_is_enabled(

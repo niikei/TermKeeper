@@ -2,12 +2,12 @@
 
 import argparse
 
+from termkeeper.adapters.cli.csv_io import export_meanings, import_meanings
+from termkeeper.adapters.cli.handlers.common import confirm_destructive
+from termkeeper.adapters.cli.style import command, danger, success, warning
 from termkeeper.application import TermKeeperService
 from termkeeper.domain import ImportResult
 from termkeeper.infrastructure.schema import reset_sqlite_database
-from termkeeper.presentation.cli.handlers.common import confirm_destructive
-from termkeeper.presentation.cli.style import command, danger, success, warning
-from termkeeper.presentation.csv_io import export_meanings, import_meanings
 
 
 def handle_init(args: argparse.Namespace, _service: TermKeeperService) -> dict[str, str]:

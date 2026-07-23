@@ -3,20 +3,20 @@
 import argparse
 
 from termkeeper import __version__
-from termkeeper.presentation.cli.parser_builders.admin import add_admin_commands, add_data_commands
-from termkeeper.presentation.cli.parser_builders.common import (
+from termkeeper.adapters.cli.parser_builders.admin import add_admin_commands, add_data_commands
+from termkeeper.adapters.cli.parser_builders.common import (
     Commands,
     HelpFormatter,
     add_runtime_options,
 )
-from termkeeper.presentation.cli.parser_builders.meaning import add_meaning_commands
-from termkeeper.presentation.cli.parser_builders.metadata import (
+from termkeeper.adapters.cli.parser_builders.meaning import add_meaning_commands
+from termkeeper.adapters.cli.parser_builders.metadata import (
     add_reference_commands,
     add_scope_commands,
     add_tag_commands,
 )
-from termkeeper.presentation.cli.parser_builders.occurrence import add_occurrence_commands
-from termkeeper.presentation.cli.parser_builders.primary import add_primary_commands
+from termkeeper.adapters.cli.parser_builders.occurrence import add_occurrence_commands
+from termkeeper.adapters.cli.parser_builders.primary import add_primary_commands
 
 
 def create_parser() -> argparse.ArgumentParser:

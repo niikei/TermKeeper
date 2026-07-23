@@ -3,6 +3,21 @@
 import json
 from collections.abc import Sequence
 
+from termkeeper.adapters.cli.style import (
+    BOLD,
+    CYAN,
+    UNDERLINE,
+    command,
+    danger,
+    heading,
+    identifier,
+    muted,
+    scope_label,
+    status_label,
+    styled,
+    warning,
+)
+from termkeeper.adapters.cli.types import CommandResult
 from termkeeper.domain import (
     CaptureResult,
     ImportResult,
@@ -17,21 +32,6 @@ from termkeeper.domain import (
     SearchSuggestion,
     StatsSummary,
 )
-from termkeeper.presentation.cli.style import (
-    BOLD,
-    CYAN,
-    UNDERLINE,
-    command,
-    danger,
-    heading,
-    identifier,
-    muted,
-    scope_label,
-    status_label,
-    styled,
-    warning,
-)
-from termkeeper.presentation.cli.types import CommandResult
 
 
 def print_json(value: CommandResult) -> None:

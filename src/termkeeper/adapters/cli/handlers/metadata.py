@@ -2,10 +2,10 @@
 
 import argparse
 
+from termkeeper.adapters.cli.rendering import print_meaning, print_references
+from termkeeper.adapters.cli.style import command, identifier, muted, success, warning
 from termkeeper.application import TermKeeperService
 from termkeeper.domain import Meaning, ReferenceLink, ReferenceUpdate, TagSummary
-from termkeeper.presentation.cli.rendering import print_meaning, print_references
-from termkeeper.presentation.cli.style import command, identifier, muted, success, warning
 
 
 def handle_tag(args: argparse.Namespace, service: TermKeeperService) -> Meaning:

@@ -1,6 +1,6 @@
 """Command-to-handler registry."""
 
-from termkeeper.presentation.cli.handlers.capture import (
+from termkeeper.adapters.cli.handlers.capture import (
     handle_add,
     handle_discard,
     handle_history,
@@ -14,8 +14,8 @@ from termkeeper.presentation.cli.handlers.capture import (
     handle_stats,
     handle_unresolve,
 )
-from termkeeper.presentation.cli.handlers.config import handle_config
-from termkeeper.presentation.cli.handlers.meaning import (
+from termkeeper.adapters.cli.handlers.config import handle_config
+from termkeeper.adapters.cli.handlers.meaning import (
     handle_alias,
     handle_delete,
     handle_edit,
@@ -29,7 +29,7 @@ from termkeeper.presentation.cli.handlers.meaning import (
     handle_trash,
     handle_unalias,
 )
-from termkeeper.presentation.cli.handlers.metadata import (
+from termkeeper.adapters.cli.handlers.metadata import (
     handle_favorite,
     handle_reference_add,
     handle_reference_edit,
@@ -43,24 +43,24 @@ from termkeeper.presentation.cli.handlers.metadata import (
     handle_unrelate,
     handle_untag,
 )
-from termkeeper.presentation.cli.handlers.scope import (
+from termkeeper.adapters.cli.handlers.scope import (
     handle_scope_add,
     handle_scope_delete,
     handle_scope_edit,
     handle_scope_search,
     handle_scopes,
 )
-from termkeeper.presentation.cli.handlers.system import (
+from termkeeper.adapters.cli.handlers.system import (
     handle_completion,
     handle_dashboard,
     handle_doctor,
 )
-from termkeeper.presentation.cli.handlers.transfer import (
+from termkeeper.adapters.cli.handlers.transfer import (
     handle_export,
     handle_import,
     handle_init,
 )
-from termkeeper.presentation.cli.types import CommandHandler
+from termkeeper.adapters.cli.types import CommandHandler
 
 HANDLERS: dict[str, CommandHandler] = {
     "dashboard": handle_dashboard,

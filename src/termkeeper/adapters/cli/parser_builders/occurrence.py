@@ -1,12 +1,12 @@
 """Occurrence command parsers."""
 
-from termkeeper.domain import OccurrenceStatus
-from termkeeper.presentation.cli.parser_builders.common import (
+from termkeeper.adapters.cli.parser_builders.common import (
     Commands,
     add_pagination_arguments,
     parse_datetime,
 )
-from termkeeper.presentation.cli.parser_builders.search import add_occurrence_search_arguments
+from termkeeper.adapters.cli.parser_builders.search import add_occurrence_search_arguments
+from termkeeper.domain import OccurrenceStatus
 
 
 def add_occurrence_commands(commands: Commands) -> None:

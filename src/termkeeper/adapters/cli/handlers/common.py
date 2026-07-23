@@ -2,8 +2,8 @@
 
 import argparse
 
+from termkeeper.adapters.cli.style import danger
 from termkeeper.application import ValidationError
-from termkeeper.presentation.cli.style import danger
 
 
 def confirm_destructive(args: argparse.Namespace, message: str) -> None:

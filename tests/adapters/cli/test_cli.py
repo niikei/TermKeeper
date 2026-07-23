@@ -6,9 +6,9 @@ import pytest
 from sqlalchemy import text
 
 from termkeeper import __version__
+from termkeeper.adapters.cli.csv_io import encode_values
+from termkeeper.adapters.cli.main import main
 from termkeeper.infrastructure.connection import get_engine, get_session
-from termkeeper.presentation.cli.main import main
-from termkeeper.presentation.csv_io import encode_values
 
 
 def _write_import_csv(path: Path, rows: list[dict[str, str]]) -> None:
@@ -922,7 +922,7 @@ def test_add_can_assign_a_single_candidate_immediately(
     assert main(["resolve", "1", "--name", "Product Information Management"]) == 0
     capsys.readouterr()
     monkeypatch.setattr(
-        "termkeeper.presentation.cli.handlers.capture._can_prompt",
+        "termkeeper.adapters.cli.handlers.capture._can_prompt",
         lambda: True,
     )
     monkeypatch.setattr("builtins.input", lambda _prompt: "y")
@@ -944,7 +944,7 @@ def test_add_can_keep_a_candidate_pending(
     assert main(["resolve", "1", "--name", "Product Information Management"]) == 0
     capsys.readouterr()
     monkeypatch.setattr(
-        "termkeeper.presentation.cli.handlers.capture._can_prompt",
+        "termkeeper.adapters.cli.handlers.capture._can_prompt",
         lambda: True,
     )
     monkeypatch.setattr("builtins.input", lambda _prompt: "")
@@ -993,7 +993,7 @@ def test_add_can_choose_between_candidates_in_different_scopes(
     )
     capsys.readouterr()
     monkeypatch.setattr(
-        "termkeeper.presentation.cli.handlers.capture._can_prompt",
+        "termkeeper.adapters.cli.handlers.capture._can_prompt",
         lambda: True,
     )
     monkeypatch.setattr("builtins.input", lambda _prompt: "2")
@@ -1013,7 +1013,7 @@ def test_add_no_prompt_never_reads_input(
     assert main(["resolve", "1", "--name", "Product Information Management"]) == 0
     capsys.readouterr()
     monkeypatch.setattr(
-        "termkeeper.presentation.cli.handlers.capture._can_prompt",
+        "termkeeper.adapters.cli.handlers.capture._can_prompt",
         lambda: True,
     )
 

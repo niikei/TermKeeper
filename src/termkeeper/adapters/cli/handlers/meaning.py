@@ -2,16 +2,16 @@
 
 import argparse
 
-from termkeeper.application import TermKeeperService, ValidationError
-from termkeeper.domain import Meaning, MergeResult, SearchQuery, SearchResult
-from termkeeper.presentation.cli.handlers.common import confirm_destructive
-from termkeeper.presentation.cli.rendering import (
+from termkeeper.adapters.cli.handlers.common import confirm_destructive
+from termkeeper.adapters.cli.rendering import (
     print_meaning,
     print_meaning_list,
     print_search_hit,
     print_search_suggestion,
 )
-from termkeeper.presentation.cli.style import danger, heading, identifier, muted, success, warning
+from termkeeper.adapters.cli.style import danger, heading, identifier, muted, success, warning
+from termkeeper.application import TermKeeperService, ValidationError
+from termkeeper.domain import Meaning, MergeResult, SearchQuery, SearchResult
 
 
 def handle_search(args: argparse.Namespace, service: TermKeeperService) -> SearchResult:
