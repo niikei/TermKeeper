@@ -16,9 +16,9 @@ def test_inbound_adapters_do_not_import_infrastructure() -> None:
     for path in ADAPTER_ROOT.rglob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and (
-                node.module or ""
-            ).startswith("termkeeper.infrastructure"):
+            if isinstance(node, ast.ImportFrom) and (node.module or "").startswith(
+                "termkeeper.infrastructure"
+            ):
                 violations.append(f"{path}:{node.lineno}")
             if isinstance(node, ast.Import):
                 violations.extend(

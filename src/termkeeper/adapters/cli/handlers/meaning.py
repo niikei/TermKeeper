@@ -127,8 +127,7 @@ def handle_purge(args: argparse.Namespace, service: TermKeeperService) -> dict[s
     service.purge_meaning(args.meaning_id)
     if not args.json:
         print(
-            f"{danger('Permanently deleted')} meaning "
-            f"{identifier(f'#{args.meaning_id}')}.",
+            f"{danger('Permanently deleted')} meaning {identifier(f'#{args.meaning_id}')}.",
         )
     return {"purged": args.meaning_id}
 
@@ -164,7 +163,9 @@ def handle_edit(args: argparse.Namespace, service: TermKeeperService) -> Meaning
         description = (
             None
             if args.clear_description
-            else args.description if args.description is not None else current.description
+            else args.description
+            if args.description is not None
+            else current.description
         )
     else:
         if args.json:

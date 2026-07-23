@@ -18,7 +18,7 @@ def add_primary_commands(commands: Commands) -> None:
         examples=(
             "Examples:\n"
             "  tk add ERP\n"
-            "  tk add ICMR --memo \"monthly close\" --source Teams\n"
+            '  tk add ICMR --memo "monthly close" --source Teams\n'
             "  tk add ERP --meaning 12"
         ),
     )
@@ -70,7 +70,7 @@ def add_primary_commands(commands: Commands) -> None:
         examples=(
             "Examples:\n"
             "  tk resolve 3 --meaning 12\n"
-            "  tk resolve 3 --name \"Enterprise Resource Planning\" --scope SAP"
+            '  tk resolve 3 --name "Enterprise Resource Planning" --scope SAP'
         ),
     )
     resolve.add_argument("occurrence_id", type=int, help="Pending occurrence ID")
@@ -90,7 +90,7 @@ def add_primary_commands(commands: Commands) -> None:
         examples=(
             "Examples:\n"
             "  tk search ERP\n"
-            "  tk search \"planning system\" --match-any --field description\n"
+            '  tk search "planning system" --match-any --field description\n'
             "  tk search ERP --scope SAP --tag Core"
         ),
     )

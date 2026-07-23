@@ -5,18 +5,14 @@ import pytest
 from termkeeper.adapters.cli import style
 
 
-def test_styled_adds_ansi_codes_when_color_is_enabled(
-) -> None:
+def test_styled_adds_ansi_codes_when_color_is_enabled() -> None:
     style.configure_color("always")
 
-    assert style.styled("Scope", style.BOLD, style.MAGENTA) == (
-        "\033[1;35mScope\033[0m"
-    )
+    assert style.styled("Scope", style.BOLD, style.MAGENTA) == ("\033[1;35mScope\033[0m")
     style.configure_color("auto")
 
 
-def test_styled_is_plain_when_color_is_disabled(
-) -> None:
+def test_styled_is_plain_when_color_is_disabled() -> None:
     style.configure_color("never")
 
     assert style.styled("Scope", style.MAGENTA) == "Scope"

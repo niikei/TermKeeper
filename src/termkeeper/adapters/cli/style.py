@@ -42,10 +42,7 @@ def color_enabled(*, stream: TextIO | None = None) -> bool:
         return False
     if os.environ.get("FORCE_COLOR"):
         return True
-    return (
-        output.isatty()
-        and os.environ.get("TERM") != "dumb"
-    )
+    return output.isatty() and os.environ.get("TERM") != "dumb"
 
 
 def styled(

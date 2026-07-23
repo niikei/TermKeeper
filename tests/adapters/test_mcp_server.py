@@ -81,9 +81,9 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
     occurrence_query = definitions["list_occurrences"]["$defs"]["OccurrenceFilters"]
     assert occurrence_query["properties"]["meaning_id"]["anyOf"][0]["format"] == "uuid"
     assert definitions["search_inbox"]["$defs"]["InboxSearchFilters"]["required"] == ["text"]
-    assert definitions["search_occurrences"]["$defs"]["OccurrenceSearchFilters"][
-        "required"
-    ] == ["text"]
+    assert definitions["search_occurrences"]["$defs"]["OccurrenceSearchFilters"]["required"] == [
+        "text"
+    ]
     assert definitions["search_scopes"]["$defs"]["ScopeSearchFilters"]["required"] == ["text"]
     search_definitions = definitions["search_meanings"]["$defs"]
     assert search_definitions["SearchText"]["minLength"] == 1
@@ -105,10 +105,7 @@ def test_mcp_tools_delegate_complete_workflow() -> None:
     assert captured.occurrence.updated_at.tzinfo is UTC
     assert tools.list_inbox().items[0].keyword == "ERP"
     assert tools.search_inbox(InboxSearchFilters(text="planning")).items[0].keyword == "ERP"
-    assert (
-        tools.search_occurrences(OccurrenceSearchFilters(text="Teams")).items[0].keyword
-        == "ERP"
-    )
+    assert tools.search_occurrences(OccurrenceSearchFilters(text="Teams")).items[0].keyword == "ERP"
     meaning = tools.resolve_occurrence(
         occurrence_id,
         "Enterprise Resource Planning",

@@ -209,8 +209,7 @@ def print_search_suggestion(suggestion: SearchSuggestion) -> None:
     meaning_id = identifier(f"[{suggestion.meaning.meaning_id}]")
     scope = scope_label(f"[{suggestion.meaning.scope}]")
     detail = muted(
-        f"({suggestion.similarity}% via {suggestion.matched_field} "
-        f"{suggestion.matched_text!r})",
+        f"({suggestion.similarity}% via {suggestion.matched_field} {suggestion.matched_text!r})",
     )
     print(
         f"  {meaning_id} {suggestion.meaning.full_name} {scope} {detail}",

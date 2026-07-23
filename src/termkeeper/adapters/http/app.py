@@ -6,6 +6,7 @@ import uvicorn
 from fastapi import FastAPI, status
 from pydantic import BaseModel
 
+from termkeeper import __version__
 from termkeeper.adapters.external import ExternalMapper
 from termkeeper.adapters.http.errors import ErrorResponse, register_error_handlers
 from termkeeper.adapters.http.routes.analytics import _register_analytics_routes
@@ -31,7 +32,7 @@ def create_app(service: TermKeeperService | None = None) -> FastAPI:
 
     app = FastAPI(
         title="TermKeeper API",
-        version="1.0.0",
+        version=__version__,
         description="Capture unfamiliar terms and organize searchable meanings.",
         responses={
             status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},

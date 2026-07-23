@@ -23,8 +23,7 @@ def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="tk",
         description=(
-            "Capture unfamiliar terms, organize their meanings by scope, "
-            "and find them later."
+            "Capture unfamiliar terms, organize their meanings by scope, and find them later."
         ),
         epilog=(
             "Everyday workflow:\n"

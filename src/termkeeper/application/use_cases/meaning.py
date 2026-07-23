@@ -42,9 +42,7 @@ class MeaningUseCases:
             records = meaning_repository.list_page(
                 uow.session,
                 scope_id=(
-                    required_id(selected_scope.scope_id)
-                    if selected_scope is not None
-                    else None
+                    required_id(selected_scope.scope_id) if selected_scope is not None else None
                 ),
                 favorite_only=query.favorite_only,
                 tag=tag,
@@ -52,10 +50,7 @@ class MeaningUseCases:
                 limit=query.limit,
             )
             return Page(
-                items=tuple(
-                    to_meaning(uow.session, record)
-                    for record in records[: query.limit]
-                ),
+                items=tuple(to_meaning(uow.session, record) for record in records[: query.limit]),
                 offset=query.offset,
                 limit=query.limit,
                 has_more=len(records) > query.limit,
@@ -133,9 +128,7 @@ class MeaningUseCases:
                 for row in meaning_repository.list_all(
                     uow.session,
                     scope_id=(
-                        required_id(selected_scope.scope_id)
-                        if selected_scope is not None
-                        else None
+                        required_id(selected_scope.scope_id) if selected_scope is not None else None
                     ),
                     favorite_only=favorite_only,
                 )
@@ -196,11 +189,7 @@ class MeaningUseCases:
         _validate_name(full_name)
         with UnitOfWork() as uow:
             meaning = get_meaning(uow, meaning_id)
-            selected_scope = (
-                get_scope_by_name(uow, scope)
-                if scope is not None
-                else None
-            )
+            selected_scope = get_scope_by_name(uow, scope) if scope is not None else None
             scope_id = (
                 required_id(selected_scope.scope_id)
                 if selected_scope is not None

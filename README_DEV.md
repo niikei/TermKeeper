@@ -50,12 +50,10 @@ src/termkeeper/
 ├── infrastructure/
 │   ├── repositories/       # 機能別Repository
 │   └── ...                 # SQLModelテーブル、接続、Unit of Work
-├── presentation/
-│   ├── cli/
-│   │   └── handlers/       # 機能別CLI Handler
-│   └── csv_io.py           # CSV境界
 ├── adapters/
-│   ├── external/           # HTTP・MCP共通の外部DTOと変換
+│   ├── cli/
+│   │   └── handlers/       # 人間向けの機能別CLI Handler
+│   ├── external/           # HTTP・MCP共通の外部DTOとQuery変換
 │   ├── http/
 │   │   └── routes/         # FastAPIの機能別Route
 │   └── mcp/

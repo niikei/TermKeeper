@@ -50,7 +50,9 @@ def handle_scope_edit(args: argparse.Namespace, service: TermKeeperService) -> S
         (
             None
             if args.clear_description
-            else args.description if args.description is not None else current.description
+            else args.description
+            if args.description is not None
+            else current.description
         ),
     )
     if not args.json:

@@ -15,10 +15,7 @@ class SystemDiagnostics:
 
     @property
     def schema_ok(self) -> bool:
-        return (
-            self.schema_revision == self.expected_schema_revision
-            and not self.schema_issues
-        )
+        return self.schema_revision == self.expected_schema_revision and not self.schema_issues
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

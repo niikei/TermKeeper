@@ -263,9 +263,7 @@ def list_page(
         statement = statement.where(Meaning.scope_id == scope_id)
     if tag is not None:
         statement = (
-            statement.join(MeaningTag)
-            .join(Tag)
-            .where(Tag.name_norm == normalize_keyword(tag))
+            statement.join(MeaningTag).join(Tag).where(Tag.name_norm == normalize_keyword(tag))
         )
     statement = (
         statement.order_by(

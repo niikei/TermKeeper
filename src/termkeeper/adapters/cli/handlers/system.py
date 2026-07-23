@@ -45,9 +45,7 @@ def handle_dashboard(
         print(heading(f"TermKeeper {__version__}"))
         print()
         pending = (
-            warning(str(stats.pending_occurrences))
-            if stats.pending_occurrences
-            else success("0")
+            warning(str(stats.pending_occurrences)) if stats.pending_occurrences else success("0")
         )
         print(f"{pending} pending occurrence(s)")
         print(f"{stats.active_meanings} meaning(s) across {result['scopes']} scope(s)")
@@ -74,16 +72,10 @@ def handle_doctor(
         "schema_revision": diagnostics.schema_revision,
         "expected_schema_revision": diagnostics.expected_schema_revision,
         "schema_issues": (
-            "; ".join(diagnostics.schema_issues)
-            if diagnostics.schema_issues
-            else "none"
+            "; ".join(diagnostics.schema_issues) if diagnostics.schema_issues else "none"
         ),
-        "user.name": (
-            "configured" if "user.name" in diagnostics.configured_keys else "missing"
-        ),
-        "user.email": (
-            "configured" if "user.email" in diagnostics.configured_keys else "missing"
-        ),
+        "user.name": ("configured" if "user.name" in diagnostics.configured_keys else "missing"),
+        "user.email": ("configured" if "user.email" in diagnostics.configured_keys else "missing"),
     }
     if not args.json:
         print(heading(f"TermKeeper {__version__}"))

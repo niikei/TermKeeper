@@ -405,12 +405,10 @@ TermKeeper/
 │   ├── infrastructure/  # SQLModel tables・Session
 │   │   └── repositories/ # 機能別Repository
 │   ├── adapters/
-│   │   ├── external/    # HTTP・MCP共通の外部DTO
+│   │   ├── cli/         # CLI構築・表示・CSV・機能別Handler
+│   │   ├── external/    # HTTP・MCP共通の外部DTOとQuery変換
 │   │   ├── http/        # FastAPI app・機能別Route
 │   │   └── mcp/         # MCP server・機能別Tool
-│   ├── presentation/
-│   │   ├── cli/         # CLI構築・表示・機能別Handler
-│   │   └── csv_io.py    # CSV境界
 │   └── config.py        # 実行時設定
 ├── tests/
 ├── data/

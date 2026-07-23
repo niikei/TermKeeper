@@ -10,7 +10,7 @@ def add_admin_commands(commands: Commands) -> None:
         handler="config",
         examples=(
             "Examples:\n"
-            "  tk config user.name \"Taro Yamada\"\n"
+            '  tk config user.name "Taro Yamada"\n'
             "  tk config user.email\n"
             "  tk config --list\n"
             "  tk config --unset user.email"

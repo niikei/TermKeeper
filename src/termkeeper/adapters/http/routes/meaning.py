@@ -51,11 +51,7 @@ def _register_meaning_routes(
             service.meaning_page(
                 MeaningListQuery(
                     tag=tag,
-                    scope=(
-                        _scope_name(service, scope_id)
-                        if scope_id is not None
-                        else None
-                    ),
+                    scope=(_scope_name(service, scope_id) if scope_id is not None else None),
                     favorite_only=favorite_only,
                     offset=offset,
                     limit=limit,

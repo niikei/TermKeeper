@@ -65,9 +65,7 @@ class SearchUseCases:
 
         with UnitOfWork() as uow:
             scope_id = (
-                required_id(get_scope_by_name(uow, query.scope).scope_id)
-                if query.scope
-                else None
+                required_id(get_scope_by_name(uow, query.scope).scope_id) if query.scope else None
             )
             records = meaning_repository.search(
                 uow.session,

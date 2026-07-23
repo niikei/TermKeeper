@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from termkeeper import __version__
 from termkeeper.adapters.http import create_app
 from termkeeper.application import TermKeeperService
 from termkeeper.infrastructure.connection import get_session
@@ -198,6 +199,7 @@ def _exercise_lifecycle_workflow(client: TestClient, public_id: str) -> None:
 def _assert_openapi_contract(client: TestClient) -> None:
     schema = client.get("/openapi.json").json()
     assert schema["info"]["title"] == "TermKeeper API"
+    assert schema["info"]["version"] == __version__
     assert "/api/v1/search" not in schema["paths"]
     assert "/api/v1/meanings/search" in schema["paths"]
     assert "/api/v1/occurrences/search" in schema["paths"]

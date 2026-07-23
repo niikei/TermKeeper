@@ -514,8 +514,8 @@ def test_reference_commands(capsys: pytest.CaptureFixture[str]) -> None:
     assert (
         main(
             [
-            "reference",
-            "add",
+                "reference",
+                "add",
                 "1",
                 "https://example.com/erp",
                 "--title",
@@ -832,9 +832,7 @@ def test_resource_search_commands_share_filters_and_structured_results(
 
     assert main(["meaning", "search", "ERP", "--json"]) == 0
     meaning_result = json.loads(capsys.readouterr().out)
-    assert meaning_result["hits"][0]["meaning"]["full_name"] == (
-        "Enterprise Resource Planning"
-    )
+    assert meaning_result["hits"][0]["meaning"]["full_name"] == ("Enterprise Resource Planning")
 
     assert main(["occurrence", "search", "planning", "--source", "Teams", "--json"]) == 0
     occurrence_result = json.loads(capsys.readouterr().out)
