@@ -370,3 +370,15 @@ def test_readiness_reports_dependency_failure(
         "status": "unavailable",
         "issues": ["database connection failed"],
     }
+
+
+def test_http_app_startup_does_not_require_database_initialization(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail_initialization(self: TermKeeperService) -> None:
+        message = "database unavailable"
+        raise RuntimeError(message)
+
+    monkeypatch.setattr(TermKeeperService, "initialize", fail_initialization)
+
+    assert TestClient(create_app()).get("/health").json() == {"status": "ok"}

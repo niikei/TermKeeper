@@ -29,7 +29,6 @@ def create_app(service: TermKeeperService | None = None) -> FastAPI:
     """Create an API app without import-time database side effects."""
     if service is None:
         service = TermKeeperService()
-        service.initialize()
 
     app = FastAPI(
         title="TermKeeper API",

@@ -109,6 +109,8 @@ RouteとMCP Toolは機能単位のモジュールへ分割し、アプリケー�
 登録とプロセス起動だけを担当する。
 `/health`はDBに依存しないliveness、`/ready`はApplicationの診断ユースケースを通した
 readinessとし、DB接続失敗またはスキーマ不整合では503を返す。
+APIプロセス起動時にはMigrationを実行せず、デプロイ処理で`tk init`を先行させる。
+これによりDB障害中もプロセスのlivenessとreadinessを区別できる。
 
 ## 時刻
 
