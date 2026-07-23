@@ -33,6 +33,12 @@ TERMKEEPER_DB=~/Documents/terms.db tk inbox
 
 ## 基本的な使い方
 
+インストールされているTermKeeperのバージョンを確認できます。
+
+```bash
+tk --version
+```
+
 ### 捕捉
 
 ```bash

@@ -3,7 +3,16 @@ from pathlib import Path
 
 import pytest
 
+from termkeeper import __version__
 from termkeeper.presentation.cli.main import main
+
+
+def test_version(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--version"])
+
+    assert exc_info.value.code == 0
+    assert capsys.readouterr().out == f"tk {__version__}\n"
 
 
 def test_json_workflow(capsys: pytest.CaptureFixture[str]) -> None:

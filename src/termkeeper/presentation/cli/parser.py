@@ -3,6 +3,7 @@
 import argparse
 from datetime import datetime
 
+from termkeeper import __version__
 from termkeeper.domain import SearchField
 
 
@@ -16,6 +17,11 @@ class _Subparsers:
 
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tk", description="Capture now, understand later.")
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+    )
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     sub = _Subparsers(parser)
     sub.add("init", "Initialize or migrate the database")

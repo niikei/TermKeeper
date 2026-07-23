@@ -113,6 +113,10 @@ uv run mypy src
 uv build
 ```
 
+プロジェクトのバージョンは`pyproject.toml`の`project.version`で一元管理します。
+CLIの`tk --version`とPython APIの`termkeeper.__version__`は、インストール済みの
+パッケージメタデータからこの値を取得します。
+
 ## 変更時の推奨チェック
 
 コミット前に次を実行します。
