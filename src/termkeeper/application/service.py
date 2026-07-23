@@ -3,6 +3,7 @@
 from termkeeper.domain.models import AddResult, InboxItem, Meaning
 from termkeeper.infrastructure import repository
 from termkeeper.infrastructure.schema import init_db
+from termkeeper.infrastructure.tables import Inbox as InboxRecord
 
 
 class ValidationError(ValueError):
@@ -24,11 +25,14 @@ class TermKeeperService:
             raise ValidationError(message)
         registered = repository.find_registered_term(keyword)
         if registered:
-            return AddResult("registered", meaning=self.get_meaning(registered["meaning_id"]))
+            return AddResult(
+                "registered", meaning=self.get_meaning(_required_id(registered.meaning_id)),
+            )
         existing = repository.find_open_inbox(keyword)
         if existing:
-            repository.touch_inbox(existing["inbox_id"], memo, source)
-            return AddResult("seen_again", inbox=self.get_inbox(existing["inbox_id"]))
+            inbox_id = _required_id(existing.inbox_id)
+            repository.touch_inbox(inbox_id, memo, source)
+            return AddResult("seen_again", inbox=self.get_inbox(inbox_id))
         inbox_id = repository.add_inbox(keyword, memo, source)
         return AddResult("created", inbox=self.get_inbox(inbox_id))
 
@@ -37,17 +41,17 @@ class TermKeeperService:
         if not row:
             message = f"Inbox {inbox_id} was not found."
             raise NotFoundError(message)
-        return InboxItem.from_row(dict(row))
+        return _to_inbox(row)
 
     def inbox(self) -> list[InboxItem]:
-        return [InboxItem.from_row(dict(row)) for row in repository.list_inbox()]
+        return [_to_inbox(row) for row in repository.list_inbox()]
 
     def history(self) -> list[InboxItem]:
-        return [InboxItem.from_row(dict(row)) for row in repository.list_history()]
+        return [_to_inbox(row) for row in repository.list_history()]
 
     def resolve(self, inbox_id: int, full_name: str, description: str | None = None) -> Meaning:
         item = self.get_inbox(inbox_id)
-        if item.status not in ("New", "Pending"):
+        if item.status != "New":
             message = f"Inbox {inbox_id} is already {item.status}."
             raise ValidationError(message)
         full_name = full_name.strip()
@@ -70,13 +74,13 @@ class TermKeeperService:
         if not row:
             message = f"Meaning {meaning_id} was not found."
             raise NotFoundError(message)
-        terms = tuple(term["keyword"] for term in repository.get_terms_by_meaning(meaning_id))
+        terms = tuple(term.keyword for term in repository.get_terms_by_meaning(meaning_id))
         return Meaning(
-            row["meaning_id"],
-            row["full_name"],
-            row["description"],
-            row["created_at"],
-            row["updated_at"],
+            _required_id(row.meaning_id),
+            row.full_name,
+            row.description,
+            row.created_at,
+            row.updated_at,
             terms,
         )
 
@@ -84,10 +88,15 @@ class TermKeeperService:
         if not keyword.strip():
             message = "Search keyword must not be empty."
             raise ValidationError(message)
-        return [self.get_meaning(row["meaning_id"]) for row in repository.search_term(keyword)]
+        return [
+            self.get_meaning(_required_id(row.meaning_id))
+            for row in repository.search_term(keyword)
+        ]
 
     def meanings(self) -> list[Meaning]:
-        return [self.get_meaning(row["meaning_id"]) for row in repository.list_meanings()]
+        return [
+            self.get_meaning(_required_id(row.meaning_id)) for row in repository.list_meanings()
+        ]
 
     def add_alias(self, meaning_id: int, keyword: str) -> Meaning:
         self.get_meaning(meaning_id)
@@ -105,3 +114,26 @@ class TermKeeperService:
         repository.update_meaning(meaning_id, full_name, description)
         repository.add_term(meaning_id, full_name)
         return self.get_meaning(meaning_id)
+
+
+def _required_id(value: int | None) -> int:
+    if value is None:
+        message = "A persisted record has no primary key."
+        raise RuntimeError(message)
+    return value
+
+
+def _to_inbox(record: InboxRecord) -> InboxItem:
+    return InboxItem(
+        inbox_id=_required_id(record.inbox_id),
+        keyword=record.keyword,
+        status=record.status,
+        memo=record.memo,
+        source=record.source,
+        occurrence_count=record.occurrence_count,
+        created_at=record.created_at,
+        updated_at=record.updated_at,
+        last_seen_at=record.last_seen_at,
+        closed_at=record.closed_at,
+        resolved_meaning_id=record.resolved_meaning_id,
+    )

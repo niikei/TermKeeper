@@ -18,7 +18,20 @@ def export_meanings(path: str) -> int:
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
         for row in rows:
-            writer.writerow({field: row[field] or "" for field in fields})
+            meaning_id = row.meaning_id
+            if meaning_id is None:
+                continue
+            terms = ";".join(term.keyword for term in repository.get_terms_by_meaning(meaning_id))
+            writer.writerow(
+                {
+                    "meaning_id": meaning_id,
+                    "full_name": row.full_name,
+                    "description": row.description or "",
+                    "terms": terms,
+                    "created_at": row.created_at,
+                    "updated_at": row.updated_at,
+                }
+            )
     return len(rows)
 
 

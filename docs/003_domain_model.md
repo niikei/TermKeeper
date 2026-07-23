@@ -39,7 +39,7 @@ erDiagram
         text keyword_norm
         text memo "nullable"
         text source "nullable"
-        text status "New Pending Closed Discarded"
+        text status "New Closed Discarded"
         integer resolved_meaning_id FK "nullable"
         integer occurrence_count
         datetime created_at "UTC ISO 8601"
@@ -106,6 +106,3 @@ stateDiagram-v2
     New --> Closed
     New --> Discarded
 ```
-
-現行CLIが作成する未解決状態は `New` のみ。`Pending` は既存DBとの互換性および将来の
-調査中ワークフロー用にスキーマ上予約されているが、状態へ遷移するコマンドは未実装である。

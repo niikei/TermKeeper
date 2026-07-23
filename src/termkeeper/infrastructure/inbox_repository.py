@@ -1,91 +1,101 @@
-"""SQLite persistence operations for inbox records."""
+"""SQLModel persistence operations for inbox records."""
 
-import sqlite3
+from sqlmodel import col, select
 
-from termkeeper.infrastructure.connection import get_connection
-from termkeeper.infrastructure.sqlite_utils import inserted_id, normalize_keyword, now
+from termkeeper.infrastructure.connection import get_session
+from termkeeper.infrastructure.sqlite_utils import normalize_keyword, now
+from termkeeper.infrastructure.tables import Inbox as InboxRecord
 
 
 def add_inbox(keyword: str, memo: str | None = None, source: str | None = None) -> int:
     stamp = now()
-    with get_connection() as connection:
-        cursor = connection.execute(
-            """
-            INSERT INTO inbox
-                (keyword, keyword_norm, memo, source, status, occurrence_count,
-                 created_at, updated_at, last_seen_at)
-            VALUES (?, ?, ?, ?, 'New', 1, ?, ?, ?)
-            """,
-            (keyword.strip(), normalize_keyword(keyword), memo, source, stamp, stamp, stamp),
-        )
-        return inserted_id(cursor)
+    record = InboxRecord(
+        keyword=keyword.strip(),
+        keyword_norm=normalize_keyword(keyword),
+        memo=memo,
+        source=source,
+        created_at=stamp,
+        updated_at=stamp,
+        last_seen_at=stamp,
+    )
+    with get_session() as session:
+        session.add(record)
+        session.commit()
+        session.refresh(record)
+        if record.inbox_id is None:
+            message = "SQLite did not return an ID for the inserted inbox."
+            raise RuntimeError(message)
+        return record.inbox_id
 
 
 def touch_inbox(inbox_id: int, memo: str | None = None, source: str | None = None) -> None:
-    stamp = now()
-    with get_connection() as connection:
-        connection.execute(
-            """
-            UPDATE inbox SET occurrence_count = occurrence_count + 1,
-                memo = COALESCE(?, memo), source = COALESCE(?, source),
-                updated_at = ?, last_seen_at = ? WHERE inbox_id = ?
-            """,
-            (memo, source, stamp, stamp, inbox_id),
+    with get_session() as session:
+        record = session.get(InboxRecord, inbox_id)
+        if record is None:
+            return
+        stamp = now()
+        record.occurrence_count += 1
+        record.memo = memo if memo is not None else record.memo
+        record.source = source if source is not None else record.source
+        record.updated_at = record.last_seen_at = stamp
+        session.add(record)
+        session.commit()
+
+
+def list_inbox() -> list[InboxRecord]:
+    statement = (
+        select(InboxRecord)
+        .where(InboxRecord.status == "New")
+        .order_by(col(InboxRecord.last_seen_at).desc(), col(InboxRecord.inbox_id).desc())
+    )
+    with get_session() as session:
+        return list(session.exec(statement).all())
+
+
+def list_history() -> list[InboxRecord]:
+    statement = select(InboxRecord).order_by(
+        col(InboxRecord.updated_at).desc(),
+        col(InboxRecord.inbox_id).desc(),
+    )
+    with get_session() as session:
+        return list(session.exec(statement).all())
+
+
+def get_inbox(inbox_id: int) -> InboxRecord | None:
+    with get_session() as session:
+        return session.get(InboxRecord, inbox_id)
+
+
+def find_open_inbox(keyword: str) -> InboxRecord | None:
+    statement = (
+        select(InboxRecord)
+        .where(
+            InboxRecord.keyword_norm == normalize_keyword(keyword),
+            InboxRecord.status == "New",
         )
-
-
-def list_inbox() -> list[sqlite3.Row]:
-    with get_connection() as connection:
-        return connection.execute("""
-            SELECT * FROM inbox WHERE status IN ('New', 'Pending')
-            ORDER BY last_seen_at DESC, inbox_id DESC
-        """).fetchall()
-
-
-def list_history() -> list[sqlite3.Row]:
-    with get_connection() as connection:
-        return connection.execute(
-            "SELECT * FROM inbox ORDER BY updated_at DESC, inbox_id DESC",
-        ).fetchall()
-
-
-def get_inbox(inbox_id: int) -> sqlite3.Row | None:
-    with get_connection() as connection:
-        return connection.execute("SELECT * FROM inbox WHERE inbox_id = ?", (inbox_id,)).fetchone()
-
-
-def find_open_inbox(keyword: str) -> sqlite3.Row | None:
-    with get_connection() as connection:
-        return connection.execute(
-            """
-            SELECT * FROM inbox WHERE keyword_norm = ? AND status IN ('New', 'Pending')
-            ORDER BY inbox_id LIMIT 1
-            """,
-            (normalize_keyword(keyword),),
-        ).fetchone()
+        .order_by(col(InboxRecord.inbox_id))
+    )
+    with get_session() as session:
+        return session.exec(statement).first()
 
 
 def close_inbox(inbox_id: int, meaning_id: int) -> int:
-    stamp = now()
-    with get_connection() as connection:
-        cursor = connection.execute(
-            """
-            UPDATE inbox SET status='Closed', resolved_meaning_id=?, updated_at=?, closed_at=?
-            WHERE inbox_id=? AND status IN ('New', 'Pending')
-            """,
-            (meaning_id, stamp, stamp, inbox_id),
-        )
-        return cursor.rowcount
+    return _close(inbox_id, "Closed", meaning_id)
 
 
 def discard_inbox(inbox_id: int) -> int:
-    stamp = now()
-    with get_connection() as connection:
-        cursor = connection.execute(
-            """
-            UPDATE inbox SET status='Discarded', updated_at=?, closed_at=?
-            WHERE inbox_id=? AND status IN ('New', 'Pending')
-            """,
-            (stamp, stamp, inbox_id),
-        )
-        return cursor.rowcount
+    return _close(inbox_id, "Discarded")
+
+
+def _close(inbox_id: int, status: str, meaning_id: int | None = None) -> int:
+    with get_session() as session:
+        record = session.get(InboxRecord, inbox_id)
+        if record is None or record.status != "New":
+            return 0
+        stamp = now()
+        record.status = status
+        record.resolved_meaning_id = meaning_id
+        record.updated_at = record.closed_at = stamp
+        session.add(record)
+        session.commit()
+        return 1

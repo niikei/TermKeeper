@@ -4,7 +4,9 @@ version = "0.2.0"
 description = "Don't lose unknown terms."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "sqlmodel>=0.0.39,<0.1",
+]
 
 [project.optional-dependencies]
 dev = [

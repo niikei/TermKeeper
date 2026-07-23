@@ -5,10 +5,11 @@
 
 - `domain/`: 外部境界でも使えるシリアライズ可能なDTO
 - `application/`: 用語捕捉、解決、検索などのユースケース
-- `infrastructure/`: SQLite接続、スキーマ更新、Inbox・Meaning別リポジトリ
+- `infrastructure/`: SQLModelテーブル、Engine／Session、スキーマ作成、リポジトリ
 - `presentation/`: CLI引数、コマンド処理、表示、CSV入出力
 
 各アダプターはレイヤーの公開モジュールを直接使用し、旧構成向けの互換モジュールは持たない。
+CRUD、検索、スキーマ作成はSQLModelを使用する。旧SQLiteスキーマとの自動互換性は持たない。
 
 APIやMCPを追加するときは `TermKeeperService` を再利用し、SQLやCLIの標準出力を直接
 呼ばない。MCPツールはまず `add`, `inbox`, `resolve`, `search`, `show` を1対1で公開する。
@@ -19,7 +20,7 @@ APIやMCPを追加するときは `TermKeeperService` を再利用し、SQLやCL
 変換する。`created_at` は生成時刻、`updated_at` は内容または状態の更新時刻、
 `last_seen_at` は同じ未解決語を最後に目にした時刻を表す。
 
-## マイグレーション
+## スキーマ管理
 
-`tk init` および各CLI起動時に、既存データを保持したまま追加可能な変更を適用する。
-複雑な変更が必要になった段階で、連番付きマイグレーションテーブルへ移行する。
+`tk init` および各CLI起動時に、SQLModelで新規テーブルを作成する。スキーマ変更が必要に
+なった段階でAlembicなどの専用マイグレーション管理を導入する。

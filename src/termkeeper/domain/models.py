@@ -1,6 +1,5 @@
 """Domain objects shared by CLI and future API/MCP adapters."""
 
-from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from typing import Any
 
@@ -18,10 +17,6 @@ class InboxItem:
     last_seen_at: str
     closed_at: str | None = None
     resolved_meaning_id: int | None = None
-
-    @classmethod
-    def from_row(cls, row: Mapping[str, Any]) -> "InboxItem":
-        return cls(**{name: row[name] for name in cls.__dataclass_fields__})
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

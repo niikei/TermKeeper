@@ -11,7 +11,7 @@
 ## 必要環境
 
 - Python 3.12以上
-- SQLite（Python標準ライブラリに同梱）
+- SQLite（SQLModel経由で利用）
 
 ## セットアップ
 
@@ -130,7 +130,7 @@ TermKeeper/
 ├── src/termkeeper/
 │   ├── domain/          # DTOとドメインモデル
 │   ├── application/     # ユースケース
-│   ├── infrastructure/  # SQLite接続・schema・repository
+│   ├── infrastructure/  # SQLModel tables・Session・repository
 │   ├── presentation/    # CLI・表示・CSV
 │   └── config.py        # 実行時設定
 ├── tests/
