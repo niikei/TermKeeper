@@ -11,6 +11,7 @@ from termkeeper.domain.status import InboxStatus
 @dataclass(frozen=True)
 class InboxItem:
     inbox_id: int
+    public_id: UUID
     keyword: str
     status: InboxStatus
     memo: str | None

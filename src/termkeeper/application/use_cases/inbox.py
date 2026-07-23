@@ -1,5 +1,7 @@
 """Inbox capture and resolution use cases."""
 
+from uuid import UUID
+
 from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_inbox, to_meaning
 from termkeeper.application.support import get_inbox, required_id, user_id
@@ -39,6 +41,14 @@ class InboxUseCases:
     def get_inbox(self, inbox_id: int) -> InboxItem:
         with UnitOfWork() as uow:
             return to_inbox(uow.session, get_inbox(uow, inbox_id))
+
+    def get_inbox_by_public_id(self, public_id: UUID) -> InboxItem:
+        with UnitOfWork() as uow:
+            record = inbox_repository.get_inbox_by_public_id(uow.session, public_id)
+            if record is None:
+                message = f"Inbox {public_id} was not found."
+                raise NotFoundError(message)
+            return to_inbox(uow.session, record)
 
     def inbox(self) -> list[InboxItem]:
         with UnitOfWork() as uow:

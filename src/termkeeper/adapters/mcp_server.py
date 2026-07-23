@@ -26,7 +26,7 @@ from termkeeper.domain import (
 @dataclass(frozen=True)
 class OccurrenceFilters:
     meaning_id: UUID | None = None
-    inbox_id: int | None = None
+    inbox_id: UUID | None = None
     keyword: str | None = None
     source: str | None = None
     since: datetime | None = None
@@ -54,12 +54,16 @@ class TermKeeperMcpTools:
 
     def resolve_inbox(
         self,
-        inbox_id: int,
+        inbox_id: UUID,
         full_name: str,
         description: str | None = None,
     ) -> Meaning:
         """Resolve an inbox item into a searchable meaning."""
-        return self._service.resolve(inbox_id, full_name, description)
+        return self._service.resolve(
+            self._local_inbox_id(inbox_id),
+            full_name,
+            description,
+        )
 
     def search_meanings(
         self,
@@ -93,10 +97,11 @@ class TermKeeperMcpTools:
         meaning_id = (
             self._local_meaning_id(query.meaning_id) if query.meaning_id is not None else None
         )
+        inbox_id = self._local_inbox_id(query.inbox_id) if query.inbox_id is not None else None
         return self._service.occurrences(
             OccurrenceQuery(
                 meaning_id=meaning_id,
-                inbox_id=query.inbox_id,
+                inbox_id=inbox_id,
                 keyword=query.keyword,
                 source=query.source,
                 since=query.since,
@@ -165,6 +170,9 @@ class TermKeeperMcpTools:
 
     def _local_meaning_id(self, public_id: UUID) -> int:
         return self._service.get_meaning_by_public_id(public_id).meaning_id
+
+    def _local_inbox_id(self, public_id: UUID) -> int:
+        return self._service.get_inbox_by_public_id(public_id).inbox_id
 
 
 def create_server(service: TermKeeperService | None = None) -> FastMCP:

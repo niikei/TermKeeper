@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime
+from uuid import UUID
 
 from sqlalchemy import func
 from sqlmodel import Session, col, select
@@ -120,6 +121,10 @@ def list_history(session: Session) -> list[Inbox]:
 
 def get_inbox(session: Session, inbox_id: int) -> Inbox | None:
     return session.get(Inbox, inbox_id)
+
+
+def get_inbox_by_public_id(session: Session, public_id: UUID) -> Inbox | None:
+    return session.exec(select(Inbox).where(Inbox.public_id == public_id)).first()
 
 
 def find_open_inbox(session: Session, keyword: str) -> Inbox | None:

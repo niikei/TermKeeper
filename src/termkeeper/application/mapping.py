@@ -20,6 +20,7 @@ def to_inbox(session: Session, record: Inbox) -> InboxItem:
     )
     return InboxItem(
         inbox_id=required_id(record.inbox_id),
+        public_id=record.public_id,
         keyword=record.keyword,
         status=record.status,
         memo=memo,

@@ -49,6 +49,7 @@ class Inbox(SQLModel, table=True):
     )
 
     inbox_id: int | None = Field(default=None, primary_key=True)
+    public_id: UUID = Field(default_factory=uuid4, unique=True, index=True)
     keyword: str
     keyword_norm: str
     status: InboxStatus = InboxStatus.NEW

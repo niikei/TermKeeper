@@ -98,9 +98,9 @@ def _register_inbox_routes(app: FastAPI, service: TermKeeperService) -> None:
         return service.inbox()
 
     @app.post("/api/v1/inbox/{inbox_id}/resolve")
-    def resolve(inbox_id: int, request: ResolveRequest) -> Meaning:
+    def resolve(inbox_id: UUID, request: ResolveRequest) -> Meaning:
         return service.resolve(
-            inbox_id,
+            _local_inbox_id(service, inbox_id),
             request.full_name,
             request.description,
         )
@@ -194,6 +194,10 @@ def _local_meaning_id(
         public_id,
         include_deleted=include_deleted,
     ).meaning_id
+
+
+def _local_inbox_id(service: TermKeeperService, public_id: UUID) -> int:
+    return service.get_inbox_by_public_id(public_id).inbox_id
 
 
 def main() -> None:

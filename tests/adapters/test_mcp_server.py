@@ -55,6 +55,8 @@ def test_mcp_server_registers_expected_tools() -> None:
     assert definitions["get_meaning"]["properties"]["meaning_id"]["format"] == "uuid"
     occurrence_query = definitions["list_occurrences"]["$defs"]["OccurrenceFilters"]
     assert occurrence_query["properties"]["meaning_id"]["anyOf"][0]["format"] == "uuid"
+    assert occurrence_query["properties"]["inbox_id"]["anyOf"][0]["format"] == "uuid"
+    assert definitions["resolve_inbox"]["properties"]["inbox_id"]["format"] == "uuid"
 
 
 def test_mcp_tools_delegate_complete_workflow() -> None:
@@ -63,7 +65,7 @@ def test_mcp_tools_delegate_complete_workflow() -> None:
 
     captured = tools.capture_term("ERP", "planning", "Teams")
     assert captured.inbox is not None
-    inbox_id = captured.inbox.inbox_id
+    inbox_id = captured.inbox.public_id
     assert tools.list_inbox()[0].keyword == "ERP"
     meaning = tools.resolve_inbox(inbox_id, "Enterprise Resource Planning")
     meaning_id = meaning.meaning_id
@@ -83,7 +85,7 @@ def test_mcp_tools_delegate_complete_workflow() -> None:
     second = tools.capture_term("MRP")
     assert second.inbox is not None
     related = tools.resolve_inbox(
-        second.inbox.inbox_id,
+        second.inbox.public_id,
         "Material Requirements Planning",
     )
     assert tools.relate_meanings(public_id, related.public_id)[0].meaning_id == related.meaning_id

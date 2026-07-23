@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import pytest
 from sqlmodel import func, select
 
@@ -55,6 +57,13 @@ def test_resolve_creates_searchable_meaning_and_closes_inbox() -> None:
     assert service.get_inbox(item.inbox_id).status == "Closed"
     assert service.search("sap").hits[0].meaning.meaning_id == meaning.meaning_id
     assert service.add("btp").outcome == "registered"
+
+
+def test_get_inbox_by_public_id_reports_missing_item() -> None:
+    service = TermKeeperService()
+
+    with pytest.raises(NotFoundError):
+        service.get_inbox_by_public_id(uuid4())
 
 
 def test_discard_updates_history_and_prevents_repeated_actions() -> None:

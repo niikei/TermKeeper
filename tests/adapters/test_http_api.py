@@ -13,11 +13,11 @@ def test_http_api_workflow_and_openapi() -> None:
         json={"keyword": "ERP", "memo": "planning", "source": "Teams"},
     )
     assert captured.status_code == 201
-    inbox_id = captured.json()["inbox"]["inbox_id"]
+    inbox_public_id = captured.json()["inbox"]["public_id"]
     assert client.get("/api/v1/inbox").json()[0]["keyword"] == "ERP"
 
     resolved = client.post(
-        f"/api/v1/inbox/{inbox_id}/resolve",
+        f"/api/v1/inbox/{inbox_public_id}/resolve",
         json={"full_name": "Enterprise Resource Planning"},
     )
     meaning_id = resolved.json()["meaning_id"]
@@ -100,7 +100,7 @@ def test_http_api_maps_application_and_request_errors() -> None:
 
     captured = client.post("/api/v1/inbox", json={"keyword": "ERP"}).json()
     resolved = client.post(
-        f"/api/v1/inbox/{captured['inbox']['inbox_id']}/resolve",
+        f"/api/v1/inbox/{captured['inbox']['public_id']}/resolve",
         json={"full_name": "Enterprise Resource Planning"},
     ).json()
     invalid_update = client.put(
@@ -115,3 +115,9 @@ def test_http_api_maps_application_and_request_errors() -> None:
 
     invalid_identifier = client.get("/api/v1/meanings/not-a-uuid")
     assert invalid_identifier.status_code == 422
+
+    invalid_inbox_identifier = client.post(
+        "/api/v1/inbox/not-a-uuid/resolve",
+        json={"full_name": "Enterprise Resource Planning"},
+    )
+    assert invalid_inbox_identifier.status_code == 422

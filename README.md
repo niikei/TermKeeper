@@ -229,6 +229,7 @@ uv run tk-api
 Inboxの捕捉・一覧・解決、Meaningの一覧・取得・更新・論理削除・Trash・復元、検索、統計を
 `/api/v1`以下から利用できます。Meaningを指定するパスでは、DB内部の連番ではなくレスポンスの
 `public_id`（UUID）を使用します。
+Inboxを解決するパスでも、捕捉レスポンスに含まれるInboxの`public_id`を使用します。
 
 ## データモデル
 
