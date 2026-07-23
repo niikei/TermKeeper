@@ -59,15 +59,7 @@ def handle_term_list(
     args: argparse.Namespace,
     service: TermKeeperService,
 ) -> Page[Meaning]:
-    result = service.meaning_page(
-        MeaningListQuery(
-            tag=args.tag,
-            scope=args.scope,
-            favorite_only=args.favorite_only,
-            offset=args.offset,
-            limit=args.limit,
-        ),
-    )
+    result = service.meaning_page(_meaning_list_query(args))
     if not args.json:
         print_meaning_list(result.items)
         print_has_more(result)
@@ -193,16 +185,33 @@ def _prompt_for_edit(current: Meaning) -> tuple[str, str | None]:
     return name, entered or current.description
 
 
-def handle_meanings(args: argparse.Namespace, service: TermKeeperService) -> list[Meaning]:
-    result = service.meanings(
-        args.tag,
-        scope=args.scope,
-        favorite_only=args.favorite_only,
-    )
+def handle_meanings(
+    args: argparse.Namespace,
+    service: TermKeeperService,
+) -> Page[Meaning]:
+    result = service.meaning_page(_meaning_list_query(args))
     if not args.json:
-        if result:
-            for item in result:
+        if result.items:
+            for item in result.items:
                 print_meaning(item)
         else:
             print(muted("No meanings found."))
+        print_has_more(result)
     return result
+
+
+def _meaning_list_query(args: argparse.Namespace) -> MeaningListQuery:
+    return MeaningListQuery(
+        tags=tuple(args.tags or ()),
+        tag_match=args.tag_match,
+        scope=args.scope,
+        favorite_only=args.favorite_only,
+        created_since=args.created_since,
+        updated_since=args.updated_since,
+        has_description=args.has_description,
+        has_alias=args.has_alias,
+        sort=args.sort,
+        order=args.order,
+        offset=args.offset,
+        limit=args.limit,
+    )

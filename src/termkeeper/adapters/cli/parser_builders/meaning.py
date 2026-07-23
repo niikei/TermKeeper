@@ -3,9 +3,11 @@
 from termkeeper.adapters.cli.parser_builders.common import (
     Commands,
     add_confirmation_argument,
-    add_pagination_arguments,
 )
-from termkeeper.adapters.cli.parser_builders.search import add_meaning_search_arguments
+from termkeeper.adapters.cli.parser_builders.search import (
+    add_meaning_list_arguments,
+    add_meaning_search_arguments,
+)
 
 
 def add_meaning_commands(commands: Commands) -> None:
@@ -13,10 +15,7 @@ def add_meaning_commands(commands: Commands) -> None:
     add_meaning_search_arguments(search)
 
     list_ = commands.add("list", "List meanings", handler="meanings")
-    list_.add_argument("--tag", help="Filter by tag")
-    list_.add_argument("--scope", help="Filter by registered scope name")
-    list_.add_argument("--favorite", action="store_true", dest="favorite_only")
-    add_pagination_arguments(list_)
+    add_meaning_list_arguments(list_)
 
     edit = commands.add("edit", "Edit a meaning", handler="edit")
     edit.add_argument("meaning_id", type=int, help="Meaning ID")

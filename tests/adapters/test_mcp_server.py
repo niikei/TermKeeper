@@ -178,6 +178,26 @@ def test_mcp_batch_capture_is_typed_atomic_and_ordered() -> None:
     assert len(service.history().items) == 2
 
 
+def test_mcp_meaning_list_exposes_structured_filters_and_sorting() -> None:
+    service = TermKeeperService()
+    tools = TermKeeperMcpTools(service)
+    alpha = service.create_meaning("Alpha", "First", terms=("A",))
+    service.create_meaning("Beta")
+    service.add_tag(alpha.meaning_id, "Core")
+
+    result = tools.list_meanings(
+        MeaningFilters(
+            tags=("Core",),
+            has_description=True,
+            has_alias=True,
+            sort="name",
+            order="asc",
+        ),
+    )
+
+    assert [item.full_name for item in result.items] == ["Alpha"]
+
+
 def test_mcp_tools_delegate_complete_workflow() -> None:
     service = TermKeeperService()
     tools = TermKeeperMcpTools(service)

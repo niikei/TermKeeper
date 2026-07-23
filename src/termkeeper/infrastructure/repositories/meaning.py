@@ -1,13 +1,14 @@
 """Persistence operations for meanings and aliases."""
 
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import or_
+from sqlalchemy import exists, or_
 from sqlalchemy.sql.elements import ColumnElement
 from sqlmodel import Session, col, select
 
-from termkeeper.domain import SearchField
+from termkeeper.domain import LogicalOperator, MeaningSort, SearchField, SortOrder
 from termkeeper.infrastructure.normalization import normalize_keyword
 from termkeeper.infrastructure.tables import Meaning, MeaningTag, Scope, Tag, Term, utc_now
 
@@ -252,7 +253,14 @@ def list_page(
     *,
     scope_id: int | None,
     favorite_only: bool,
-    tag: str | None,
+    tags: tuple[str, ...],
+    tag_match: LogicalOperator,
+    created_since: datetime | None,
+    updated_since: datetime | None,
+    has_description: bool | None,
+    has_alias: bool | None,
+    sort: MeaningSort,
+    order: SortOrder,
     offset: int,
     limit: int,
 ) -> list[Meaning]:
@@ -261,17 +269,46 @@ def list_page(
         statement = statement.where(Meaning.is_favorite)
     if scope_id is not None:
         statement = statement.where(Meaning.scope_id == scope_id)
-    if tag is not None:
-        statement = (
-            statement.join(MeaningTag).join(Tag).where(Tag.name_norm == normalize_keyword(tag))
+    tag_conditions = tuple(
+        exists(
+            select(MeaningTag.meaning_id)
+            .join(Tag)
+            .where(
+                MeaningTag.meaning_id == Meaning.meaning_id,
+                Tag.name_norm == normalize_keyword(tag),
+            ),
         )
+        for tag in tags
+    )
+    if tag_conditions:
+        statement = statement.where(
+            *tag_conditions if tag_match == LogicalOperator.ALL else (or_(*tag_conditions),)
+        )
+    if created_since is not None:
+        statement = statement.where(Meaning.created_at >= created_since)
+    if updated_since is not None:
+        statement = statement.where(Meaning.updated_at >= updated_since)
+    if has_description is not None:
+        description_exists = col(Meaning.description).is_not(None)
+        statement = statement.where(
+            description_exists if has_description else ~description_exists,
+        )
+    if has_alias is not None:
+        alias_exists = exists(
+            select(Term.term_id).where(
+                Term.meaning_id == Meaning.meaning_id,
+                Term.keyword_norm != Meaning.full_name_norm,
+            ),
+        )
+        statement = statement.where(alias_exists if has_alias else ~alias_exists)
+    sort_column = {
+        MeaningSort.NAME: col(Meaning.full_name_norm),
+        MeaningSort.CREATED: col(Meaning.created_at),
+        MeaningSort.UPDATED: col(Meaning.updated_at),
+    }[sort]
+    ordered = sort_column.asc() if order == SortOrder.ASC else sort_column.desc()
     statement = (
-        statement.order_by(
-            col(Meaning.updated_at).desc(),
-            col(Meaning.meaning_id).desc(),
-        )
-        .offset(offset)
-        .limit(limit + 1)
+        statement.order_by(ordered, col(Meaning.meaning_id).desc()).offset(offset).limit(limit + 1)
     )
     return list(session.exec(statement).all())
 

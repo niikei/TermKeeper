@@ -1005,6 +1005,39 @@ def test_list_json_returns_active_meanings(
     assert "\033[" not in json.dumps(result)
 
 
+def test_detailed_meaning_list_honors_paging_filtering_and_sorting(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    service = TermKeeperService()
+    alpha = service.create_meaning("Alpha", "First", terms=("A",))
+    service.create_meaning("Beta")
+    service.add_tag(alpha.meaning_id, "Core")
+
+    assert (
+        main(
+            [
+                "meaning",
+                "list",
+                "--has-description",
+                "--has-alias",
+                "--sort",
+                "name",
+                "--order",
+                "asc",
+                "--limit",
+                "1",
+                "--json",
+            ],
+        )
+        == 0
+    )
+
+    result = json.loads(capsys.readouterr().out)
+    assert [item["full_name"] for item in result["items"]] == ["Alpha"]
+    assert result["limit"] == 1
+    assert result["has_more"] is False
+
+
 def test_add_can_assign_a_single_candidate_immediately(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

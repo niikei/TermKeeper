@@ -12,6 +12,7 @@ from termkeeper.domain.models import (
 )
 from termkeeper.domain.occurrence import OccurrenceItem, OccurrenceQuery, OccurrenceUpdate
 from termkeeper.domain.pagination import Page, PageQuery
+from termkeeper.domain.query import LogicalOperator, MeaningSort, SortOrder
 from termkeeper.domain.reference import ReferenceLink, ReferenceUpdate
 from termkeeper.domain.scope import GENERAL_SCOPE_PUBLIC_ID, Scope, ScopeSearchQuery
 from termkeeper.domain.search import (
@@ -34,8 +35,10 @@ __all__ = [
     "ImportIssue",
     "ImportResult",
     "ImportRow",
+    "LogicalOperator",
     "Meaning",
     "MeaningListQuery",
+    "MeaningSort",
     "MergeResult",
     "OccurrenceItem",
     "OccurrenceQuery",
@@ -53,6 +56,7 @@ __all__ = [
     "SearchSuggestion",
     "Scope",
     "ScopeSearchQuery",
+    "SortOrder",
     "StatsSummary",
     "SystemDiagnostics",
     "TagSummary",

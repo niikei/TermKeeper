@@ -1,5 +1,7 @@
 """Shared application-boundary validation."""
 
+from datetime import UTC, datetime
+
 from termkeeper.application.errors import ValidationError
 
 
@@ -26,3 +28,18 @@ def optional_filter(value: str | None, *, name: str) -> str | None:
         message = f"{name} filter must not be empty."
         raise ValidationError(message)
     return normalized
+
+
+def required_filter(value: str, *, name: str) -> str:
+    normalized = optional_filter(value, name=name)
+    if normalized is None:  # pragma: no cover - value is statically non-optional
+        raise AssertionError
+    return normalized
+
+
+def to_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)

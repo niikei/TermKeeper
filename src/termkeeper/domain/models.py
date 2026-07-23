@@ -6,13 +6,21 @@ from typing import Any
 from uuid import UUID
 
 from termkeeper.domain.occurrence import OccurrenceItem
+from termkeeper.domain.query import LogicalOperator, MeaningSort, SortOrder
 
 
 @dataclass(frozen=True)
 class MeaningListQuery:
-    tag: str | None = None
+    tags: tuple[str, ...] = ()
+    tag_match: LogicalOperator = LogicalOperator.ALL
     scope: str | None = None
     favorite_only: bool = False
+    created_since: datetime | None = None
+    updated_since: datetime | None = None
+    has_description: bool | None = None
+    has_alias: bool | None = None
+    sort: MeaningSort = MeaningSort.UPDATED
+    order: SortOrder = SortOrder.DESC
     offset: int = 0
     limit: int = 50
 

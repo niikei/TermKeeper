@@ -10,7 +10,13 @@ from termkeeper.adapters.external import (
 )
 from termkeeper.adapters.mcp.inputs import MeaningFilters, SearchFilters
 from termkeeper.adapters.mcp.tools.context import ToolContext
-from termkeeper.domain import MeaningListQuery, StatsSummary
+from termkeeper.domain import (
+    LogicalOperator,
+    MeaningListQuery,
+    MeaningSort,
+    SortOrder,
+    StatsSummary,
+)
 
 
 class SearchTools(ToolContext):
@@ -24,9 +30,16 @@ class SearchTools(ToolContext):
         return self._mapper.meaning_page(
             self._service.meaning_page(
                 MeaningListQuery(
-                    tag=query.tag,
+                    tags=query.tags,
+                    tag_match=LogicalOperator(query.tag_match),
                     scope=scope,
                     favorite_only=query.favorite_only,
+                    created_since=query.created_since,
+                    updated_since=query.updated_since,
+                    has_description=query.has_description,
+                    has_alias=query.has_alias,
+                    sort=MeaningSort(query.sort),
+                    order=SortOrder(query.order),
                     offset=query.offset,
                     limit=query.limit,
                 ),

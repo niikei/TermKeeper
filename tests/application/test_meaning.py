@@ -1,9 +1,15 @@
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
 
 from termkeeper.application import NotFoundError, TermKeeperService, ValidationError
-from termkeeper.domain import MeaningListQuery
+from termkeeper.domain import (
+    LogicalOperator,
+    MeaningListQuery,
+    MeaningSort,
+    SortOrder,
+)
 
 
 def test_validation_and_missing_records_are_explicit() -> None:
@@ -76,12 +82,62 @@ def test_meaning_page_filters_and_pages_in_storage() -> None:
 
     page = service.meaning_page(MeaningListQuery(limit=1))
     filtered = service.meaning_page(
-        MeaningListQuery(tag="core", favorite_only=True),
+        MeaningListQuery(tags=("core",), favorite_only=True),
     )
 
     assert len(page.items) == 1
     assert page.has_more is True
     assert filtered.items == (service.get_meaning(first.meaning_id),)
+
+
+def test_meaning_page_combines_structured_filters_and_stable_sorting() -> None:
+    service = TermKeeperService()
+    alpha = service.create_meaning("Alpha", "First", terms=("A",))
+    beta = service.create_meaning("Beta")
+    gamma = service.create_meaning("Gamma")
+    service.add_tag(alpha.meaning_id, "Core")
+    service.add_tag(alpha.meaning_id, "SAP")
+    service.add_tag(beta.meaning_id, "Core")
+    service.add_tag(gamma.meaning_id, "SAP")
+
+    all_tags = service.meaning_page(
+        MeaningListQuery(tags=("core", "sap")),
+    )
+    any_tag = service.meaning_page(
+        MeaningListQuery(
+            tags=("core", "sap"),
+            tag_match=LogicalOperator.ANY,
+            sort=MeaningSort.NAME,
+            order=SortOrder.ASC,
+        ),
+    )
+    described_aliases = service.meaning_page(
+        MeaningListQuery(has_description=True, has_alias=True),
+    )
+    first_page = service.meaning_page(
+        MeaningListQuery(
+            sort=MeaningSort.NAME,
+            order=SortOrder.ASC,
+            limit=2,
+        ),
+    )
+    future = datetime.now(UTC) + timedelta(days=1)
+
+    assert [item.meaning_id for item in all_tags.items] == [alpha.meaning_id]
+    assert [item.full_name for item in any_tag.items] == ["Alpha", "Beta", "Gamma"]
+    assert [item.meaning_id for item in described_aliases.items] == [alpha.meaning_id]
+    assert [item.full_name for item in first_page.items] == ["Alpha", "Beta"]
+    assert first_page.has_more is True
+    assert service.meaning_page(MeaningListQuery(updated_since=future)).items == ()
+
+
+def test_meaning_page_rejects_duplicate_or_blank_tag_filters() -> None:
+    service = TermKeeperService()
+
+    with pytest.raises(ValidationError, match="must not contain duplicates"):
+        service.meaning_page(MeaningListQuery(tags=("Core", "Ｃｏｒｅ")))
+    with pytest.raises(ValidationError, match="Tag filter must not be empty"):
+        service.meaning_page(MeaningListQuery(tags=(" ",)))
 
 
 def test_user_profile_is_recorded_in_audit_columns() -> None:

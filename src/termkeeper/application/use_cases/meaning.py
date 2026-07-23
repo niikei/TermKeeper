@@ -11,7 +11,12 @@ from termkeeper.application.support import (
     required_id,
     user_id,
 )
-from termkeeper.application.validation import optional_filter, validate_page
+from termkeeper.application.validation import (
+    optional_filter,
+    required_filter,
+    to_utc,
+    validate_page,
+)
 from termkeeper.domain import Meaning, MeaningListQuery, Page, PageQuery
 from termkeeper.infrastructure.normalization import normalize_keyword
 from termkeeper.infrastructure.repositories import (
@@ -35,7 +40,10 @@ class MeaningUseCases:
             resource="Meaning",
             max_limit=100,
         )
-        tag = optional_filter(query.tag, name="Tag")
+        tags = tuple(required_filter(tag, name="Tag") for tag in query.tags)
+        if len({normalize_keyword(tag) for tag in tags}) != len(tags):
+            message = "Tag filters must not contain duplicates."
+            raise ValidationError(message)
         scope = optional_filter(query.scope, name="Scope")
         with UnitOfWork() as uow:
             selected_scope = get_scope_by_name(uow, scope) if scope else None
@@ -45,7 +53,14 @@ class MeaningUseCases:
                     required_id(selected_scope.scope_id) if selected_scope is not None else None
                 ),
                 favorite_only=query.favorite_only,
-                tag=tag,
+                tags=tags,
+                tag_match=query.tag_match,
+                created_since=to_utc(query.created_since),
+                updated_since=to_utc(query.updated_since),
+                has_description=query.has_description,
+                has_alias=query.has_alias,
+                sort=query.sort,
+                order=query.order,
                 offset=query.offset,
                 limit=query.limit,
             )

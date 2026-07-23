@@ -6,6 +6,7 @@ from termkeeper.adapters.cli.parser_builders.common import (
 )
 from termkeeper.adapters.cli.parser_builders.search import (
     add_inbox_search_arguments,
+    add_meaning_list_arguments,
     add_meaning_search_arguments,
 )
 
@@ -81,15 +82,7 @@ def add_primary_commands(commands: Commands) -> None:
     add_inbox_search_arguments(inbox_search)
 
     list_ = commands.add("list", "Show active meanings", handler="term-list")
-    list_.add_argument("--tag", help="Filter by tag")
-    list_.add_argument("--scope", help="Filter by registered scope name")
-    list_.add_argument(
-        "--favorite",
-        action="store_true",
-        dest="favorite_only",
-        help="Show only favorite meanings",
-    )
-    add_pagination_arguments(list_)
+    add_meaning_list_arguments(list_)
 
     resolve = commands.add(
         "resolve",

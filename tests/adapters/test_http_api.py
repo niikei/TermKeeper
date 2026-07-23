@@ -347,6 +347,32 @@ def test_http_batch_capture_is_atomic_and_uses_external_ids() -> None:
     assert len(service.history().items) == 2
 
 
+def test_http_meaning_list_exposes_structured_filters_and_sorting() -> None:
+    service = TermKeeperService()
+    client = TestClient(create_app(service))
+    alpha = service.create_meaning("Alpha", "First", terms=("A",))
+    beta = service.create_meaning("Beta")
+    service.add_tag(alpha.meaning_id, "Core")
+    service.add_tag(alpha.meaning_id, "SAP")
+    service.add_tag(beta.meaning_id, "Core")
+
+    response = client.get(
+        "/api/v1/meanings",
+        params=[
+            ("tag", "Core"),
+            ("tag", "SAP"),
+            ("tag_match", "all"),
+            ("has_description", "true"),
+            ("has_alias", "true"),
+            ("sort", "name"),
+            ("order", "asc"),
+        ],
+    )
+
+    assert response.status_code == 200
+    assert [item["full_name"] for item in response.json()["items"]] == ["Alpha"]
+
+
 def test_http_scope_lifecycle_uses_stable_ids() -> None:
     client = TestClient(create_app())
 
