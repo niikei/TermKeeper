@@ -26,7 +26,8 @@ class TermKeeperService:
         registered = repository.find_registered_term(keyword)
         if registered:
             return AddResult(
-                "registered", meaning=self.get_meaning(_required_id(registered.meaning_id)),
+                "registered",
+                meaning=self.get_meaning(_required_id(registered.meaning_id)),
             )
         existing = repository.find_open_inbox(keyword)
         if existing:

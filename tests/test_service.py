@@ -34,8 +34,12 @@ def test_validation_and_missing_records_are_explicit() -> None:
     service = TermKeeperService()
     with pytest.raises(ValidationError):
         service.add("  ")
+    with pytest.raises(ValidationError):
+        service.search(" ")
     with pytest.raises(NotFoundError):
         service.get_meaning(999)
+    with pytest.raises(NotFoundError):
+        service.get_inbox(999)
 
 
 def test_alias_is_idempotent() -> None:
@@ -48,3 +52,46 @@ def test_alias_is_idempotent() -> None:
     updated = service.add_alias(meaning.meaning_id, "master data management")
 
     assert len(updated.terms) == 2
+
+
+def test_edit_lists_and_searches_meanings() -> None:
+    service = TermKeeperService()
+    captured = service.add("ERP")
+    assert captured.inbox is not None
+    meaning = service.resolve(captured.inbox.inbox_id, "Enterprise Resource Planning")
+
+    edited = service.edit(meaning.meaning_id, "Enterprise Resource Planning System", "suite")
+
+    assert edited.description == "suite"
+    assert "Enterprise Resource Planning System" in edited.terms
+    assert service.meanings()[0].meaning_id == meaning.meaning_id
+    assert service.search("SUITE")[0].meaning_id == meaning.meaning_id
+
+
+def test_discard_updates_history_and_prevents_repeated_actions() -> None:
+    service = TermKeeperService()
+    captured = service.add("obsolete")
+    assert captured.inbox is not None
+
+    service.discard(captured.inbox.inbox_id)
+
+    assert service.inbox() == []
+    assert service.history()[0].status == "Discarded"
+    with pytest.raises(NotFoundError):
+        service.discard(captured.inbox.inbox_id)
+    with pytest.raises(ValidationError):
+        service.resolve(captured.inbox.inbox_id, "Obsolete")
+
+
+def test_resolve_and_alias_validation() -> None:
+    service = TermKeeperService()
+    captured = service.add("blank")
+    assert captured.inbox is not None
+
+    with pytest.raises(ValidationError):
+        service.resolve(captured.inbox.inbox_id, " ")
+    meaning = service.resolve(captured.inbox.inbox_id, "Blank")
+    with pytest.raises(ValidationError):
+        service.add_alias(meaning.meaning_id, " ")
+    with pytest.raises(ValidationError):
+        service.edit(meaning.meaning_id, " ", None)

@@ -11,6 +11,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
+    "pytest-cov>=6.0",
     "ruff>=0.6",
 ]
 
@@ -23,7 +24,7 @@ build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q --cov=termkeeper --cov-report=term-missing --cov-fail-under=90"
 
 [tool.ruff]
 target-version = "py312"

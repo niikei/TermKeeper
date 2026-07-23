@@ -146,4 +146,6 @@ ruff check .
 ruff format --check .
 ```
 
+`pytest` はカバレッジも計測し、90%を下回ると失敗します。
+
 アーキテクチャの詳細は [アーキテクチャと拡張方針](docs/006_architecture.md) を参照してください。
