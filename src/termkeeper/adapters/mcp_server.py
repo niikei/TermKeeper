@@ -2,26 +2,36 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from mcp.server.fastmcp import FastMCP
+from pydantic import Field
 
+from termkeeper.adapters.models import (
+    ExternalAddResult,
+    ExternalInbox,
+    ExternalMapper,
+    ExternalMeaning,
+    ExternalOccurrence,
+    ExternalPage,
+    ExternalReference,
+    ExternalSearchResult,
+    page,
+)
 from termkeeper.application import TermKeeperService
 from termkeeper.domain import (
-    AddResult,
-    InboxItem,
-    Meaning,
-    OccurrenceItem,
     OccurrenceQuery,
     OccurrenceUpdate,
-    ReferenceLink,
+    ReferenceUpdate,
     SearchField,
     SearchQuery,
-    SearchResult,
     StatsSummary,
     TagSummary,
 )
+
+type Offset = Annotated[int, Field(ge=0, le=399)]
+type Limit = Annotated[int, Field(ge=1, le=100)]
 
 
 @dataclass(frozen=True)
@@ -31,7 +41,18 @@ class OccurrenceFilters:
     keyword: str | None = None
     source: str | None = None
     since: datetime | None = None
-    limit: int = 50
+    offset: Offset = 0
+    limit: Limit = 50
+
+
+@dataclass(frozen=True)
+class SearchFilters:
+    text: str
+    field: Literal["all", "term", "name", "description"] = "all"
+    tag: str | None = None
+    favorite_only: bool = False
+    offset: Offset = 0
+    limit: Limit = 20
 
 
 class TermKeeperMcpTools:
@@ -39,76 +60,92 @@ class TermKeeperMcpTools:
 
     def __init__(self, service: TermKeeperService) -> None:
         self._service = service
+        self._mapper = ExternalMapper(service)
 
     def capture_term(
         self,
         keyword: str,
         memo: str | None = None,
         source: str | None = None,
-    ) -> AddResult:
+    ) -> ExternalAddResult:
         """Capture a term now and preserve where it was encountered."""
-        return self._service.add(keyword, memo, source)
+        return self._mapper.add_result(self._service.add(keyword, memo, source))
 
-    def list_inbox(self) -> list[InboxItem]:
+    def list_inbox(
+        self,
+        offset: Offset = 0,
+        limit: Limit = 20,
+    ) -> ExternalPage[ExternalInbox]:
         """List unresolved captured terms."""
-        return self._service.inbox()
+        return page(
+            [self._mapper.inbox(item) for item in self._service.inbox()],
+            offset,
+            limit,
+        )
 
     def resolve_inbox(
         self,
         inbox_id: UUID,
         full_name: str,
         description: str | None = None,
-    ) -> Meaning:
+    ) -> ExternalMeaning:
         """Resolve an inbox item into a searchable meaning."""
-        return self._service.resolve(
-            self._local_inbox_id(inbox_id),
-            full_name,
-            description,
+        return self._mapper.meaning(
+            self._service.resolve(
+                self._local_inbox_id(inbox_id),
+                full_name,
+                description,
+            ),
         )
 
     def search_meanings(
         self,
-        text: str,
-        field: Literal["all", "term", "name", "description"] = "all",
-        tag: str | None = None,
-        limit: int = 20,
-        *,
-        favorite_only: bool = False,
-    ) -> SearchResult:
+        query: SearchFilters,
+    ) -> ExternalSearchResult:
         """Search meanings and return ranked hits or similar suggestions."""
-        query = SearchQuery(
-            text=text,
-            field=SearchField(field),
-            limit=limit,
-            tag=tag,
-            favorite_only=favorite_only,
+        domain_query = SearchQuery(
+            text=query.text,
+            field=SearchField(query.field),
+            limit=query.offset + query.limit + 1,
+            tag=query.tag,
+            favorite_only=query.favorite_only,
         )
-        return self._service.search(query)
+        return self._mapper.search_result(
+            self._service.search(domain_query),
+            offset=query.offset,
+            limit=query.limit,
+        )
 
-    def get_meaning(self, meaning_id: UUID) -> Meaning:
+    def get_meaning(self, meaning_id: UUID) -> ExternalMeaning:
         """Get one active meaning by its stable UUID."""
-        return self._service.get_meaning_by_public_id(meaning_id)
+        return self._mapper.meaning(self._service.get_meaning_by_public_id(meaning_id))
 
     def list_occurrences(
         self,
         query: OccurrenceFilters | None = None,
-    ) -> list[OccurrenceItem]:
+    ) -> ExternalPage[ExternalOccurrence]:
         """List encounter history with optional filters."""
         query = query or OccurrenceFilters()
         meaning_id = (
-            self._local_meaning_id(query.meaning_id) if query.meaning_id is not None else None
+            self._local_meaning_id(query.meaning_id, include_deleted=True)
+            if query.meaning_id is not None
+            else None
         )
         inbox_id = self._local_inbox_id(query.inbox_id) if query.inbox_id is not None else None
-        return self._service.occurrences(
-            OccurrenceQuery(
-                meaning_id=meaning_id,
-                inbox_id=inbox_id,
-                keyword=query.keyword,
-                source=query.source,
-                since=query.since,
-                limit=query.limit,
-            ),
-        )
+        items = [
+            self._mapper.occurrence(item)
+            for item in self._service.occurrences(
+                OccurrenceQuery(
+                    meaning_id=meaning_id,
+                    inbox_id=inbox_id,
+                    keyword=query.keyword,
+                    source=query.source,
+                    since=query.since,
+                    limit=query.offset + query.limit + 1,
+                ),
+            )
+        ]
+        return page(items, query.offset, query.limit)
 
     def get_stats(self, limit: int = 10) -> StatsSummary:
         """Get occurrence totals and top term and source rankings."""
@@ -118,67 +155,143 @@ class TermKeeperMcpTools:
         self,
         occurrence_id: UUID,
         update: OccurrenceUpdate,
-    ) -> OccurrenceItem:
+    ) -> ExternalOccurrence:
         """Edit occurrence context using its stable UUID."""
-        return self._service.edit_occurrence_by_public_id(occurrence_id, update)
+        return self._mapper.occurrence(
+            self._service.edit_occurrence_by_public_id(occurrence_id, update),
+        )
 
-    def add_tag(self, meaning_id: UUID, name: str) -> Meaning:
+    def add_tag(self, meaning_id: UUID, name: str) -> ExternalMeaning:
         """Add a tag to a meaning."""
-        return self._service.add_tag(self._local_meaning_id(meaning_id), name)
+        return self._mapper.meaning(
+            self._service.add_tag(self._local_meaning_id(meaning_id), name),
+        )
 
-    def remove_tag(self, meaning_id: UUID, name: str) -> Meaning:
+    def remove_tag(self, meaning_id: UUID, name: str) -> ExternalMeaning:
         """Remove a tag from a meaning."""
-        return self._service.remove_tag(self._local_meaning_id(meaning_id), name)
+        return self._mapper.meaning(
+            self._service.remove_tag(self._local_meaning_id(meaning_id), name),
+        )
 
-    def list_tags(self) -> list[TagSummary]:
+    def list_tags(
+        self,
+        offset: Offset = 0,
+        limit: Limit = 20,
+    ) -> ExternalPage[TagSummary]:
         """List tags with their active meaning counts."""
-        return self._service.tags()
+        return page(self._service.tags(), offset, limit)
 
-    def favorite_meaning(self, meaning_id: UUID) -> Meaning:
+    def favorite_meaning(self, meaning_id: UUID) -> ExternalMeaning:
         """Mark a meaning as a favorite."""
-        return self._service.favorite_meaning(self._local_meaning_id(meaning_id))
+        return self._mapper.meaning(
+            self._service.favorite_meaning(self._local_meaning_id(meaning_id)),
+        )
 
-    def unfavorite_meaning(self, meaning_id: UUID) -> Meaning:
+    def unfavorite_meaning(self, meaning_id: UUID) -> ExternalMeaning:
         """Remove a meaning from favorites."""
-        return self._service.unfavorite_meaning(self._local_meaning_id(meaning_id))
+        return self._mapper.meaning(
+            self._service.unfavorite_meaning(self._local_meaning_id(meaning_id)),
+        )
 
-    def relate_meanings(self, meaning_id: UUID, related_id: UUID) -> list[Meaning]:
+    def relate_meanings(
+        self,
+        meaning_id: UUID,
+        related_id: UUID,
+    ) -> list[ExternalMeaning]:
         """Create a symmetric relationship between two meanings."""
-        return self._service.relate(
-            self._local_meaning_id(meaning_id),
-            self._local_meaning_id(related_id),
-        )
+        return [
+            self._mapper.meaning(item)
+            for item in self._service.relate(
+                self._local_meaning_id(meaning_id),
+                self._local_meaning_id(related_id),
+            )
+        ]
 
-    def unrelate_meanings(self, meaning_id: UUID, related_id: UUID) -> list[Meaning]:
+    def unrelate_meanings(
+        self,
+        meaning_id: UUID,
+        related_id: UUID,
+    ) -> list[ExternalMeaning]:
         """Remove a relationship between two meanings."""
-        return self._service.unrelate(
-            self._local_meaning_id(meaning_id),
-            self._local_meaning_id(related_id),
-        )
+        return [
+            self._mapper.meaning(item)
+            for item in self._service.unrelate(
+                self._local_meaning_id(meaning_id),
+                self._local_meaning_id(related_id),
+            )
+        ]
 
-    def list_related(self, meaning_id: UUID) -> list[Meaning]:
+    def list_related(
+        self,
+        meaning_id: UUID,
+        offset: Offset = 0,
+        limit: Limit = 20,
+    ) -> ExternalPage[ExternalMeaning]:
         """List active meanings related to one meaning."""
-        return self._service.related(self._local_meaning_id(meaning_id))
+        return page(
+            [
+                self._mapper.meaning(item)
+                for item in self._service.related(self._local_meaning_id(meaning_id))
+            ],
+            offset,
+            limit,
+        )
 
     def add_reference(
         self,
         meaning_id: UUID,
         url: str,
         title: str | None = None,
-    ) -> ReferenceLink:
+    ) -> ExternalReference:
         """Attach an HTTP or HTTPS reference URL to a meaning."""
-        return self._service.add_reference(
-            self._local_meaning_id(meaning_id),
-            url,
-            title,
+        return self._mapper.reference(
+            self._service.add_reference(
+                self._local_meaning_id(meaning_id),
+                url,
+                title,
+            ),
         )
 
-    def list_references(self, meaning_id: UUID) -> list[ReferenceLink]:
+    def list_references(
+        self,
+        meaning_id: UUID,
+        offset: Offset = 0,
+        limit: Limit = 20,
+    ) -> ExternalPage[ExternalReference]:
         """List reference URLs attached to a meaning."""
-        return self._service.references(self._local_meaning_id(meaning_id))
+        return page(
+            [
+                self._mapper.reference(item)
+                for item in self._service.references(self._local_meaning_id(meaning_id))
+            ],
+            offset,
+            limit,
+        )
 
-    def _local_meaning_id(self, public_id: UUID) -> int:
-        return self._service.get_meaning_by_public_id(public_id).meaning_id
+    def edit_reference(
+        self,
+        reference_id: UUID,
+        update: ReferenceUpdate,
+    ) -> ExternalReference:
+        """Edit a reference using its stable UUID."""
+        return self._mapper.reference(
+            self._service.edit_reference(reference_id, update),
+        )
+
+    def remove_reference(self, reference_id: UUID) -> ExternalReference:
+        """Remove a reference using its stable UUID."""
+        return self._mapper.reference(self._service.remove_reference(reference_id))
+
+    def _local_meaning_id(
+        self,
+        public_id: UUID,
+        *,
+        include_deleted: bool = False,
+    ) -> int:
+        return self._service.get_meaning_by_public_id(
+            public_id,
+            include_deleted=include_deleted,
+        ).meaning_id
 
     def _local_inbox_id(self, public_id: UUID) -> int:
         return self._service.get_inbox_by_public_id(public_id).inbox_id
@@ -217,6 +330,8 @@ def create_server(service: TermKeeperService | None = None) -> FastMCP:
         tools.list_related,
         tools.add_reference,
         tools.list_references,
+        tools.edit_reference,
+        tools.remove_reference,
     ):
         server.add_tool(tool, structured_output=True)
     return server

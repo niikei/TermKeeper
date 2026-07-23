@@ -124,6 +124,7 @@ class MeaningReference(SQLModel, table=True):
     )
 
     reference_id: int | None = Field(default=None, primary_key=True)
+    public_id: UUID = Field(default_factory=uuid4, unique=True, index=True)
     meaning_id: int = Field(foreign_key="meaning.meaning_id", ondelete="CASCADE", index=True)
     url: str
     title: str | None = None

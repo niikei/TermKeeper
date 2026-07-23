@@ -74,8 +74,8 @@ class MeaningUseCases:
         if not tokens:
             message = "Search keyword must not be empty."
             raise ValidationError(message)
-        if not 1 <= query.limit <= 100:
-            message = "Search limit must be between 1 and 100."
+        if not 1 <= query.limit <= 500:
+            message = "Search limit must be between 1 and 500."
             raise ValidationError(message)
         if not 0 <= query.suggestion_limit <= 10:
             message = "Suggestion limit must be between 0 and 10."

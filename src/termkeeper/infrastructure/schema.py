@@ -1,11 +1,17 @@
-"""Create the SQLModel schema for a new TermKeeper database."""
+"""Alembic-backed schema management."""
 
-from sqlmodel import SQLModel
+from pathlib import Path
 
-from termkeeper.infrastructure import tables  # noqa: F401
-from termkeeper.infrastructure.connection import get_engine
+from alembic import command
+from alembic.config import Config
 
 
 def init_db() -> None:
-    """Create all tables, constraints, and indexes declared by SQLModel."""
-    SQLModel.metadata.create_all(get_engine())
+    """Upgrade the configured database to the latest schema revision."""
+    config = Config()
+    config.set_main_option(
+        "script_location",
+        str(Path(__file__).with_name("migrations")),
+    )
+    config.attributes["configure_logger"] = False
+    command.upgrade(config, "head")

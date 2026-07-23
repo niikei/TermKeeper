@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import pytest
 
 from termkeeper.application import NotFoundError, TermKeeperService, ValidationError
@@ -32,7 +34,7 @@ def test_reference_links_support_crud_and_validation() -> None:
     assert updated.title == "Official guide"
     assert updated.updated_by_id is not None
     cleared = service.edit_reference(
-        created.reference_id,
+        created.public_id,
         ReferenceUpdate(clear_title=True),
     )
     assert cleared.title is None
@@ -56,3 +58,5 @@ def test_reference_links_support_crud_and_validation() -> None:
     assert removed.reference_id == created.reference_id
     with pytest.raises(NotFoundError):
         service.remove_reference(created.reference_id)
+    with pytest.raises(NotFoundError):
+        service.remove_reference(uuid4())

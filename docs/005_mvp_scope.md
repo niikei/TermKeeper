@@ -29,8 +29,11 @@
 - Meaning外部識別用UUIDとユーザー監査列
 - Unit of Workによるユースケース単位のトランザクション
 - Applicationサービスを介した外部アダプター向け境界
-- 公式Python SDKによる標準入出力MCPサーバー、17ツール
+- 公式Python SDKによる標準入出力MCPサーバー、20ツール
 - FastAPIによるローカルHTTP API、OpenAPI仕様、統一エラー応答
+- Meaning、Inbox、Occurrence、Referenceの外部UUID
+- HTTP／MCPの内部IDを含まない構造化応答と共通ページネーション
+- AlembicによるスキーマRevision管理
 
 ## 未実装
 

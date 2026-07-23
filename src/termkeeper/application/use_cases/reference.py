@@ -1,6 +1,7 @@
 """Meaning reference link use cases."""
 
 from urllib.parse import urlsplit
+from uuid import UUID
 
 from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.support import get_meaning, required_id, user_id
@@ -45,7 +46,7 @@ class ReferenceUseCases:
 
     def edit_reference(
         self,
-        reference_id: int,
+        reference_id: int | UUID,
         update: ReferenceUpdate,
     ) -> ReferenceLink:
         _validate_update(update)
@@ -57,7 +58,7 @@ class ReferenceUseCases:
             if update.title is None and not update.clear_title:
                 title = record.title
             duplicate = reference_repository.find_by_url(uow.session, record.meaning_id, url)
-            if duplicate is not None and duplicate.reference_id != reference_id:
+            if duplicate is not None and duplicate.reference_id != record.reference_id:
                 message = f"Reference URL already exists for meaning {record.meaning_id}."
                 raise ValidationError(message)
             actor_id = user_id(settings_repository.get_profile(uow.session))
@@ -67,7 +68,7 @@ class ReferenceUseCases:
             uow.commit()
             return result
 
-    def remove_reference(self, reference_id: int) -> ReferenceLink:
+    def remove_reference(self, reference_id: int | UUID) -> ReferenceLink:
         with UnitOfWork() as uow:
             record = _get_reference(uow, reference_id)
             meaning = get_meaning(uow, record.meaning_id)
@@ -79,8 +80,14 @@ class ReferenceUseCases:
             return result
 
 
-def _get_reference(uow: UnitOfWork, reference_id: int) -> MeaningReference:
-    record = reference_repository.get(uow.session, reference_id)
+def _get_reference(
+    uow: UnitOfWork,
+    reference_id: int | UUID,
+) -> MeaningReference:
+    if isinstance(reference_id, UUID):
+        record = reference_repository.get_by_public_id(uow.session, reference_id)
+    else:
+        record = reference_repository.get(uow.session, reference_id)
     if record is None:
         message = f"Reference {reference_id} was not found."
         raise NotFoundError(message)
@@ -112,6 +119,7 @@ def _validate_update(update: ReferenceUpdate) -> None:
 def _to_reference(record: MeaningReference) -> ReferenceLink:
     return ReferenceLink(
         reference_id=required_id(record.reference_id),
+        public_id=record.public_id,
         meaning_id=record.meaning_id,
         url=record.url,
         title=record.title,

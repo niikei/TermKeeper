@@ -56,7 +56,7 @@ Repositoryへ閉じ込め、Applicationからは`StatsSummary`として返す。
 APIやMCPを追加するときは `TermKeeperService` を再利用し、SQLやCLIの標準出力を直接
 呼ばない。MCPは`capture_term`, `list_inbox`, `resolve_inbox`, `search_meanings`,
 `get_meaning`, `list_occurrences`, `get_stats`, Tag・Favorite・Related Meaning・Reference
-操作とOccurrence編集の計18ツールを公開する。
+操作、Occurrence編集、Reference編集・削除の計20ツールを公開する。
 
 MCPアダプターは公式Python SDKのFastMCPを使用し、標準入出力transportで提供する。
 `TermKeeperMcpTools`は具体的なDomain DTOを返し、FastMCPが型注釈から構造化出力スキーマを
@@ -66,6 +66,11 @@ HTTP APIとMCPがMeaningを入力として受け取る場合は`public_id`（UUI
 Inboxの解決やOccurrence絞り込みもInboxの`public_id`を使用する。整数の`meaning_id`と
 `inbox_id`はローカルDBとCLI向けの識別子とし、外部クライアントの参照には使用しない。
 Occurrenceの個別編集にはOccurrence自身の`public_id`を使用する。
+Referenceの編集・削除にもReference自身の`public_id`を使用する。HTTP/MCPレスポンスは専用の
+外部DTOへ変換し、DB連番や内部ユーザーIDを公開しない。
+
+外部の一覧応答は`items`、`offset`、`limit`、`has_more`を持つ共通ページ形式とする。
+検索応答も同じページ情報を持ち、HTTPとMCPで境界の意味を統一する。
 
 HTTPアダプターはFastAPIで`/api/v1`以下へ公開し、PydanticはHTTPリクエストの構文検証だけを
 担当する。業務検証はApplicationへ委譲し、`ValidationError`を422、`NotFoundError`を404の
@@ -79,5 +84,6 @@ HTTPアダプターはFastAPIで`/api/v1`以下へ公開し、PydanticはHTTPリ
 
 ## スキーマ管理
 
-`tk init` および各CLI起動時に、SQLModelで新規テーブルを作成する。スキーマ変更が必要に
-なった段階でAlembicなどの専用マイグレーション管理を導入する。
+`tk init` および各CLI起動時にAlembicを実行し、最新Revisionまでupgradeする。
+初期RevisionはSQLModel metadataから新規スキーマを作成し、以後の変更はRevisionを追加して
+順番に適用する。旧Revisionを暗黙に書き換えない。

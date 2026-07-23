@@ -3,11 +3,13 @@
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Any
+from uuid import UUID
 
 
 @dataclass(frozen=True)
 class ReferenceLink:
     reference_id: int
+    public_id: UUID
     meaning_id: int
     url: str
     title: str | None

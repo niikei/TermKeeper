@@ -82,6 +82,7 @@ erDiagram
 
     MEANINGREFERENCE {
         integer reference_id PK
+        uuid public_id UK
         integer meaning_id FK
         text url
         text title "nullable"
@@ -132,6 +133,7 @@ erDiagram
 - Meaningは外部連携用の安定したUUID `public_id` を持つ。
 - Inboxは外部連携用の安定したUUID `public_id` を持つ。
 - Occurrenceは外部連携用の安定したUUID `public_id` を持つ。
+- MeaningReferenceは外部連携用の安定したUUID `public_id` を持つ。
 - Meaningの`is_favorite`は重要な用語の一覧・検索フィルターに使用する。
 - Meaning削除は`deleted_at`と`deleted_by_id`による論理削除とし、Term・Tag・履歴を保持する。
 - 開いているInboxの `keyword_norm` は部分一意制約で重複を防ぐ。
@@ -155,6 +157,7 @@ erDiagram
 | `ix_meaning_is_favorite` | `meaning.is_favorite` | お気に入りの絞り込み |
 | `ix_inbox_public_id` | `inbox.public_id` | 外部識別子からInboxを取得 |
 | `ix_occurrence_public_id` | `occurrence.public_id` | 外部識別子から遭遇履歴を取得 |
+| `ix_meaningreference_public_id` | `meaningreference.public_id` | 外部識別子から参考URLを取得 |
 
 ## TERM
 

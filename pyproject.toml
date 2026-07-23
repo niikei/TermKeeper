@@ -5,6 +5,7 @@ description = "Don't lose unknown terms."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.18,<2",
     "sqlmodel>=0.0.39,<0.1",
 ]
 
@@ -39,6 +40,9 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --cov=termkeeper --cov-report=term-missing --cov-fail-under=90"
+
+[tool.coverage.run]
+omit = ["*/infrastructure/migrations/*"]
 
 [tool.ruff]
 target-version = "py312"

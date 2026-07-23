@@ -213,7 +213,7 @@ tk-mcp
 
 `TERMKEEPER_DB`でCLIと同じデータベースを指定できます。MCPクライアントには、サーバー起動
 コマンドとして`tk-mcp`を登録してください。Capture、Inbox、Resolve、Search、Occurrence、
-Stats、Tag、Favorite、Related Meaning、Referenceの18ツールを公開します。各ツールは具体的な
+Stats、Tag、Favorite、Related Meaning、Referenceの20ツールを公開します。各ツールは具体的な
 Domain DTOに基づく構造化出力スキーマを持ちます。
 
 ### HTTP API
@@ -230,6 +230,8 @@ Inboxの捕捉・一覧・解決、Meaningの一覧・取得・更新・論理�
 `/api/v1`以下から利用できます。Meaningを指定するパスでは、DB内部の連番ではなくレスポンスの
 `public_id`（UUID）を使用します。
 Inboxを解決するパスでも、捕捉レスポンスに含まれるInboxの`public_id`を使用します。
+Occurrence、Tag、Favorite、関連Meaning、Referenceの操作にも対応しています。外部レスポンスは
+DB連番を含まず、一覧は`items`、`offset`、`limit`、`has_more`のページ形式です。
 
 ## データモデル
 

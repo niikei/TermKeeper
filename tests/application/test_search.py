@@ -55,7 +55,7 @@ def test_search_treats_sql_wildcards_as_text_and_validates_limit() -> None:
     with pytest.raises(ValidationError):
         service.search(SearchQuery("term", limit=0))
     with pytest.raises(ValidationError):
-        service.search(SearchQuery("term", limit=101))
+        service.search(SearchQuery("term", limit=501))
     with pytest.raises(ValidationError):
         service.search(SearchQuery("term", suggestion_limit=11))
 

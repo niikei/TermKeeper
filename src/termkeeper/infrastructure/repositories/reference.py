@@ -1,5 +1,7 @@
 """Persistence operations for Meaning reference links."""
 
+from uuid import UUID
+
 from sqlmodel import Session, col, select
 
 from termkeeper.infrastructure.tables import MeaningReference, utc_now
@@ -26,6 +28,12 @@ def create(
 
 def get(session: Session, reference_id: int) -> MeaningReference | None:
     return session.get(MeaningReference, reference_id)
+
+
+def get_by_public_id(session: Session, public_id: UUID) -> MeaningReference | None:
+    return session.exec(
+        select(MeaningReference).where(MeaningReference.public_id == public_id),
+    ).first()
 
 
 def find_by_url(
