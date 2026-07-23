@@ -1,6 +1,6 @@
 import asyncio
 
-from termkeeper.adapters.mcp_server import (
+from termkeeper.adapters.mcp import (
     OccurrenceFilters,
     SearchFilters,
     TermKeeperMcpTools,

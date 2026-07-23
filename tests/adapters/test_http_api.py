@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from termkeeper.adapters.http_api import create_app
+from termkeeper.adapters.http import create_app
 from termkeeper.application import TermKeeperService
 
 

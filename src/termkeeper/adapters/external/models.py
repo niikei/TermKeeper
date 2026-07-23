@@ -1,4 +1,4 @@
-"""Stable external response models without database identifiers."""
+"""Stable external response models and mapping without database identifiers."""
 
 from dataclasses import dataclass
 from datetime import datetime

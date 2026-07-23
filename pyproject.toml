@@ -30,8 +30,8 @@ dev = [
 
 [project.scripts]
 tk = "termkeeper.presentation.cli.main:main"
-tk-api = "termkeeper.adapters.http_api:main"
-tk-mcp = "termkeeper.adapters.mcp_server:main"
+tk-api = "termkeeper.adapters.http.app:main"
+tk-mcp = "termkeeper.adapters.mcp.server:main"
 
 [build-system]
 requires = ["hatchling"]
