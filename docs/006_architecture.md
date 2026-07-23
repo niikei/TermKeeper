@@ -19,6 +19,10 @@ Applicationの各更新ユースケースはUnit of Workを使用し、1つのSe
 共有するレコード取得とDTO変換だけを`support.py` と `mapping.py` に置き、機能間の
 直接呼び出しは避ける。
 
+CSVファイルの読み取りはPresentationで`ImportRow`へ変換し、検証、Dry Run、既存UUIDの判定、
+一括更新は`use_cases/importing.py`で行う。Import中のRepository操作は同じUnit of Workを
+共有し、実行時エラーでは全件をロールバックする。
+
 APIやMCPを追加するときは `TermKeeperService` を再利用し、SQLやCLIの標準出力を直接
 呼ばない。MCPツールはまず `add`, `inbox`, `occurrences`, `resolve`, `search`, `show`,
 `merge`, `tag`, `untag`, `tags` を1対1で公開する。

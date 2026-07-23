@@ -6,6 +6,7 @@ from collections.abc import Callable, Mapping
 from termkeeper.application import TermKeeperService
 from termkeeper.domain import (
     AddResult,
+    ImportResult,
     InboxItem,
     Meaning,
     MergeResult,
@@ -16,6 +17,7 @@ from termkeeper.domain import (
 
 type CommandResult = (
     AddResult
+    | ImportResult
     | Meaning
     | MergeResult
     | list[InboxItem]

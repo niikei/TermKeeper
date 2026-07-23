@@ -117,10 +117,14 @@ tk discard 2
 ```bash
 tk --json search ICMR
 tk export terms.csv
+tk import terms.csv --dry-run
 tk import terms.csv
+tk import terms.csv --strict
 ```
 
-JSONはスクリプトや将来のアダプター、CSVはバックアップや一括編集に利用する。
+JSONはスクリプトや将来のアダプター、CSVはバックアップや一括編集に利用する。Importの
+Dry Runでは変更せず、行番号付き問題と予定件数を確認できる。strictモードは問題があれば
+全件拒否し、標準モードは問題行をスキップして有効行を1トランザクションで反映する。
 CSVではDB内部IDではなく、外部連携向けのUUID `public_id` を使用する。
 
 ## 11. 利用者情報を管理する

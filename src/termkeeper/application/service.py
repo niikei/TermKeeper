@@ -2,6 +2,7 @@
 
 from termkeeper.application.use_cases import (
     ConfigUseCases,
+    ImportUseCases,
     InboxUseCases,
     MeaningUseCases,
     MergeUseCases,
@@ -13,6 +14,7 @@ from termkeeper.infrastructure.schema import init_db
 
 class TermKeeperService(
     InboxUseCases,
+    ImportUseCases,
     MeaningUseCases,
     MergeUseCases,
     OccurrenceUseCases,

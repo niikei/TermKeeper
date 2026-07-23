@@ -115,8 +115,14 @@ tk history
 
 ```bash
 tk export terms.csv
+tk import terms.csv --dry-run
 tk import terms.csv
+tk import terms.csv --strict
 ```
+
+Importは全有効行を1トランザクションで反映します。`--dry-run`は作成・更新・スキップ件数と
+行番号付き問題を表示するだけでDBを変更しません。`--strict`は問題が1行でもあれば全件を
+拒否します。標準モードでは問題行をスキップし、有効行だけを一括反映します。
 
 ### ユーザー設定
 

@@ -179,8 +179,32 @@ def test_human_csv_export_and_import(
         encoding="utf-8",
     )
 
+    assert main(["import", str(import_path), "--dry-run"]) == 0
+    assert "Would create 1, updated 0, skipped 0." in capsys.readouterr().out
     assert main(["import", str(import_path)]) == 0
     assert "Created 1, updated 0, skipped 0." in capsys.readouterr().out
     assert main(["export", str(export_path)]) == 0
     assert f"Exported 1 meaning(s) to {export_path}." in capsys.readouterr().out
     assert export_path.exists()
+
+
+def test_import_json_issues_and_strict_error(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    path = tmp_path / "invalid.csv"
+    path.write_text(
+        "public_id,full_name,description,terms,tags\n"
+        ",Valid Meaning,,VALID,\n"
+        "invalid,Invalid Meaning,,INVALID,\n",
+        encoding="utf-8",
+    )
+
+    assert main(["--json", "import", str(path), "--dry-run"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["created"] == 1
+    assert result["skipped"] == 1
+    assert result["issues"][0]["row_number"] == 3
+
+    assert main(["import", str(path), "--strict"]) == 2
+    assert "row 3" in capsys.readouterr().err

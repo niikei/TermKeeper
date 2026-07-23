@@ -122,6 +122,7 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 - 1つの更新ユースケースを1つのUnit of Workで完結させる
 - Meaning統合はTerm行の監査情報を保持し、参照付け替えと削除を同一トランザクションで行う
 - Tagは正規化名を一意にし、MeaningTagで多対多の関連を管理する
+- CSV ImportはApplication層で全行を検証し、1つのUnit of Workで一括反映する
 - Repository内では`commit()`しない
 - 遭遇は毎回Occurrenceとして保存し、memoやsourceを上書きしない
 - Occurrence一覧の入力は`OccurrenceQuery`、出力は`OccurrenceItem`で表現する
@@ -139,6 +140,8 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 - Application: ユースケース、入力検証、トランザクションのロールバック
 - Infrastructure: DB制約、Repository固有の契約
 - Presentation: CLI終了コード、通常表示、JSON、CSV
+
+CSVの構文解析はPresentation、行検証・Dry Run・一括更新はApplicationの責務とする。
 
 単に100%へ近づけるためのテストではなく、利用者に影響する分岐、外部連携境界、データ整合性を
 優先します。

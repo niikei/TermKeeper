@@ -34,7 +34,7 @@ tk [--json] <command> [options]
 | `discard` | 未解決Inboxを破棄 | `inbox_id` |
 | `config` | ユーザー設定を取得・更新 | `[key]`, `[value]`, `--list`, `--unset` |
 | `export` | MeaningをCSV出力 | `[path]` |
-| `import` | MeaningをCSV取込 | `path` |
+| `import` | MeaningをCSV取込 | `path`, `--dry-run`, `--strict` |
 
 ## 主要な処理規則
 
@@ -116,6 +116,13 @@ public_id,full_name,description,terms,tags,created_at,updated_at
 
 `terms` と `tags` はセミコロン区切り。Import時、存在するUUID `public_id` は更新し、
 それ以外は新規作成する。
+
+- `--dry-run`: 作成・更新・スキップ予定と行番号付きissueを返し、DBを変更しない
+- `--strict`: issueが1件でもあればApplicationエラーとして全件拒否する
+- 標準: issueのある行をスキップし、有効行を1トランザクションで反映する
+
+空の`full_name`、不正UUID、ファイル内の重複UUIDをissueとして扱う。DB更新中の例外は
+全件ロールバックする。結果は`created`、`updated`、`skipped`、`dry_run`、`issues`を含む。
 
 ### `tk config`
 

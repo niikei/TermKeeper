@@ -2,12 +2,20 @@
 
 import json
 
-from termkeeper.domain import AddResult, InboxItem, Meaning, MergeResult, OccurrenceItem, SearchHit
+from termkeeper.domain import (
+    AddResult,
+    ImportResult,
+    InboxItem,
+    Meaning,
+    MergeResult,
+    OccurrenceItem,
+    SearchHit,
+)
 from termkeeper.presentation.types import CommandResult
 
 
 def print_json(value: CommandResult) -> None:
-    if isinstance(value, (AddResult, Meaning, MergeResult)):
+    if isinstance(value, (AddResult, ImportResult, Meaning, MergeResult)):
         _print_json_value(value.to_dict())
         return
     if isinstance(value, list):

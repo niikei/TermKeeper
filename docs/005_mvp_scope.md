@@ -15,6 +15,7 @@
 - Term・正式名称・説明の複数語検索、対象指定、関連度順、一致理由
 - 対話／非対話での解決と編集
 - CSV Import／Export
+- CSV ImportのDry Run、strict検証、行番号issue、全件トランザクション
 - JSON出力
 - `user.name` と `user.email` の設定管理
 - UTCの作成・更新・最終確認・終了日時

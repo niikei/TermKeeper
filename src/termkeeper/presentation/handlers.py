@@ -5,6 +5,7 @@ import argparse
 from termkeeper.application import TermKeeperService
 from termkeeper.domain import (
     AddResult,
+    ImportResult,
     InboxItem,
     Meaning,
     MergeResult,
@@ -241,13 +242,20 @@ def handle_export(
     return {"exported": count, "path": args.path}
 
 
-def handle_import(args: argparse.Namespace, service: TermKeeperService) -> dict[str, int]:
-    result = import_meanings(args.path, service)
+def handle_import(args: argparse.Namespace, service: TermKeeperService) -> ImportResult:
+    result = import_meanings(
+        args.path,
+        service,
+        dry_run=args.dry_run,
+        strict=args.strict,
+    )
     if not args.json:
+        action = "Would create" if result.dry_run else "Created"
         print(
-            f"Created {result['created']}, updated {result['updated']}, "
-            f"skipped {result['skipped']}.",
+            f"{action} {result.created}, updated {result.updated}, skipped {result.skipped}.",
         )
+        for issue in result.issues:
+            print(f"Row {issue.row_number}: {issue.message}")
     return result
 
 

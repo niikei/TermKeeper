@@ -2,7 +2,11 @@ import csv
 from pathlib import Path
 from uuid import uuid4
 
-from termkeeper.application import TermKeeperService
+import pytest
+from sqlmodel import Session
+
+from termkeeper.application import TermKeeperService, ValidationError
+from termkeeper.infrastructure import tag_repository
 from termkeeper.presentation.csv_io import export_meanings, import_meanings, split_terms
 
 
@@ -36,7 +40,8 @@ def test_csv_round_trip_and_update(tmp_path: Path) -> None:
         writer.writerows(rows)
 
     result = import_meanings(str(path), service)
-    assert result == {"created": 0, "updated": 1, "skipped": 1}
+    assert (result.created, result.updated, result.skipped) == (0, 1, 1)
+    assert result.issues[0].row_number == 3
     assert service.get_meaning(meaning.meaning_id).description == "updated"
     assert service.get_meaning(meaning.meaning_id).tags == ("Manufacturing",)
 
@@ -51,7 +56,7 @@ def test_import_creates_meaning_and_aliases(tmp_path: Path) -> None:
 
     result = import_meanings(str(path), TermKeeperService())
 
-    assert result == {"created": 1, "updated": 0, "skipped": 0}
+    assert (result.created, result.updated, result.skipped) == (1, 0, 0)
     imported = TermKeeperService().search("MDM")[0].meaning
     assert imported.description == "governance"
     assert imported.tags == ("Data",)
@@ -69,8 +74,93 @@ def test_import_preserves_unknown_public_id(tmp_path: Path) -> None:
 
     result = import_meanings(str(path), service)
 
-    assert result == {"created": 1, "updated": 0, "skipped": 0}
+    assert (result.created, result.updated, result.skipped) == (1, 0, 0)
     assert service.get_meaning_by_public_id(public_id).full_name == (
         "Customer Relationship Management"
     )
     assert service.get_meaning_by_public_id(public_id).tags == ("Sales",)
+
+
+def test_import_dry_run_reports_issues_without_writing(tmp_path: Path) -> None:
+    path = tmp_path / "dry-run.csv"
+    path.write_text(
+        "public_id,full_name,description,terms,tags\n"
+        ",Valid Meaning,,VALID,Test\n"
+        "not-a-uuid,Invalid Meaning,,INVALID,\n"
+        ",,,,\n",
+        encoding="utf-8",
+    )
+    service = TermKeeperService()
+
+    result = import_meanings(str(path), service, dry_run=True)
+
+    assert result.dry_run is True
+    assert (result.created, result.updated, result.skipped) == (1, 0, 2)
+    assert [issue.row_number for issue in result.issues] == [3, 4]
+    assert service.meanings() == []
+
+
+def test_import_strict_rejects_all_rows(tmp_path: Path) -> None:
+    path = tmp_path / "strict.csv"
+    path.write_text(
+        "public_id,full_name,description,terms,tags\n,Valid Meaning,,VALID,\n,,,,\n",
+        encoding="utf-8",
+    )
+    service = TermKeeperService()
+
+    with pytest.raises(ValidationError, match="row 3"):
+        import_meanings(str(path), service, strict=True)
+
+    assert service.meanings() == []
+
+
+def test_import_skips_duplicate_public_id_in_file(tmp_path: Path) -> None:
+    public_id = uuid4()
+    path = tmp_path / "duplicate.csv"
+    path.write_text(
+        "public_id,full_name,description,terms,tags\n"
+        f"{public_id},First Meaning,,FIRST,\n"
+        f"{public_id},Second Meaning,,SECOND,\n",
+        encoding="utf-8",
+    )
+    service = TermKeeperService()
+
+    result = import_meanings(str(path), service)
+
+    assert (result.created, result.skipped) == (1, 1)
+    assert result.issues[0].row_number == 3
+    assert service.get_meaning_by_public_id(public_id).full_name == "First Meaning"
+
+
+def test_import_rolls_back_all_rows_on_runtime_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "rollback.csv"
+    path.write_text(
+        "public_id,full_name,description,terms,tags\n"
+        ",First Meaning,,FIRST,Safe\n"
+        ",Second Meaning,,SECOND,Fail\n",
+        encoding="utf-8",
+    )
+    service = TermKeeperService()
+    original_add = tag_repository.add
+
+    def fail_on_tag(
+        session: Session,
+        meaning_id: int,
+        name: str,
+        user_id: int | None,
+    ) -> bool:
+        if name == "Fail":
+            raise RuntimeError("simulated failure")
+        return original_add(session, meaning_id, name, user_id)
+
+    monkeypatch.setattr(
+        "termkeeper.application.use_cases.importing.tag_repository.add",
+        fail_on_tag,
+    )
+    with pytest.raises(RuntimeError):
+        import_meanings(str(path), service)
+
+    assert service.meanings() == []

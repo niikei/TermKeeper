@@ -101,6 +101,8 @@ def _add_config_and_transfer_commands(
     export.add_argument("path", nargs="?", default="termkeeper_export.csv")
     import_ = sub.add_parser("import", help="Import meanings from CSV")
     import_.add_argument("path")
+    import_.add_argument("--dry-run", action="store_true")
+    import_.add_argument("--strict", action="store_true")
 
 
 def _parse_datetime(value: str) -> datetime:
