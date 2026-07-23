@@ -62,11 +62,15 @@ ruff check .
 
 ```text
 src/termkeeper/
-├── models.py   # API/MCPでも共有するドメインDTO
-├── service.py  # ユースケース
-├── db.py       # SQLiteアダプターとマイグレーション
-├── config.py   # 実行時設定
-└── cli.py      # CLIアダプター
+├── domain/          # API/MCPでも共有するドメインDTO
+├── application/     # 用語捕捉・解決・検索のユースケース
+├── infrastructure/  # SQLite接続・スキーマ・リポジトリ
+├── presentation/    # CLIのparser・handlers・表示・CSV
+├── config.py        # 実行時設定
+├── cli.py           # 互換CLIエントリポイント
+├── db.py            # 旧DB APIの互換モジュール
+├── models.py        # 旧モデルimportの互換モジュール
+└── service.py       # 旧サービスimportの互換モジュール
 ```
 
 ## コンセプト

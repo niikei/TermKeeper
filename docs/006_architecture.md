@@ -1,11 +1,15 @@
 # アーキテクチャと拡張方針
 
-依存方向は `CLI / future API / future MCP → Service → DB` とする。
+依存方向は `Presentation / future API / future MCP → Application → Infrastructure`
+とする。Domainは他レイヤーへ依存しない。
 
-- `models.py`: 外部境界でも使えるシリアライズ可能なDTO
-- `service.py`: 用語捕捉、解決、検索などのユースケース
-- `db.py`: SQLite固有のSQLと段階的スキーマ更新
-- `cli.py`: 入出力だけを担当するアダプター
+- `domain/`: 外部境界でも使えるシリアライズ可能なDTO
+- `application/`: 用語捕捉、解決、検索などのユースケース
+- `infrastructure/`: SQLite接続、スキーマ更新、Inbox・Meaning別リポジトリ
+- `presentation/`: CLI引数、コマンド処理、表示、CSV入出力
+
+トップレベルの `cli.py`, `db.py`, `models.py`, `service.py` は既存利用者のimportを壊さない
+ための互換モジュールであり、新規コードは各レイヤーのパッケージを直接使用する。
 
 APIやMCPを追加するときは `TermKeeperService` を再利用し、SQLやCLIの標準出力を直接
 呼ばない。MCPツールはまず `add`, `inbox`, `resolve`, `search`, `show` を1対1で公開する。

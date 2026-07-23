@@ -1,52 +1,48 @@
-"""Compatibility API; prefer :mod:`termkeeper.infrastructure`."""
+"""Repository facade retained as a stable application-layer dependency."""
 
-from termkeeper.infrastructure.connection import configure_database, get_connection
-from termkeeper.infrastructure.repository import (
+from termkeeper.infrastructure.inbox_repository import (
     add_inbox,
-    add_term,
     close_inbox,
-    create_meaning,
     discard_inbox,
     find_open_inbox,
-    find_registered_term,
     get_inbox,
-    get_meaning,
-    get_terms_by_meaning,
     list_history,
     list_inbox,
+    touch_inbox,
+)
+from termkeeper.infrastructure.meaning_repository import (
+    add_term,
+    create_meaning,
+    find_registered_term,
+    get_meaning,
+    get_terms_by_meaning,
     list_meanings,
     list_meanings_for_export,
     meaning_exists,
-    normalize_keyword,
-    now,
     search_term,
-    touch_inbox,
     update_meaning,
 )
-from termkeeper.infrastructure.schema import init_db
+from termkeeper.infrastructure.sqlite_utils import normalize_keyword, now
 
 __all__ = [
     "add_inbox",
     "add_term",
     "close_inbox",
-    "configure_database",
     "create_meaning",
     "discard_inbox",
     "find_open_inbox",
     "find_registered_term",
-    "get_connection",
     "get_inbox",
     "get_meaning",
     "get_terms_by_meaning",
-    "init_db",
     "list_history",
     "list_inbox",
     "list_meanings",
     "list_meanings_for_export",
     "meaning_exists",
-    "normalize_keyword",
-    "now",
     "search_term",
     "touch_inbox",
+    "normalize_keyword",
+    "now",
     "update_meaning",
 ]

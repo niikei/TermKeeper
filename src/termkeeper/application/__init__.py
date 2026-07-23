@@ -1,4 +1,4 @@
-"""Compatibility imports; prefer :mod:`termkeeper.application`."""
+"""Application use cases for TermKeeper."""
 
 from termkeeper.application.service import NotFoundError, TermKeeperService, ValidationError
 

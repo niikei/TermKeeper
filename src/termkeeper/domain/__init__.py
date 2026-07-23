@@ -1,4 +1,4 @@
-"""Compatibility imports; prefer :mod:`termkeeper.domain.models`."""
+"""Domain models for TermKeeper."""
 
 from termkeeper.domain.models import AddResult, InboxItem, Meaning
 
