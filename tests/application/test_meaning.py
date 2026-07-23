@@ -28,6 +28,18 @@ def test_alias_is_idempotent() -> None:
     updated = service.add_alias(meaning.meaning_id, "master data management")
 
     assert len(updated.terms) == 2
+    with pytest.raises(ValidationError, match="canonical"):
+        service.remove_alias(meaning.meaning_id, "Master Data Management")
+
+
+def test_create_meaning_normalizes_description_and_rejects_blank_aliases() -> None:
+    service = TermKeeperService()
+
+    meaning = service.create_meaning("ERP", "  Planning system  ")
+
+    assert meaning.description == "Planning system"
+    with pytest.raises(ValidationError, match="aliases"):
+        service.create_meaning("CRM", terms=(" ",))
 
 
 def test_edit_lists_and_searches_meanings() -> None:

@@ -30,7 +30,7 @@ def create(
         full_name=values.full_name.strip(),
         full_name_norm=normalize_keyword(values.full_name),
         scope_id=values.scope_id,
-        description=values.description or None,
+        description=values.description.strip() or None if values.description else None,
         description_norm=normalize_keyword(values.description or ""),
         created_by_id=values.user_id,
         updated_by_id=values.user_id,
@@ -205,7 +205,7 @@ def update(
     record.full_name = values.full_name.strip()
     record.full_name_norm = normalize_keyword(values.full_name)
     record.scope_id = values.scope_id
-    record.description = values.description or None
+    record.description = values.description.strip() or None if values.description else None
     record.description_norm = normalize_keyword(values.description or "")
     record.updated_at = utc_now()
     record.updated_by_id = values.user_id

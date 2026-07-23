@@ -90,6 +90,10 @@ class MeaningUseCases:
         public_id: UUID | None = None,
     ) -> Meaning:
         _validate_name(full_name)
+        for term in terms:
+            if not term.strip():
+                message = "Meaning aliases must not be empty."
+                raise ValidationError(message)
         with UnitOfWork() as uow:
             scope_record = get_scope_by_name(uow, scope)
             scope_id = required_id(scope_record.scope_id)
@@ -171,6 +175,9 @@ class MeaningUseCases:
     def remove_alias(self, meaning_id: int, keyword: str) -> Meaning:
         with UnitOfWork() as uow:
             meaning = get_meaning(uow, meaning_id)
+            if normalize_keyword(keyword) == meaning.full_name_norm:
+                message = "The canonical full name cannot be removed as an alias."
+                raise ValidationError(message)
             if not meaning_repository.remove_term(uow.session, meaning_id, keyword):
                 message = f"Alias '{keyword}' was not found."
                 raise NotFoundError(message)
