@@ -1,4 +1,5 @@
 from datetime import UTC, timedelta
+from uuid import uuid4
 
 import pytest
 from sqlalchemy.exc import IntegrityError
@@ -39,6 +40,8 @@ def test_edit_open_inbox_validates_state_and_duplicates() -> None:
     assert edited.updated_by_id is not None
     assert service.occurrences(OccurrenceQuery(inbox_id=first.inbox.inbox_id))[0].keyword == "ERPP"
     with pytest.raises(ValidationError):
+        service.edit_inbox(second.inbox.inbox_id, " ")
+    with pytest.raises(ValidationError):
         service.edit_inbox(second.inbox.inbox_id, "ERP")
     meaning = service.resolve(first.inbox.inbox_id, "Enterprise Resource Planning")
     assert "ERP" in meaning.terms
@@ -67,6 +70,8 @@ def test_validation_and_missing_records_are_explicit() -> None:
         service.search(" ")
     with pytest.raises(NotFoundError):
         service.get_meaning(999)
+    with pytest.raises(NotFoundError):
+        service.get_meaning_by_public_id(uuid4())
     with pytest.raises(NotFoundError):
         service.get_inbox(999)
 
@@ -176,6 +181,16 @@ def test_search_suggests_similar_active_meanings_only_when_no_hits() -> None:
     assert service.search(SearchQuery("ERPP", suggestion_limit=0)).suggestions == ()
 
 
+def test_description_search_has_no_suggestion_without_descriptions() -> None:
+    service = TermKeeperService()
+    service.create_meaning("Enterprise Resource Planning")
+
+    result = service.search(SearchQuery("planning", field=SearchField.DESCRIPTION))
+
+    assert result.hits == ()
+    assert result.suggestions == ()
+
+
 def test_tags_are_idempotent_listed_and_filter_meanings_and_search() -> None:
     service = TermKeeperService()
     erp = service.create_meaning("Enterprise Resource Planning", terms=("ERP",))
@@ -203,11 +218,15 @@ def test_tags_are_idempotent_listed_and_filter_meanings_and_search() -> None:
 def test_tag_validation_and_missing_assignment() -> None:
     service = TermKeeperService()
     meaning = service.create_meaning("Meaning")
+    tagged = service.create_meaning("Tagged Meaning")
+    service.add_tag(tagged.meaning_id, "existing")
 
     with pytest.raises(ValidationError):
         service.add_tag(meaning.meaning_id, " ")
     with pytest.raises(NotFoundError):
         service.remove_tag(meaning.meaning_id, "missing")
+    with pytest.raises(NotFoundError):
+        service.remove_tag(meaning.meaning_id, "existing")
 
 
 def test_discard_updates_history_and_prevents_repeated_actions() -> None:

@@ -119,7 +119,7 @@ def _update(
     actor_id: int | None,
 ) -> None:
     record = meaning_repository.get(uow.session, meaning_id)
-    if record is None:
+    if record is None:  # pragma: no cover - cannot change within this unit of work
         message = f"Meaning {meaning_id} disappeared during import."
         raise RuntimeError(message)
     meaning_repository.update(uow.session, record, row.full_name, row.description, actor_id)

@@ -23,7 +23,7 @@ def get_meaning(uow: UnitOfWork, meaning_id: int) -> Meaning:
 
 
 def required_id(value: int | None) -> int:
-    if value is None:
+    if value is None:  # pragma: no cover - guarded by the database identity invariant
         message = "A persisted record has no primary key."
         raise RuntimeError(message)
     return value

@@ -149,6 +149,23 @@ def test_import_reports_deleted_public_id(tmp_path: Path) -> None:
     assert "restore it before import" in result.issues[0].message
 
 
+def test_import_strict_rejects_deleted_public_id(tmp_path: Path) -> None:
+    service = TermKeeperService()
+    meaning = service.create_meaning("Archived")
+    service.delete_meaning(meaning.meaning_id)
+    path = tmp_path / "deleted-strict.csv"
+    path.write_text(
+        "public_id,full_name,description,terms,tags\n"
+        f"{meaning.public_id},Archived Updated,,ARCHIVED,\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValidationError, match="restore it before import"):
+        import_meanings(str(path), service, strict=True)
+
+    assert service.trash()[0].full_name == "Archived"
+
+
 def test_import_rolls_back_all_rows_on_runtime_failure(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

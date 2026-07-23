@@ -101,7 +101,7 @@ def _get(session: Session, name: str) -> Tag | None:
 
 
 def _required_tag_id(tag: Tag) -> int:
-    if tag.tag_id is None:
+    if tag.tag_id is None:  # pragma: no cover - guarded by the database identity invariant
         message = "A persisted tag has no primary key."
         raise RuntimeError(message)
     return tag.tag_id

@@ -121,6 +121,11 @@ def test_occurrence_history_human_and_json(capsys: pytest.CaptureFixture[str]) -
     assert occurrences[0]["keyword"] == "ERP"
     assert occurrences[0]["inbox_id"] == 1
 
+    assert main(["resolve", "1", "--name", "Enterprise Resource Planning"]) == 0
+    capsys.readouterr()
+    assert main(["occurrences"]) == 0
+    assert "meaning: 1" in capsys.readouterr().out
+
 
 def test_inbox_and_occurrence_edit_commands(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["add", "ERPP", "--memo", "typo", "--source", "Meeting"]) == 0
@@ -128,21 +133,9 @@ def test_inbox_and_occurrence_edit_commands(capsys: pytest.CaptureFixture[str]) 
 
     assert main(["inbox-edit", "1", "--keyword", "ERP"]) == 0
     assert "Updated inbox #1: ERP" in capsys.readouterr().out
-    assert (
-        main(
-            [
-                "--json",
-                "occurrence-edit",
-                "1",
-                "--keyword",
-                "ERP",
-                "--clear-memo",
-                "--source",
-                "Teams",
-            ],
-        )
-        == 0
-    )
+    assert main(["occurrence-edit", "1", "--keyword", "ERP"]) == 0
+    assert "Updated occurrence #1." in capsys.readouterr().out
+    assert main(["--json", "occurrence-edit", "1", "--clear-memo", "--source", "Teams"]) == 0
     occurrence = json.loads(capsys.readouterr().out)
     assert occurrence["keyword"] == "ERP"
     assert occurrence["memo"] is None
@@ -187,9 +180,11 @@ def test_tag_commands_and_filters(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["search", "ERP", "--tag", "SAP"]) == 0
     assert "Enterprise Resource Planning" in capsys.readouterr().out
 
-    assert main(["--json", "untag", "1", "sap"]) == 0
-    result = json.loads(capsys.readouterr().out)
-    assert result["tags"] == []
+    assert main(["--json", "tags"]) == 0
+    tags = json.loads(capsys.readouterr().out)
+    assert tags == [{"meaning_count": 1, "name": "SAP"}]
+    assert main(["untag", "1", "sap"]) == 0
+    assert "Removed tag 'sap' from meaning #1." in capsys.readouterr().out
 
 
 def test_search_suggestions_human_json_and_disabled(
@@ -228,9 +223,8 @@ def test_trash_restore_and_purge_commands(capsys: pytest.CaptureFixture[str]) ->
 
     assert main(["delete", "1"]) == 0
     capsys.readouterr()
-    assert main(["--json", "purge", "1"]) == 0
-    result = json.loads(capsys.readouterr().out)
-    assert result == {"purged": 1}
+    assert main(["purge", "1"]) == 0
+    assert "Permanently deleted meaning #1." in capsys.readouterr().out
 
 
 def test_config_unset_requires_key(capsys: pytest.CaptureFixture[str]) -> None:
@@ -276,5 +270,18 @@ def test_import_json_issues_and_strict_error(
     assert result["skipped"] == 1
     assert result["issues"][0]["row_number"] == 3
 
+    assert main(["import", str(path), "--dry-run"]) == 0
+    assert "Row 3: public_id must be a valid UUID" in capsys.readouterr().out
+
     assert main(["import", str(path), "--strict"]) == 2
     assert "row 3" in capsys.readouterr().err
+
+
+def test_invalid_occurrence_datetime_is_rejected(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["occurrences", "--since", "not-a-date"])
+
+    assert exc_info.value.code == 2
+    assert "invalid ISO 8601 date or datetime" in capsys.readouterr().err
