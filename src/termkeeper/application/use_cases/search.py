@@ -8,7 +8,7 @@ from termkeeper.application.search import rank_search, rank_suggestions, search_
 from termkeeper.application.support import get_scope_by_name, required_id
 from termkeeper.application.validation import optional_filter, to_utc, validate_page
 from termkeeper.domain import (
-    Meaning,
+    LogicalOperator,
     OccurrenceItem,
     OccurrenceQuery,
     OccurrenceStatus,
@@ -57,6 +57,9 @@ class SearchUseCases:
         if len(set(query.fields)) != len(query.fields):
             message = "Search fields must not contain duplicates."
             raise ValidationError(message)
+        if query.mode != SearchMode.SMART and query.word_match != LogicalOperator.ALL:
+            message = "Word matching can only be changed in smart search mode."
+            raise ValidationError(message)
         if len(text) > MAX_PATTERN_LENGTH:
             message = f"Search text cannot exceed {MAX_PATTERN_LENGTH} characters."
             raise ValidationError(message)
@@ -87,6 +90,7 @@ class SearchUseCases:
                     uow.session,
                     scope_id=scope_id,
                     favorite_only=query.favorite_only,
+                    tag=query.tag,
                     limit=MAX_PATTERN_SCAN + 1,
                 )
                 if len(records) > MAX_PATTERN_SCAN:
@@ -106,11 +110,9 @@ class SearchUseCases:
                     query.mode,
                     scope_id=scope_id,
                     favorite_only=query.favorite_only,
+                    tag=query.tag,
                 )
-            meanings = _filter_tag(
-                [to_meaning(uow.session, row) for row in records],
-                query.tag,
-            )
+            meanings = [to_meaning(uow.session, row) for row in records]
             try:
                 ranked = rank_search(meanings, query)
             except regex.error as exc:
@@ -123,18 +125,16 @@ class SearchUseCases:
                 return _search_page(ranked, query)
             if query.mode != SearchMode.SMART or query.suggestion_limit == 0 or query.offset > 0:
                 return _search_page([], query)
-            all_meanings = _filter_tag(
-                [
-                    to_meaning(uow.session, row)
-                    for row in meaning_repository.list_all(
-                        uow.session,
-                        scope_id=scope_id,
-                        favorite_only=query.favorite_only,
-                        limit=MAX_PATTERN_SCAN,
-                    )
-                ],
-                query.tag,
-            )
+            all_meanings = [
+                to_meaning(uow.session, row)
+                for row in meaning_repository.list_all(
+                    uow.session,
+                    scope_id=scope_id,
+                    favorite_only=query.favorite_only,
+                    tag=query.tag,
+                    limit=MAX_PATTERN_SCAN,
+                )
+            ]
             return SearchResult(
                 (),
                 tuple(rank_suggestions(all_meanings, query)),
@@ -232,14 +232,3 @@ def _search_page(hits: list[SearchHit], query: SearchQuery) -> SearchResult:
         limit=query.limit,
         has_more=len(page) > query.limit,
     )
-
-
-def _filter_tag(meanings: list[Meaning], tag: str | None) -> list[Meaning]:
-    if tag is None:
-        return meanings
-    normalized = tag.strip().casefold()
-    return [
-        meaning
-        for meaning in meanings
-        if any(item.casefold() == normalized for item in meaning.tags)
-    ]

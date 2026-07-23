@@ -85,8 +85,12 @@ ANSI制御文字を含めない。`completion`と`--version`もプレーンテ�
 ## `tk list`
 
 Active Meaningを更新日時の新しい順に、`ID / Meaning / Scope / Aliases`の表で表示する。
-favoriteは名称の前に`★`を表示する。`--scope`、`--tag`、`--favorite`は組み合わせ可能。
-人間向けの空一覧は`No meanings found.`を表示し、JSONではMeaningオブジェクトの配列を返す。
+favoriteは名称の前に`★`を表示する。`--scope`、繰り返し可能な`--tag`、
+`--tag-match all|any`、`--favorite`、`--created-since`、`--updated-since`、
+`--has-description|--without-description`、`--has-alias|--without-alias`、
+`--sort name|created|updated`、`--order asc|desc`、ページングを組み合わせられる。
+人間向けの空一覧は`No meanings found.`を表示し、JSONでは`items`、`offset`、`limit`、
+`has_more`を持つページを返す。
 
 `tk meaning list`は説明、Tag、作成・更新日時を含む詳細・管理用表示として維持する。
 

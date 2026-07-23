@@ -264,3 +264,35 @@ def test_search_rejects_ambiguous_fields_and_invalid_patterns() -> None:
         )
     with pytest.raises(ValidationError, match="cannot exceed 256"):
         service.search_meanings(SearchQuery("x" * 257))
+    with pytest.raises(ValidationError, match="only be changed in smart"):
+        service.search_meanings(
+            SearchQuery(
+                "ERP*",
+                mode=SearchMode.GLOB,
+                word_match=LogicalOperator.ANY,
+            ),
+        )
+
+
+def test_search_deduplicates_words_without_inflating_relevance() -> None:
+    service = TermKeeperService()
+    service.create_meaning("Enterprise Resource Planning", terms=("ERP",))
+
+    once = service.search_meanings(SearchQuery("ERP")).hits[0]
+    repeated = service.search_meanings(SearchQuery("ERP ERP")).hits[0]
+
+    assert repeated.score == once.score
+
+
+def test_regex_search_enforces_one_total_time_budget(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = TermKeeperService()
+    service.create_meaning("Enterprise Resource Planning")
+    clock = iter((0.0, 2.0))
+    monkeypatch.setattr("termkeeper.application.search.monotonic", lambda: next(clock))
+
+    with pytest.raises(ValidationError, match="timed out"):
+        service.search_meanings(
+            SearchQuery("Enterprise", mode=SearchMode.REGEX),
+        )

@@ -1,7 +1,7 @@
 import pytest
 
 from termkeeper.application import NotFoundError, TermKeeperService, ValidationError
-from termkeeper.domain import SearchQuery
+from termkeeper.domain import SearchMode, SearchQuery
 
 
 def test_tags_are_idempotent_listed_and_filter_meanings_and_search() -> None:
@@ -22,6 +22,9 @@ def test_tags_are_idempotent_listed_and_filter_meanings_and_search() -> None:
     hits = service.search_meanings(SearchQuery("enterprise", tag="sap")).hits
     assert [hit.meaning.meaning_id for hit in hits] == [erp.meaning_id]
     assert service.search_meanings(SearchQuery("customer", tag="SAP")).hits == ()
+    assert service.search_meanings(
+        SearchQuery("Enterprise*", mode=SearchMode.GLOB, tag="SAP"),
+    ).hits
 
     updated = service.remove_tag(erp.meaning_id, "sAp")
     assert updated.tags == ()

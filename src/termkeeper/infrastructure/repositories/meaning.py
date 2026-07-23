@@ -179,6 +179,7 @@ def search(
     *,
     scope_id: int | None = None,
     favorite_only: bool = False,
+    tag: str | None = None,
 ) -> list[Meaning]:
     token_conditions = [_search_condition(token, fields, mode) for token in tokens]
     statement = (
@@ -192,6 +193,8 @@ def search(
         statement = statement.where(Meaning.is_favorite)
     if scope_id is not None:
         statement = statement.where(Meaning.scope_id == scope_id)
+    if tag is not None:
+        statement = statement.where(_tag_condition(tag))
     return list(session.exec(statement).all())
 
 
@@ -273,6 +276,7 @@ def list_all(
     *,
     scope_id: int | None = None,
     favorite_only: bool = False,
+    tag: str | None = None,
     limit: int | None = None,
 ) -> list[Meaning]:
     statement = (
@@ -284,6 +288,8 @@ def list_all(
         statement = statement.where(Meaning.is_favorite)
     if scope_id is not None:
         statement = statement.where(Meaning.scope_id == scope_id)
+    if tag is not None:
+        statement = statement.where(_tag_condition(tag))
     if limit is not None:
         statement = statement.limit(limit)
     return list(session.exec(statement).all())
@@ -310,17 +316,7 @@ def list_page(
         statement = statement.where(Meaning.is_favorite)
     if scope_id is not None:
         statement = statement.where(Meaning.scope_id == scope_id)
-    tag_conditions = tuple(
-        exists(
-            select(MeaningTag.meaning_id)
-            .join(Tag)
-            .where(
-                MeaningTag.meaning_id == Meaning.meaning_id,
-                Tag.name_norm == normalize_keyword(tag),
-            ),
-        )
-        for tag in tags
-    )
+    tag_conditions = tuple(_tag_condition(tag) for tag in tags)
     if tag_conditions:
         statement = statement.where(
             *tag_conditions if tag_match == LogicalOperator.ALL else (or_(*tag_conditions),)
@@ -352,6 +348,17 @@ def list_page(
         statement.order_by(ordered, col(Meaning.meaning_id).desc()).offset(offset).limit(limit + 1)
     )
     return list(session.exec(statement).all())
+
+
+def _tag_condition(tag: str) -> ColumnElement[bool]:
+    return exists(
+        select(MeaningTag.meaning_id)
+        .join(Tag)
+        .where(
+            MeaningTag.meaning_id == Meaning.meaning_id,
+            Tag.name_norm == normalize_keyword(tag),
+        ),
+    )
 
 
 def list_deleted(session: Session) -> list[Meaning]:

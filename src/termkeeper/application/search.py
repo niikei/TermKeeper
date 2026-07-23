@@ -3,6 +3,7 @@
 from collections.abc import Callable
 from difflib import SequenceMatcher
 from fnmatch import fnmatchcase
+from time import monotonic
 from typing import cast
 from unicodedata import normalize
 
@@ -21,6 +22,7 @@ from termkeeper.infrastructure.normalization import normalize_keyword
 
 _MIN_SUGGESTION_RATIO = 0.6
 _REGEX_TIMEOUT_SECONDS = 0.02
+_REGEX_TOTAL_TIMEOUT_SECONDS = 1.0
 type _Match = tuple[int, SearchField, str]
 
 
@@ -218,12 +220,17 @@ def _pattern_matcher(query: SearchQuery) -> Callable[[str], bool]:
             normalize("NFKC", query.text),
             regex.IGNORECASE | regex.VERSION1,
         )
+        deadline = monotonic() + _REGEX_TOTAL_TIMEOUT_SECONDS
 
         def regex_matches(text: str) -> bool:
+            remaining = deadline - monotonic()
+            if remaining <= 0:
+                message = "Regular expression evaluation exceeded its total time limit."
+                raise TimeoutError(message)
             return (
                 regex_pattern.search(
                     normalize("NFKC", text),
-                    timeout=_REGEX_TIMEOUT_SECONDS,
+                    timeout=min(_REGEX_TIMEOUT_SECONDS, remaining),
                 )
                 is not None
             )

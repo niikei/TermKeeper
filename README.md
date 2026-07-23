@@ -114,11 +114,16 @@ pbpaste | tk add-many --file - --yes
 tk list
 tk list --scope SAP
 tk list --tag Core
+tk list --tag Core --tag SAP --tag-match all
 tk list --favorite
+tk list --has-description --has-alias --sort name --order asc
+tk list --updated-since 2026-07-01T00:00:00Z
 ```
 
 `list`はActive Meaningを`ID / Meaning / Scope / Aliases`のコンパクトな表で表示する日常用ビュー
-です。作成日時や説明を含む詳細表示・管理操作には`tk meaning list`と`tk show ID`を使います。
+です。繰り返した`--tag`は`--tag-match all|any`で結合します。説明・Aliasの有無、作成・更新日時、
+並び順、ページ位置でも絞り込めます。`tk meaning list`は同じ絞り込みで詳細を表示し、
+`tk show ID`は1件を表示します。
 
 ### 未処理項目の確認
 

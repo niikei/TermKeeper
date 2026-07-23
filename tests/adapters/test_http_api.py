@@ -254,6 +254,14 @@ def _assert_openapi_contract(client: TestClient) -> None:
     }
     meaning_parameter = schema["paths"]["/api/v1/meanings/{meaning_id}"]["get"]["parameters"][0]
     assert meaning_parameter["schema"]["format"] == "uuid"
+    search_parameters = {
+        item["name"]: item
+        for item in schema["paths"]["/api/v1/meanings/search"]["get"]["parameters"]
+    }
+    assert search_parameters["fields"]["schema"]["minItems"] == 1
+    assert "combined with OR" in search_parameters["fields"]["description"]
+    assert "all or any words" in search_parameters["word_match"]["description"]
+    assert search_parameters["suggestion_limit"]["schema"]["maximum"] == 10
 
 
 def test_http_api_maps_application_and_request_errors() -> None:
