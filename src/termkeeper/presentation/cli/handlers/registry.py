@@ -40,6 +40,12 @@ from termkeeper.presentation.cli.handlers.metadata import (
     handle_unrelate,
     handle_untag,
 )
+from termkeeper.presentation.cli.handlers.scope import (
+    handle_scope_add,
+    handle_scope_delete,
+    handle_scope_edit,
+    handle_scopes,
+)
 from termkeeper.presentation.cli.handlers.transfer import (
     handle_export,
     handle_import,
@@ -80,6 +86,10 @@ HANDLERS: dict[str, CommandHandler] = {
     "reference-edit": handle_reference_edit,
     "reference-remove": handle_reference_remove,
     "references": handle_references,
+    "scope-add": handle_scope_add,
+    "scopes": handle_scopes,
+    "scope-edit": handle_scope_edit,
+    "scope-delete": handle_scope_delete,
     "edit": handle_edit,
     "meanings": handle_meanings,
     "config": handle_config,

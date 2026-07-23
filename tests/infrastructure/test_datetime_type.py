@@ -18,6 +18,8 @@ DATETIME_COLUMNS = {
     ("occurrence", "occurred_at"),
     ("occurrence", "resolved_at"),
     ("occurrence", "updated_at"),
+    ("scope", "created_at"),
+    ("scope", "updated_at"),
     ("tag", "created_at"),
     ("term", "created_at"),
     ("term", "updated_at"),

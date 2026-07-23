@@ -5,7 +5,13 @@ from uuid import UUID
 from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_meaning
 from termkeeper.application.search import rank_search, rank_suggestions, search_tokens
-from termkeeper.application.support import get_meaning, required_id, user_id
+from termkeeper.application.support import (
+    get_meaning,
+    get_scope,
+    get_scope_by_name,
+    required_id,
+    user_id,
+)
 from termkeeper.domain import Meaning, SearchQuery, SearchResult
 from termkeeper.infrastructure.normalization import normalize_keyword
 from termkeeper.infrastructure.repositories import (
@@ -52,15 +58,16 @@ class MeaningUseCases:
         public_id: UUID | None = None,
     ) -> Meaning:
         _validate_name(full_name)
-        _validate_scope(scope)
         with UnitOfWork() as uow:
-            _ensure_unique(uow, full_name, scope)
+            scope_record = get_scope_by_name(uow, scope)
+            scope_id = required_id(scope_record.scope_id)
+            _ensure_unique(uow, full_name, scope_id, scope_record.name)
             actor_id = user_id(settings_repository.get_profile(uow.session))
             record = meaning_repository.create(
                 uow.session,
                 meaning_repository.MeaningValues(
                     full_name,
-                    scope,
+                    scope_id,
                     description,
                     actor_id,
                 ),
@@ -91,11 +98,16 @@ class MeaningUseCases:
             message = "Suggestion limit must be between 0 and 10."
             raise ValidationError(message)
         with UnitOfWork() as uow:
+            scope_id = (
+                required_id(get_scope_by_name(uow, query.scope).scope_id)
+                if query.scope
+                else None
+            )
             records = meaning_repository.search(
                 uow.session,
                 tokens,
                 query.field,
-                scope=query.scope,
+                scope_id=scope_id,
                 favorite_only=query.favorite_only,
             )
             meanings = _filter_tag(
@@ -110,12 +122,12 @@ class MeaningUseCases:
                     to_meaning(uow.session, row)
                     for row in meaning_repository.list_all(
                         uow.session,
+                        scope_id=scope_id,
                         favorite_only=query.favorite_only,
                     )
                 ],
                 query.tag,
             )
-            all_meanings = _filter_scope(all_meanings, query.scope)
             return SearchResult(
                 (),
                 tuple(rank_suggestions(all_meanings, query)),
@@ -129,14 +141,20 @@ class MeaningUseCases:
         favorite_only: bool = False,
     ) -> list[Meaning]:
         with UnitOfWork() as uow:
+            selected_scope = get_scope_by_name(uow, scope) if scope else None
             meanings = [
                 to_meaning(uow.session, row)
                 for row in meaning_repository.list_all(
                     uow.session,
+                    scope_id=(
+                        required_id(selected_scope.scope_id)
+                        if selected_scope is not None
+                        else None
+                    ),
                     favorite_only=favorite_only,
                 )
             ]
-            return _filter_scope(_filter_tag(meanings, tag), scope)
+            return _filter_tag(meanings, tag)
 
     def favorite_meaning(self, meaning_id: int) -> Meaning:
         return self._set_favorite(meaning_id, favorite=True)
@@ -192,12 +210,26 @@ class MeaningUseCases:
         _validate_name(full_name)
         with UnitOfWork() as uow:
             meaning = get_meaning(uow, meaning_id)
-            selected_scope = meaning.scope if scope is None else scope
-            _validate_scope(selected_scope)
+            selected_scope = (
+                get_scope_by_name(uow, scope)
+                if scope is not None
+                else None
+            )
+            scope_id = (
+                required_id(selected_scope.scope_id)
+                if selected_scope is not None
+                else meaning.scope_id
+            )
+            scope_name = (
+                selected_scope.name
+                if selected_scope is not None
+                else get_scope(uow, meaning.scope_id).name
+            )
             _ensure_unique(
                 uow,
                 full_name,
-                selected_scope,
+                scope_id,
+                scope_name,
                 exclude_id=meaning_id,
             )
             actor_id = user_id(settings_repository.get_profile(uow.session))
@@ -206,7 +238,7 @@ class MeaningUseCases:
                 meaning,
                 meaning_repository.MeaningValues(
                     full_name,
-                    selected_scope,
+                    scope_id,
                     description,
                     actor_id,
                 ),
@@ -236,7 +268,8 @@ class MeaningUseCases:
             _ensure_unique(
                 uow,
                 meaning.full_name,
-                meaning.scope,
+                meaning.scope_id,
+                get_scope(uow, meaning.scope_id).name,
                 exclude_id=meaning_id,
             )
             actor_id = user_id(settings_repository.get_profile(uow.session))
@@ -265,27 +298,22 @@ def _validate_name(full_name: str) -> None:
         raise ValidationError(message)
 
 
-def _validate_scope(scope: str) -> None:
-    if not scope.strip():
-        message = "Scope must not be empty."
-        raise ValidationError(message)
-
-
 def _ensure_unique(
     uow: UnitOfWork,
     full_name: str,
-    scope: str,
+    scope_id: int,
+    scope_name: str,
     *,
     exclude_id: int | None = None,
 ) -> None:
     duplicate = meaning_repository.find_duplicate(
         uow.session,
         full_name,
-        scope,
+        scope_id,
         exclude_id=exclude_id,
     )
     if duplicate is not None:
-        message = f"Meaning '{full_name}' already exists in scope '{scope}'."
+        message = f"Meaning '{full_name}' already exists in scope '{scope_name}'."
         raise ValidationError(message)
 
 
@@ -306,10 +334,3 @@ def _filter_tag(meanings: list[Meaning], tag: str | None) -> list[Meaning]:
         for meaning in meanings
         if any(normalize_keyword(name) == tag_norm for name in meaning.tags)
     ]
-
-
-def _filter_scope(meanings: list[Meaning], scope: str | None) -> list[Meaning]:
-    if not scope:
-        return meanings
-    scope_norm = normalize_keyword(scope)
-    return [meaning for meaning in meanings if normalize_keyword(meaning.scope) == scope_norm]

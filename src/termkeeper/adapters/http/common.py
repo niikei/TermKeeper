@@ -19,3 +19,7 @@ def _local_meaning_id(
 
 def _local_occurrence_id(service: TermKeeperService, public_id: UUID) -> int:
     return service.get_occurrence_by_public_id(public_id).occurrence_id
+
+
+def _scope_name(service: TermKeeperService, public_id: UUID) -> str:
+    return service.get_scope_by_public_id(public_id).name

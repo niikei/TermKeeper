@@ -32,6 +32,8 @@ def test_version(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 def test_json_workflow(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["--json", "scope-add", "Finance"]) == 0
+    capsys.readouterr()
     assert main(["--json", "add", "ICMR", "--memo", "monthly close"]) == 0
     added = json.loads(capsys.readouterr().out)
     occurrence_id = added["occurrence"]["occurrence_id"]
@@ -133,6 +135,19 @@ def test_human_readable_management_commands(
     assert "Enterprise Resource Planning" in output
 
 
+def test_scope_management_commands(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["--json", "scope-add", "SAP", "--description", "Enterprise"]) == 0
+    created = json.loads(capsys.readouterr().out)
+    scope_id = created["scope_id"]
+
+    assert main(["--json", "scopes"]) == 0
+    assert any(item["name"] == "SAP" for item in json.loads(capsys.readouterr().out))
+    assert main(["scope-edit", str(scope_id), "--name", "SAP S/4HANA"]) == 0
+    assert "Updated scope" in capsys.readouterr().out
+    assert main(["scope-delete", str(scope_id)]) == 0
+    assert "Deleted scope" in capsys.readouterr().out
+
+
 def test_discard_and_empty_inbox(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["add", "remove-me"]) == 0
     assert main(["discard", "1"]) == 0
@@ -212,6 +227,8 @@ def test_edit_only_prompts_when_no_values_are_provided(
     assert updated["full_name"] == "Enterprise Resource Planning"
     assert updated["description"] == "Updated"
 
+    assert main(["scope-add", "SAP"]) == 0
+    capsys.readouterr()
     assert main(["edit", "1", "--scope", "SAP"]) == 0
     capsys.readouterr()
     assert main(["--json", "show", "1"]) == 0

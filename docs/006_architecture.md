@@ -47,7 +47,8 @@ Meaning Repositoryの通常取得は`deleted_at IS NULL`を共通条件とする
 削除済みMeaningを明示的に取得する。Meaning統合は参照移動後に統合元を完全削除するが、
 利用者による通常削除は必ず論理削除とする。
 Tag集計も有効Meaningだけを対象とし、削除・復元に応じて件数へ反映する。
-Meaningは`scope_norm`と`full_name_norm`の組を有効行内で一意にし、同一製品・業務領域での
+Scopeを独立エンティティとして管理し、Meaningは`scope_id`で参照する。
+Meaningは`scope_id`と`full_name_norm`の組を有効行内で一意にし、同一製品・業務領域での
 重複概念を防ぐ。同じTermは複数Meaningに属せるため、候補取得は全件を返す。
 お気に入りはMeaningの属性として保持し、一覧・検索の絞り込みはRepositoryで行う。
 Meaning間の関連は小さいIDを先にした対称ペアとして正規化し、同一ペアを一意に保つ。

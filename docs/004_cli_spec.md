@@ -28,6 +28,7 @@ DB初期化エラー時は終了コード`1`を返す。内部トレースバッ
 | `search` | Meaning検索 | query、field、tag、scope、favorite、suggestion |
 | `show` / `meanings` | Meaning表示・一覧 | ID、`--tag`, `--scope`, `--favorite` |
 | `edit` | Meaning更新 | ID、`--name`, `--scope`, `--description` |
+| `scope-add` / `scopes` / `scope-edit` / `scope-delete` | Scope管理 | name、description、Scope ID |
 | `alias` / `unalias` | Term追加・削除 | Meaning ID、keyword |
 | `tag` / `untag` / `tags` | Tag管理 | Meaning ID、name |
 | `favorite` / `unfavorite` | お気に入り | Meaning ID |
@@ -62,7 +63,8 @@ tk resolve OCCURRENCE_ID --meaning MEANING_ID
 ```
 
 通常モードでは`--name`省略時に対話入力する。JSONモードは入力待ちを行わないため、新規作成時の
-`--name`を必須とし、不足時はJSONエラーと終了コード`2`を返す。新規作成では同じ`scope_norm`と
+`--name`を必須とし、不足時はJSONエラーと終了コード`2`を返す。`--scope`は登録済みScope名を
+指定し、省略時は`General`を使う。新規作成では同じ`scope_id`と
 `full_name_norm`を持つ有効Meaningを拒否する。既存Meaning指定はResolvedの再分類にも利用できる。
 
 ## `tk edit`
@@ -104,7 +106,7 @@ Term、正式名称、説明はNFKC＋casefoldで比較し、全角／半角や`
 
 ## Meaning lifecycle
 
-Meaningは`full_name`、`scope`、説明、Term、Tagを持つ。有効Meaningの正規化scope・正式名称の組は
+Meaningは`full_name`、Scope参照、説明、Term、Tagを持つ。有効MeaningのScope・正規化正式名称の組は
 一意。`merge`はTerm、Tag、Occurrence、Reference、Relationを移動する。同一URLと同一関連先は
 統合先を優先して重複排除し、統合元と統合先の直接Relationは畳み込む。
 
@@ -117,12 +119,13 @@ Meaningは`full_name`、`scope`、説明、Term、Tagを持つ。有効Meaning�
 public_id,full_name,scope,description,terms,tags,created_at,updated_at
 ```
 
-`scope`省略時は`General`。空の正式名称・scope、不正UUID、ファイル内重複UUID、同一scope内の
+`scope`省略時は`General`。CSV内のScope名は事前登録が必要。空の正式名称・scope、不正UUID、
+ファイル内重複UUID、同一scope内の
 重複正式名称をissueとする。`terms`と`tags`はJSON文字列配列（例:
 `["ERP","SAP;Legacy"]`）として格納する。空セルは空配列として許容し、非空セルの旧区切り文字
 形式、非文字列要素、空文字要素はissueとする。`--strict`はissueが1件でもあれば更新しない。
 
 ## 外部識別子
 
-CLIはローカル整数IDを使用する。HTTPとMCPはMeaning、Occurrence、Referenceの`public_id` UUIDを
+CLIはローカル整数IDを使用する。HTTPとMCPはMeaning、Scope、Occurrence、Referenceの`public_id` UUIDを
 使用し、DB連番や内部UserProfile IDを公開しない。

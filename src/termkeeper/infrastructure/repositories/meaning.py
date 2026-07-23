@@ -9,13 +9,13 @@ from sqlmodel import Session, col, select
 
 from termkeeper.domain import SearchField
 from termkeeper.infrastructure.normalization import normalize_keyword
-from termkeeper.infrastructure.tables import Meaning, Term, utc_now
+from termkeeper.infrastructure.tables import Meaning, Scope, Term, utc_now
 
 
 @dataclass(frozen=True, slots=True)
 class MeaningValues:
     full_name: str
-    scope: str
+    scope_id: int
     description: str | None
     user_id: int | None
 
@@ -29,8 +29,7 @@ def create(
     record = Meaning(
         full_name=values.full_name.strip(),
         full_name_norm=normalize_keyword(values.full_name),
-        scope=values.scope.strip(),
-        scope_norm=normalize_keyword(values.scope),
+        scope_id=values.scope_id,
         description=values.description or None,
         description_norm=normalize_keyword(values.description or ""),
         created_by_id=values.user_id,
@@ -137,11 +136,12 @@ def find_candidates(session: Session, keyword: str) -> list[Meaning]:
     statement = (
         select(Meaning)
         .join(Term)
+        .join(Scope, col(Scope.scope_id) == col(Meaning.scope_id))
         .where(
             Term.keyword_norm == normalize_keyword(keyword),
             col(Meaning.deleted_at).is_(None),
         )
-        .order_by(Meaning.scope_norm, Meaning.full_name_norm, col(Meaning.meaning_id))
+        .order_by(Scope.name_norm, Meaning.full_name_norm, col(Meaning.meaning_id))
     )
     return list(session.exec(statement).all())
 
@@ -149,13 +149,13 @@ def find_candidates(session: Session, keyword: str) -> list[Meaning]:
 def find_duplicate(
     session: Session,
     full_name: str,
-    scope: str,
+    scope_id: int,
     *,
     exclude_id: int | None = None,
 ) -> Meaning | None:
     statement = select(Meaning).where(
         Meaning.full_name_norm == normalize_keyword(full_name),
-        Meaning.scope_norm == normalize_keyword(scope),
+        Meaning.scope_id == scope_id,
         col(Meaning.deleted_at).is_(None),
     )
     if exclude_id is not None:
@@ -168,7 +168,7 @@ def search(
     tokens: tuple[str, ...],
     field: SearchField,
     *,
-    scope: str | None = None,
+    scope_id: int | None = None,
     favorite_only: bool = False,
 ) -> list[Meaning]:
     token_conditions = [_search_condition(token, field) for token in tokens]
@@ -181,8 +181,8 @@ def search(
     )
     if favorite_only:
         statement = statement.where(Meaning.is_favorite)
-    if scope:
-        statement = statement.where(Meaning.scope_norm == normalize_keyword(scope))
+    if scope_id is not None:
+        statement = statement.where(Meaning.scope_id == scope_id)
     return list(session.exec(statement).all())
 
 
@@ -204,8 +204,7 @@ def update(
 ) -> None:
     record.full_name = values.full_name.strip()
     record.full_name_norm = normalize_keyword(values.full_name)
-    record.scope = values.scope.strip()
-    record.scope_norm = normalize_keyword(values.scope)
+    record.scope_id = values.scope_id
     record.description = values.description or None
     record.description_norm = normalize_keyword(values.description or "")
     record.updated_at = utc_now()
@@ -230,7 +229,12 @@ def set_favorite(
     touch(session, record, user_id)
 
 
-def list_all(session: Session, *, favorite_only: bool = False) -> list[Meaning]:
+def list_all(
+    session: Session,
+    *,
+    scope_id: int | None = None,
+    favorite_only: bool = False,
+) -> list[Meaning]:
     statement = (
         select(Meaning)
         .where(col(Meaning.deleted_at).is_(None))
@@ -238,6 +242,8 @@ def list_all(session: Session, *, favorite_only: bool = False) -> list[Meaning]:
     )
     if favorite_only:
         statement = statement.where(Meaning.is_favorite)
+    if scope_id is not None:
+        statement = statement.where(Meaning.scope_id == scope_id)
     return list(session.exec(statement).all())
 
 

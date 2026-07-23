@@ -12,16 +12,14 @@ def test_database_rejects_duplicate_active_meaning_in_same_scope() -> None:
             Meaning(
                 full_name="Order",
                 full_name_norm="order",
-                scope="SAP",
-                scope_norm="sap",
+                scope_id=1,
             ),
         )
         session.add(
             Meaning(
                 full_name="order",
                 full_name_norm="order",
-                scope="sap",
-                scope_norm="sap",
+                scope_id=1,
             ),
         )
 

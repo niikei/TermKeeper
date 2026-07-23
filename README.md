@@ -95,6 +95,13 @@ JSON出力は`items`、`offset`、`limit`、`has_more`を返します。
 
 ### 解決
 
+Meaningを製品・組織・業務領域で分離する場合は、先にScopeを登録します。
+
+```bash
+tk scope-add Finance --description "財務・連結領域"
+tk scopes
+```
+
 対話形式:
 
 ```bash
@@ -117,6 +124,7 @@ tk resolve 1 --meaning 12
 ```
 
 `--json`では入力待ちを行いません。新しいMeaningを作る場合は`--name`を必ず指定してください。
+`--scope`は登録済みのScope名を指定します。省略時は初期登録される`General`です。
 
 分類は後から安全に修正できます。
 
@@ -289,16 +297,21 @@ Occurrenceの捕捉・未分類一覧・分類・再分類、Meaningの一覧・
 分類パスでは、捕捉レスポンスに含まれるOccurrenceの`public_id`を使用します。
 Tag、Favorite、関連Meaning、Referenceの操作にも対応しています。外部レスポンスは
 DB連番を含まず、一覧は`items`、`offset`、`limit`、`has_more`のページ形式です。
+Scopeは`/api/v1/scopes`で管理し、HTTP/MCPからMeaningのScopeを指定するときはScopeの
+`public_id`（UUID）を使用します。
 
 ## データモデル
 
 ```text
-OCCURRENCE ── explicitly classified as ──> MEANING <── TERM
+SCOPE ──> MEANING <── TERM
+           ↑
+OCCURRENCE
 ```
 
 - Inbox: Pending状態のOccurrenceを表示する作業ビュー
 - Occurrence: 用語へ遭遇した時刻、出典、メモ、分類状態の履歴
-- Meaning: 利用者が理解したい概念。SAPなどの`scope`を持つ
+- Scope: SAPや業務領域など、Meaningを区別する管理対象の名前空間
+- Meaning: 利用者が理解したい概念。必ず1つのScopeに属する
 - Term: 略語、正式名称、別名などMeaningを検索するための語
 
 詳細は [ドメインモデル](docs/003_domain_model.md) を参照してください。

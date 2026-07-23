@@ -12,6 +12,7 @@ from termkeeper.domain import (
     OccurrenceItem,
     Page,
     ReferenceLink,
+    Scope,
     SearchHit,
     SearchResult,
     StatsSummary,
@@ -27,11 +28,13 @@ type CommandResult = (
     | Page[OccurrenceItem]
     | ReferenceLink
     | SearchResult
+    | Scope
     | StatsSummary
     | list[Meaning]
     | list[OccurrenceItem]
     | list[ReferenceLink]
     | list[SearchHit]
+    | list[Scope]
     | list[TagSummary]
     | Mapping[str, str | int]
 )

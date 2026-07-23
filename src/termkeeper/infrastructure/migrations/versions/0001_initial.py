@@ -1,5 +1,8 @@
 """Create the initial TermKeeper schema."""
 
+from datetime import UTC, datetime
+from uuid import UUID
+
 import sqlalchemy as sa
 from alembic import op
 
@@ -7,6 +10,9 @@ revision = "0001_initial"
 down_revision = None
 branch_labels = None
 depends_on = None
+
+GENERAL_SCOPE_ID = 1
+GENERAL_SCOPE_PUBLIC_ID = UUID("00000000-0000-0000-0000-000000000001")
 
 
 def upgrade() -> None:
@@ -18,14 +24,47 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
     )
+    scope = op.create_table(
+        "scope",
+        sa.Column("scope_id", sa.Integer(), primary_key=True),
+        sa.Column("public_id", sa.Uuid(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("name_norm", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("created_by_id", sa.Integer(), nullable=True),
+        sa.Column("updated_by_id", sa.Integer(), nullable=True),
+        sa.CheckConstraint("length(trim(name)) > 0"),
+        sa.ForeignKeyConstraint(["created_by_id"], ["userprofile.user_id"]),
+        sa.ForeignKeyConstraint(["updated_by_id"], ["userprofile.user_id"]),
+    )
+    op.create_index("ix_scope_public_id", "scope", ["public_id"], unique=True)
+    op.create_index("ix_scope_name_norm", "scope", ["name_norm"], unique=True)
+    now = datetime.now(UTC)
+    op.bulk_insert(
+        scope,
+        [
+            {
+                "scope_id": GENERAL_SCOPE_ID,
+                "public_id": GENERAL_SCOPE_PUBLIC_ID,
+                "name": "General",
+                "name_norm": "general",
+                "description": "Default scope for general concepts.",
+                "created_at": now,
+                "updated_at": now,
+                "created_by_id": None,
+                "updated_by_id": None,
+            },
+        ],
+    )
     op.create_table(
         "meaning",
         sa.Column("meaning_id", sa.Integer(), primary_key=True),
         sa.Column("public_id", sa.Uuid(), nullable=False),
         sa.Column("full_name", sa.String(), nullable=False),
         sa.Column("full_name_norm", sa.String(), nullable=False),
-        sa.Column("scope", sa.String(), nullable=False),
-        sa.Column("scope_norm", sa.String(), nullable=False),
+        sa.Column("scope_id", sa.Integer(), nullable=False),
         sa.Column("description", sa.String(), nullable=True),
         sa.Column("description_norm", sa.String(), nullable=False),
         sa.Column("is_favorite", sa.Boolean(), nullable=False),
@@ -36,7 +75,7 @@ def upgrade() -> None:
         sa.Column("updated_by_id", sa.Integer(), nullable=True),
         sa.Column("deleted_by_id", sa.Integer(), nullable=True),
         sa.CheckConstraint("length(trim(full_name)) > 0"),
-        sa.CheckConstraint("length(trim(scope)) > 0"),
+        sa.ForeignKeyConstraint(["scope_id"], ["scope.scope_id"], ondelete="RESTRICT"),
         sa.ForeignKeyConstraint(["created_by_id"], ["userprofile.user_id"]),
         sa.ForeignKeyConstraint(["updated_by_id"], ["userprofile.user_id"]),
         sa.ForeignKeyConstraint(["deleted_by_id"], ["userprofile.user_id"]),
@@ -44,10 +83,11 @@ def upgrade() -> None:
     op.create_index("ix_meaning_public_id", "meaning", ["public_id"], unique=True)
     op.create_index("ix_meaning_deleted_at", "meaning", ["deleted_at"])
     op.create_index("ix_meaning_is_favorite", "meaning", ["is_favorite"])
+    op.create_index("ix_meaning_scope_id", "meaning", ["scope_id"])
     op.create_index(
         "uq_meaning_active_scope_name",
         "meaning",
-        ["scope_norm", "full_name_norm"],
+        ["scope_id", "full_name_norm"],
         unique=True,
         sqlite_where=sa.text("deleted_at IS NULL"),
         postgresql_where=sa.text("deleted_at IS NULL"),
@@ -183,4 +223,5 @@ def downgrade() -> None:
     op.drop_table("tag")
     op.drop_table("term")
     op.drop_table("meaning")
+    op.drop_table("scope")
     op.drop_table("userprofile")

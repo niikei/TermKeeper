@@ -27,7 +27,7 @@ class SearchFilters:
     text: str
     field: Literal["all", "term", "name", "description"] = "all"
     tag: str | None = None
-    scope: str | None = None
+    scope_id: UUID | None = None
     favorite_only: bool = False
     offset: Offset = 0
     limit: Limit = 20

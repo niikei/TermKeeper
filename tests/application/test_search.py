@@ -126,6 +126,8 @@ def test_search_normalizes_unicode_names_and_descriptions() -> None:
 
 def test_search_and_list_filter_ambiguous_terms_by_scope() -> None:
     service = TermKeeperService()
+    service.create_scope("SAP")
+    service.create_scope("Radio")
     sap = service.create_meaning(
         "Enterprise Resource Planning",
         terms=("ERP",),

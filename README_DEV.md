@@ -143,7 +143,8 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 - Meaningの通常取得は論理削除済みを除外し、完全削除はTrash経由に限定する
 - Captureは分類を行わず、OccurrenceをPendingとして保存する
 - Meaningへの分類・再分類は利用者が明示し、候補検索には副作用を持たせない
-- Meaningは正規化した`scope`と正式名称の組を有効データ内で一意にする
+- Scopeは独立エンティティとし、Meaningは`scope_id`で参照する
+- Meaningは`scope_id`と正規化正式名称の組を有効データ内で一意にする
 - Occurrence更新では正規化列と更新者・更新日時を同じUnit of Workで更新する
 - Repository内では`commit()`しない
 - 遭遇は毎回Occurrenceとして保存し、memoやsourceを上書きしない

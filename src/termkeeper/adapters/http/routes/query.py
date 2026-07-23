@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import FastAPI, Query
 
 from termkeeper.adapters.external import ExternalMapper, ExternalSearchResult
+from termkeeper.adapters.http.common import _scope_name
 from termkeeper.adapters.http.requests import SearchFilters
 from termkeeper.application import TermKeeperService
 from termkeeper.domain import SearchField, SearchQuery, StatsSummary
@@ -25,7 +26,11 @@ def _register_query_routes(
             text=filters.text,
             field=SearchField(filters.field),
             tag=filters.tag,
-            scope=filters.scope,
+            scope=(
+                _scope_name(service, filters.scope_id)
+                if filters.scope_id is not None
+                else None
+            ),
             favorite_only=filters.favorite_only,
             limit=filters.offset + filters.limit + 1,
         )

@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import FastAPI, Query, Response, status
 
 from termkeeper.adapters.external import ExternalMapper, ExternalMeaning, ExternalPage, page
-from termkeeper.adapters.http.common import _local_meaning_id
+from termkeeper.adapters.http.common import _local_meaning_id, _scope_name
 from termkeeper.adapters.http.requests import MeaningUpdateRequest
 from termkeeper.application import TermKeeperService
 
@@ -26,7 +26,7 @@ def _register_meaning_routes(
     def list_meanings(
         tag: str | None = None,
         *,
-        scope: str | None = None,
+        scope_id: UUID | None = None,
         favorite_only: bool = False,
         offset: Annotated[int, Query(ge=0)] = 0,
         limit: Annotated[int, Query(ge=1, le=100)] = 20,
@@ -36,7 +36,7 @@ def _register_meaning_routes(
                 mapper.meaning(item)
                 for item in service.meanings(
                     tag,
-                    scope=scope,
+                    scope=_scope_name(service, scope_id) if scope_id is not None else None,
                     favorite_only=favorite_only,
                 )
             ],
@@ -54,7 +54,7 @@ def _register_meaning_routes(
                 _local_meaning_id(service, meaning_id),
                 request.full_name,
                 request.description,
-                request.scope,
+                _scope_name(service, request.scope_id),
             ),
         )
 

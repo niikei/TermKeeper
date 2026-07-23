@@ -7,6 +7,7 @@ from termkeeper.domain.models import CaptureResult, Meaning
 from termkeeper.domain.occurrence import OccurrenceItem, OccurrenceQuery, OccurrenceUpdate
 from termkeeper.domain.pagination import Page
 from termkeeper.domain.reference import ReferenceLink, ReferenceUpdate
+from termkeeper.domain.scope import GENERAL_SCOPE_PUBLIC_ID, Scope
 from termkeeper.domain.search import (
     SearchField,
     SearchHit,
@@ -20,6 +21,7 @@ from termkeeper.domain.tag import TagSummary
 __all__ = [
     "CaptureResult",
     "Frequency",
+    "GENERAL_SCOPE_PUBLIC_ID",
     "ImportIssue",
     "ImportResult",
     "ImportRow",
@@ -37,6 +39,7 @@ __all__ = [
     "SearchQuery",
     "SearchResult",
     "SearchSuggestion",
+    "Scope",
     "StatsSummary",
     "TagSummary",
 ]

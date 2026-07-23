@@ -74,8 +74,9 @@ Master Data Management
 
 は同じMeaningを指す。
 
-同じ表記でも製品・業務領域が異なれば別Meaningになり得るため、SAPなどのscopeを
-概念の境界として記録する。文字列一致だけで遭遇をMeaningへ自動分類しない。
+同じ表記でも製品・業務領域が異なれば別Meaningになり得るため、SAPなどのScopeを独立して管理し、
+Meaningから参照する。Scopeは暗黙作成せず、明示的に登録する。文字列一致だけで遭遇をMeaningへ
+自動分類しない。
 
 ## 成功条件
 

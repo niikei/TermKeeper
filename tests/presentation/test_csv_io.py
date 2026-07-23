@@ -243,6 +243,7 @@ def test_import_skips_duplicate_name_in_same_scope(tmp_path: Path) -> None:
         ],
     )
     service = TermKeeperService()
+    service.create_scope("SAP")
 
     result = import_meanings(str(path), service)
 

@@ -75,6 +75,14 @@ Meaningへ分類することはできない。
 
 ## 7. scopeで概念を区別する
 
+Scopeは独立して管理し、Meaning作成前に登録する。`General`だけはDB初期化時に用意される。
+
+```bash
+tk scope-add SAP
+tk scope-add Radio
+tk scopes
+```
+
 同じ表記でも、製品や業務領域が異なれば別Meaningとして管理する。
 
 ```text
@@ -136,7 +144,8 @@ tk import terms.csv --dry-run
 tk import terms.csv --strict
 ```
 
-CSVは`scope`列を含む。同一scope内の重複正式名称、不正UUID、空の必須項目をissueとして扱う。
+CSVは`scope`列を含む。Scope名は事前登録が必要で、未知のScope、同一scope内の重複正式名称、
+不正UUID、空の必須項目をissueとして扱う。
 Importは1つのUnit of Workで実行し、実行時エラーでは全件をロールバックする。
 `terms`と`tags`はJSON文字列配列としてセルに格納し、セミコロン、カンマ、引用符、Unicodeを
 含む値を可逆に扱う。空セルは空配列として扱い、不正なJSON配列は行単位のissueにする。

@@ -8,12 +8,13 @@ from termkeeper.domain import ImportIssue, ImportResult, ImportRow
 from termkeeper.infrastructure.normalization import normalize_keyword
 from termkeeper.infrastructure.repositories import (
     meaning_repository,
+    scope_repository,
     settings_repository,
     tag_repository,
 )
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
-type PlannedRow = tuple[ImportRow, UUID | None, int | None]
+type PlannedRow = tuple[ImportRow, UUID | None, int | None, int]
 
 
 class ImportUseCases:
@@ -55,6 +56,16 @@ def _plan_rows(
     planned: list[PlannedRow] = []
     issues = list(initial_issues)
     for row, public_id in valid_rows:
+        scope = scope_repository.get_by_name(uow.session, row.scope)
+        if scope is None:
+            issues.append(
+                ImportIssue(
+                    row.row_number,
+                    f"scope '{row.scope}' was not found",
+                ),
+            )
+            continue
+        scope_id = required_id(scope.scope_id)
         existing = (
             meaning_repository.get_by_public_id(
                 uow.session,
@@ -76,7 +87,7 @@ def _plan_rows(
         duplicate = meaning_repository.find_duplicate(
             uow.session,
             row.full_name,
-            row.scope,
+            scope_id,
             exclude_id=meaning_id,
         )
         if duplicate is not None:
@@ -87,7 +98,7 @@ def _plan_rows(
                 ),
             )
             continue
-        planned.append((row, public_id, meaning_id))
+        planned.append((row, public_id, meaning_id, scope_id))
     return planned, issues
 
 
@@ -99,15 +110,15 @@ def _apply_rows(
     dry_run: bool,
 ) -> tuple[int, int]:
     created = updated = 0
-    for row, public_id, meaning_id in planned:
+    for row, public_id, meaning_id, scope_id in planned:
         if meaning_id is None:
             created += 1
             if not dry_run:
-                _create(uow, row, public_id, actor_id)
+                _create(uow, row, public_id, scope_id, actor_id)
         else:
             updated += 1
             if not dry_run:
-                _update(uow, row, meaning_id, actor_id)
+                _update(uow, row, meaning_id, scope_id, actor_id)
     return created, updated
 
 
@@ -162,13 +173,14 @@ def _create(
     uow: UnitOfWork,
     row: ImportRow,
     public_id: UUID | None,
+    scope_id: int,
     actor_id: int | None,
 ) -> None:
     record = meaning_repository.create(
         uow.session,
         meaning_repository.MeaningValues(
             row.full_name,
-            row.scope,
+            scope_id,
             row.description,
             actor_id,
         ),
@@ -182,6 +194,7 @@ def _update(
     uow: UnitOfWork,
     row: ImportRow,
     meaning_id: int,
+    scope_id: int,
     actor_id: int | None,
 ) -> None:
     record = meaning_repository.get(uow.session, meaning_id)
@@ -193,7 +206,7 @@ def _update(
         record,
         meaning_repository.MeaningValues(
             row.full_name,
-            row.scope,
+            scope_id,
             row.description,
             actor_id,
         ),

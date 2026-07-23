@@ -6,6 +6,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from termkeeper.domain import GENERAL_SCOPE_PUBLIC_ID
+
 
 class CaptureRequest(BaseModel):
     keyword: str
@@ -16,13 +18,13 @@ class CaptureRequest(BaseModel):
 
 class ResolveRequest(BaseModel):
     full_name: str
-    scope: str = "General"
+    scope_id: UUID = GENERAL_SCOPE_PUBLIC_ID
     description: str | None = None
 
 
 class MeaningUpdateRequest(BaseModel):
     full_name: str
-    scope: str
+    scope_id: UUID
     description: str | None = None
 
 
@@ -40,7 +42,7 @@ class SearchFilters(BaseModel):
     text: str = Field(min_length=1)
     field: Literal["all", "term", "name", "description"] = "all"
     tag: str | None = None
-    scope: str | None = None
+    scope_id: UUID | None = None
     favorite_only: bool = False
     offset: int = Field(default=0, ge=0, le=399)
     limit: int = Field(default=20, ge=1, le=100)
@@ -63,3 +65,13 @@ class ReferenceUpdateRequest(BaseModel):
     url: str | None = None
     title: str | None = None
     clear_title: bool = False
+
+
+class ScopeCreateRequest(BaseModel):
+    name: str
+    description: str | None = None
+
+
+class ScopeUpdateRequest(BaseModel):
+    name: str
+    description: str | None = None

@@ -19,7 +19,7 @@ class SearchTools(ToolContext):
             field=SearchField(query.field),
             limit=query.offset + query.limit + 1,
             tag=query.tag,
-            scope=query.scope,
+            scope=self._scope_name(query.scope_id) if query.scope_id is not None else None,
             favorite_only=query.favorite_only,
         )
         return self._mapper.search_result(

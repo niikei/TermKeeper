@@ -11,7 +11,11 @@ from termkeeper.adapters.external import (
     ExternalOccurrence,
     ExternalPage,
 )
-from termkeeper.adapters.http.common import _local_meaning_id, _local_occurrence_id
+from termkeeper.adapters.http.common import (
+    _local_meaning_id,
+    _local_occurrence_id,
+    _scope_name,
+)
 from termkeeper.adapters.http.requests import (
     OccurrenceFilters,
     OccurrenceUpdateRequest,
@@ -71,7 +75,7 @@ def _register_occurrence_routes(
                 _local_occurrence_id(service, occurrence_id),
                 request.full_name,
                 request.description,
-                request.scope,
+                _scope_name(service, request.scope_id),
             ),
         )
 

@@ -4,7 +4,13 @@ from uuid import UUID
 
 from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_meaning, to_occurrence
-from termkeeper.application.support import get_meaning, get_occurrence, required_id, user_id
+from termkeeper.application.support import (
+    get_meaning,
+    get_occurrence,
+    get_scope_by_name,
+    required_id,
+    user_id,
+)
 from termkeeper.domain import (
     CaptureResult,
     Meaning,
@@ -79,17 +85,18 @@ class CaptureUseCases:
         scope: str = DEFAULT_SCOPE,
     ) -> Meaning:
         full_name = _required_text(full_name, "Full name")
-        scope = _required_text(scope, "Scope")
         with UnitOfWork() as uow:
             occurrence = get_occurrence(uow, occurrence_id)
             _require_status(occurrence.status, OccurrenceStatus.PENDING)
-            _ensure_unique_meaning(uow, full_name, scope)
+            scope_record = get_scope_by_name(uow, scope)
+            scope_id = required_id(scope_record.scope_id)
+            _ensure_unique_meaning(uow, full_name, scope_id, scope_record.name)
             actor_id = user_id(settings_repository.get_profile(uow.session))
             meaning = meaning_repository.create(
                 uow.session,
                 meaning_repository.MeaningValues(
                     full_name,
-                    scope,
+                    scope_id,
                     description,
                     actor_id,
                 ),
@@ -172,11 +179,16 @@ def _require_status(actual: OccurrenceStatus, expected: OccurrenceStatus) -> Non
         raise ValidationError(message)
 
 
-def _ensure_unique_meaning(uow: UnitOfWork, full_name: str, scope: str) -> None:
-    duplicate = meaning_repository.find_duplicate(uow.session, full_name, scope)
+def _ensure_unique_meaning(
+    uow: UnitOfWork,
+    full_name: str,
+    scope_id: int,
+    scope_name: str,
+) -> None:
+    duplicate = meaning_repository.find_duplicate(uow.session, full_name, scope_id)
     if duplicate is not None:
         message = (
-            f"Meaning '{full_name}' already exists in scope '{scope}' "
+            f"Meaning '{full_name}' already exists in scope '{scope_name}' "
             f"as #{required_id(duplicate.meaning_id)}."
         )
         raise ValidationError(message)

@@ -13,6 +13,8 @@ class Meaning:
     meaning_id: int
     public_id: UUID
     full_name: str
+    scope_id: int
+    scope_public_id: UUID
     scope: str
     description: str | None
     created_at: datetime

@@ -23,9 +23,12 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
         "add_tag",
         "assign_occurrence",
         "capture_term",
+        "create_scope",
+        "delete_scope",
         "discard_occurrence",
         "edit_occurrence",
         "edit_reference",
+        "edit_scope",
         "favorite_meaning",
         "get_meaning",
         "get_stats",
@@ -33,6 +36,7 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
         "list_occurrences",
         "list_references",
         "list_related",
+        "list_scopes",
         "list_tags",
         "relate_meanings",
         "remove_tag",
@@ -75,6 +79,7 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
 def test_mcp_tools_delegate_complete_workflow() -> None:
     service = TermKeeperService()
     tools = TermKeeperMcpTools(service)
+    sap_scope = tools.create_scope("SAP")
 
     captured = tools.capture_term("ERP", "planning", "Teams")
     occurrence_id = captured.occurrence.public_id
@@ -85,7 +90,7 @@ def test_mcp_tools_delegate_complete_workflow() -> None:
     meaning = tools.resolve_occurrence(
         occurrence_id,
         "Enterprise Resource Planning",
-        "SAP",
+        sap_scope.public_id,
     )
     public_id = meaning.public_id
 
@@ -150,6 +155,11 @@ def test_mcp_tools_delegate_complete_workflow() -> None:
         .meaning_id
         == public_id
     )
+    spare_scope = tools.create_scope("Temporary")
+    assert any(item.public_id == spare_scope.public_id for item in tools.list_scopes().items)
+    renamed_scope = tools.edit_scope(spare_scope.public_id, "Temporary 2")
+    assert renamed_scope.name == "Temporary 2"
+    assert tools.delete_scope(spare_scope.public_id) == {"scope_id": spare_scope.public_id}
 
 
 def test_mcp_occurrence_pages_reach_beyond_500() -> None:

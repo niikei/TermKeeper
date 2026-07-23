@@ -13,6 +13,7 @@ from termkeeper.domain import (
     OccurrenceStatus,
     Page,
     ReferenceLink,
+    Scope,
     SearchField,
     SearchResult,
 )
@@ -40,6 +41,7 @@ def page[T](items: list[T], offset: int, limit: int) -> ExternalPage[T]:
 class ExternalMeaning:
     public_id: UUID
     full_name: str
+    scope_id: UUID
     scope: str
     description: str | None
     created_at: datetime
@@ -70,6 +72,15 @@ class ExternalReference:
     meaning_id: UUID
     url: str
     title: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(frozen=True)
+class ExternalScope:
+    public_id: UUID
+    name: str
+    description: str | None
     created_at: datetime
     updated_at: datetime
 
@@ -113,6 +124,7 @@ class ExternalMapper:
         return ExternalMeaning(
             public_id=item.public_id,
             full_name=item.full_name,
+            scope_id=item.scope_public_id,
             scope=item.scope,
             description=item.description,
             created_at=item.created_at,
@@ -121,6 +133,15 @@ class ExternalMapper:
             is_favorite=item.is_favorite,
             terms=item.terms,
             tags=item.tags,
+        )
+
+    def scope(self, item: Scope) -> ExternalScope:
+        return ExternalScope(
+            public_id=item.public_id,
+            name=item.name,
+            description=item.description,
+            created_at=item.created_at,
+            updated_at=item.updated_at,
         )
 
     def occurrence(self, item: OccurrenceItem) -> ExternalOccurrence:

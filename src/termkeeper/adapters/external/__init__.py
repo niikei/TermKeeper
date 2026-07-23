@@ -7,6 +7,7 @@ from termkeeper.adapters.external.models import (
     ExternalOccurrence,
     ExternalPage,
     ExternalReference,
+    ExternalScope,
     ExternalSearchResult,
     page,
 )
@@ -19,5 +20,6 @@ __all__ = [
     "ExternalPage",
     "ExternalReference",
     "ExternalSearchResult",
+    "ExternalScope",
     "page",
 ]

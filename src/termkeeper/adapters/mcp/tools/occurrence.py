@@ -9,7 +9,12 @@ from termkeeper.adapters.external import (
 )
 from termkeeper.adapters.mcp.inputs import OccurrenceFilters
 from termkeeper.adapters.mcp.tools.context import ToolContext
-from termkeeper.domain import OccurrenceQuery, OccurrenceStatus, OccurrenceUpdate
+from termkeeper.domain import (
+    GENERAL_SCOPE_PUBLIC_ID,
+    OccurrenceQuery,
+    OccurrenceStatus,
+    OccurrenceUpdate,
+)
 
 
 class OccurrenceTools(ToolContext):
@@ -52,7 +57,7 @@ class OccurrenceTools(ToolContext):
         self,
         occurrence_id: UUID,
         full_name: str,
-        scope: str = "General",
+        scope_id: UUID = GENERAL_SCOPE_PUBLIC_ID,
         description: str | None = None,
     ) -> ExternalMeaning:
         """Create a scoped meaning and classify one pending occurrence."""
@@ -61,7 +66,7 @@ class OccurrenceTools(ToolContext):
                 self._local_occurrence_id(occurrence_id),
                 full_name,
                 description,
-                scope,
+                self._scope_name(scope_id),
             ),
         )
 

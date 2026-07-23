@@ -1,8 +1,12 @@
 """Shared persistence helpers for application use cases."""
 
 from termkeeper.application.errors import NotFoundError
-from termkeeper.infrastructure.repositories import meaning_repository, occurrence_repository
-from termkeeper.infrastructure.tables import Meaning, Occurrence, UserProfile
+from termkeeper.infrastructure.repositories import (
+    meaning_repository,
+    occurrence_repository,
+    scope_repository,
+)
+from termkeeper.infrastructure.tables import Meaning, Occurrence, Scope, UserProfile
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
 
@@ -18,6 +22,22 @@ def get_meaning(uow: UnitOfWork, meaning_id: int) -> Meaning:
     record = meaning_repository.get(uow.session, meaning_id)
     if record is None:
         message = f"Meaning {meaning_id} was not found."
+        raise NotFoundError(message)
+    return record
+
+
+def get_scope(uow: UnitOfWork, scope_id: int) -> Scope:
+    record = scope_repository.get(uow.session, scope_id)
+    if record is None:
+        message = f"Scope {scope_id} was not found."
+        raise NotFoundError(message)
+    return record
+
+
+def get_scope_by_name(uow: UnitOfWork, name: str) -> Scope:
+    record = scope_repository.get_by_name(uow.session, name)
+    if record is None:
+        message = f"Scope '{name}' was not found. Create it with 'tk scope-add'."
         raise NotFoundError(message)
     return record
 

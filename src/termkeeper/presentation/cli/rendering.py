@@ -11,6 +11,7 @@ from termkeeper.domain import (
     OccurrenceItem,
     Page,
     ReferenceLink,
+    Scope,
     SearchHit,
     SearchResult,
     SearchSuggestion,
@@ -31,6 +32,7 @@ def print_json(value: CommandResult) -> None:
             Page,
             ReferenceLink,
             SearchResult,
+            Scope,
             StatsSummary,
         ),
     ):

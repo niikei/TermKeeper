@@ -31,6 +31,8 @@ def test_alias_is_idempotent() -> None:
 
 def test_edit_lists_and_searches_meanings() -> None:
     service = TermKeeperService()
+    service.create_scope("SAP")
+    service.create_scope("SAP S/4HANA")
     captured = service.add("ERP")
     meaning = service.resolve(
         captured.occurrence.occurrence_id,
@@ -128,6 +130,8 @@ def test_trash_restore_and_purge_protect_occurrence_history() -> None:
 
 def test_same_name_is_unique_within_scope_but_allowed_across_scopes() -> None:
     service = TermKeeperService()
+    service.create_scope("SAP")
+    service.create_scope("Salesforce")
     service.create_meaning("Order", scope="SAP")
 
     other = service.create_meaning("Order", scope="Salesforce")

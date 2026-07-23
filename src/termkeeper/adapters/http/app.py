@@ -14,6 +14,7 @@ from termkeeper.adapters.http.routes.occurrence import _register_occurrence_rout
 from termkeeper.adapters.http.routes.query import _register_query_routes
 from termkeeper.adapters.http.routes.reference import _register_reference_routes
 from termkeeper.adapters.http.routes.relation import _register_relation_routes
+from termkeeper.adapters.http.routes.scope import _register_scope_routes
 from termkeeper.adapters.http.routes.tag import _register_tag_routes
 from termkeeper.application import TermKeeperService
 
@@ -45,6 +46,7 @@ def create_app(service: TermKeeperService | None = None) -> FastAPI:
     _register_query_routes(app, service, mapper)
     _register_occurrence_routes(app, service, mapper)
     _register_tag_routes(app, service, mapper)
+    _register_scope_routes(app, service, mapper)
     _register_relation_routes(app, service, mapper)
     _register_reference_routes(app, service, mapper)
     return app

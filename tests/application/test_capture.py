@@ -23,6 +23,8 @@ def test_capture_always_creates_independent_pending_occurrences() -> None:
 
 def test_capture_suggests_all_matching_meanings_without_assigning() -> None:
     service = TermKeeperService()
+    service.create_scope("SAP")
+    service.create_scope("Radio")
     sap = service.create_meaning(
         "Enterprise Resource Planning",
         terms=("ERP",),
@@ -46,6 +48,7 @@ def test_capture_suggests_all_matching_meanings_without_assigning() -> None:
 
 def test_capture_can_explicitly_assign_a_known_meaning() -> None:
     service = TermKeeperService()
+    service.create_scope("SAP")
     meaning = service.create_meaning("Enterprise Resource Planning", scope="SAP")
 
     captured = service.add("ERP", meaning_id=meaning.meaning_id)
@@ -57,6 +60,7 @@ def test_capture_can_explicitly_assign_a_known_meaning() -> None:
 
 def test_resolve_creates_scoped_meaning_and_classifies_only_one_occurrence() -> None:
     service = TermKeeperService()
+    service.create_scope("SAP")
     first = service.add("ERP")
     second = service.add("ERP")
 
@@ -76,6 +80,8 @@ def test_resolve_creates_scoped_meaning_and_classifies_only_one_occurrence() -> 
 
 def test_assignment_can_be_corrected_and_discard_can_be_reopened() -> None:
     service = TermKeeperService()
+    service.create_scope("SAP")
+    service.create_scope("Radio")
     sap = service.create_meaning("Enterprise Resource Planning", scope="SAP")
     radio = service.create_meaning("Effective Radiated Power", scope="Radio")
     occurrence_id = service.add("ERP").occurrence.occurrence_id
@@ -95,6 +101,7 @@ def test_assignment_can_be_corrected_and_discard_can_be_reopened() -> None:
 
 def test_classification_state_transitions_are_validated() -> None:
     service = TermKeeperService()
+    service.create_scope("SAP")
     occurrence_id = service.add("ERP").occurrence.occurrence_id
     meaning = service.create_meaning("Enterprise Resource Planning", scope="SAP")
 

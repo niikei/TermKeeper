@@ -22,13 +22,26 @@ class UserProfile(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=utc_now, sa_type=UTCDateTime)
 
 
+class Scope(SQLModel, table=True):
+    __table_args__ = (CheckConstraint("length(trim(name)) > 0"),)
+
+    scope_id: int | None = Field(default=None, primary_key=True)
+    public_id: UUID = Field(default_factory=uuid4, unique=True, index=True)
+    name: str
+    name_norm: str = Field(unique=True, index=True)
+    description: str | None = None
+    created_at: datetime = Field(default_factory=utc_now, sa_type=UTCDateTime)
+    updated_at: datetime = Field(default_factory=utc_now, sa_type=UTCDateTime)
+    created_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
+    updated_by_id: int | None = Field(default=None, foreign_key="userprofile.user_id")
+
+
 class Meaning(SQLModel, table=True):
     __table_args__ = (
         CheckConstraint("length(trim(full_name)) > 0"),
-        CheckConstraint("length(trim(scope)) > 0"),
         Index(
             "uq_meaning_active_scope_name",
-            "scope_norm",
+            "scope_id",
             "full_name_norm",
             unique=True,
             sqlite_where=text("deleted_at IS NULL"),
@@ -40,8 +53,7 @@ class Meaning(SQLModel, table=True):
     public_id: UUID = Field(default_factory=uuid4, unique=True, index=True)
     full_name: str
     full_name_norm: str
-    scope: str = "General"
-    scope_norm: str = "general"
+    scope_id: int = Field(foreign_key="scope.scope_id", ondelete="RESTRICT", index=True)
     description: str | None = None
     description_norm: str = ""
     is_favorite: bool = Field(default=False, index=True)

@@ -16,6 +16,11 @@ def test_http_api_workflow_and_openapi() -> None:
 
 def _exercise_core_workflow(client: TestClient) -> str:
     assert client.get("/health").json() == {"status": "ok"}
+    sap_scope_id = client.post("/api/v1/scopes", json={"name": "SAP"}).json()["public_id"]
+    s4_scope_id = client.post(
+        "/api/v1/scopes",
+        json={"name": "SAP S/4HANA"},
+    ).json()["public_id"]
     captured = client.post(
         "/api/v1/occurrences",
         json={"keyword": "ERP", "memo": "planning", "source": "Teams"},
@@ -34,7 +39,7 @@ def _exercise_core_workflow(client: TestClient) -> str:
         f"/api/v1/occurrences/{occurrence_id}/resolve",
         json={
             "full_name": "Enterprise Resource Planning",
-            "scope": "SAP",
+            "scope_id": sap_scope_id,
         },
     )
     public_id = resolved.json()["public_id"]
@@ -54,7 +59,7 @@ def _exercise_core_workflow(client: TestClient) -> str:
         f"/api/v1/meanings/{public_id}",
         json={
             "full_name": "Enterprise Resource Planning System",
-            "scope": "SAP S/4HANA",
+            "scope_id": s4_scope_id,
             "description": "Integrated business software",
         },
     )
@@ -102,7 +107,7 @@ def _exercise_metadata_workflow(client: TestClient, public_id: str) -> None:
     second_capture = client.post("/api/v1/occurrences", json={"keyword": "MRP"}).json()
     second = client.post(
         f"/api/v1/occurrences/{second_capture['occurrence']['public_id']}/resolve",
-        json={"full_name": "Material Requirements Planning", "scope": "General"},
+        json={"full_name": "Material Requirements Planning"},
     ).json()
     first_page = client.get("/api/v1/meanings", params={"limit": 1}).json()
     assert len(first_page["items"]) == 1
@@ -191,6 +196,7 @@ def _assert_openapi_contract(client: TestClient) -> None:
     assert schema["components"]["schemas"]["ExternalMeaning"]["required"] == [
         "public_id",
         "full_name",
+        "scope_id",
         "scope",
         "description",
         "created_at",
@@ -233,12 +239,14 @@ def test_http_api_maps_application_and_request_errors() -> None:
         f"/api/v1/occurrences/{captured['occurrence']['public_id']}/resolve",
         json={
             "full_name": "Enterprise Resource Planning",
-            "scope": "General",
         },
     ).json()
     invalid_update = client.put(
         f"/api/v1/meanings/{resolved['public_id']}",
-        json={"full_name": " ", "scope": "General"},
+        json={
+            "full_name": " ",
+            "scope_id": resolved["scope_id"],
+        },
     )
     assert invalid_update.status_code == 422
     assert invalid_update.json()["error"] == "ValidationError"
@@ -268,6 +276,28 @@ def test_http_api_maps_application_and_request_errors() -> None:
         assert body["details"][0]["location"] == location
         assert body["details"][0]["code"] == code
         assert body["details"][0]["message"]
+
+
+def test_http_scope_lifecycle_uses_stable_ids() -> None:
+    client = TestClient(create_app())
+
+    created = client.post(
+        "/api/v1/scopes",
+        json={"name": "SAP", "description": "Enterprise platform"},
+    )
+    assert created.status_code == 201
+    scope_id = created.json()["public_id"]
+    assert client.get("/api/v1/scopes").json()["items"][1]["public_id"] == scope_id
+
+    updated = client.put(
+        f"/api/v1/scopes/{scope_id}",
+        json={"name": "SAP S/4HANA", "description": "Current platform"},
+    )
+    assert updated.json()["public_id"] == scope_id
+    assert updated.json()["name"] == "SAP S/4HANA"
+
+    deleted = client.delete(f"/api/v1/scopes/{scope_id}")
+    assert deleted.status_code == 204
 
 
 def test_http_occurrence_pages_reach_beyond_500() -> None:

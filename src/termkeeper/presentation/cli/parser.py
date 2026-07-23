@@ -32,6 +32,7 @@ def create_parser() -> argparse.ArgumentParser:
     sub.add("init", "Initialize or migrate the database")
     _add_capture_commands(sub)
     _add_meaning_commands(sub)
+    _add_scope_commands(sub)
     _add_config_and_transfer_commands(sub)
     return parser
 
@@ -182,6 +183,19 @@ def _add_meaning_metadata_commands(sub: _Subparsers) -> None:
     reference_remove.add_argument("reference_id", type=int)
     references = sub.add("references", "List reference URLs")
     references.add_argument("meaning_id", type=int)
+
+
+def _add_scope_commands(sub: _Subparsers) -> None:
+    scope_add = sub.add("scope-add", "Create a meaning scope")
+    scope_add.add_argument("name")
+    scope_add.add_argument("--description")
+    sub.add("scopes", "List meaning scopes")
+    scope_edit = sub.add("scope-edit", "Edit a meaning scope")
+    scope_edit.add_argument("scope_id", type=int)
+    scope_edit.add_argument("--name")
+    scope_edit.add_argument("--description")
+    scope_delete = sub.add("scope-delete", "Delete an unused meaning scope")
+    scope_delete.add_argument("scope_id", type=int)
 
 
 def _add_config_and_transfer_commands(
