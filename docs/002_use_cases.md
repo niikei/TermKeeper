@@ -89,11 +89,14 @@ tk meanings
 tk alias 1 ICMR
 tk unalias 1 ICMR
 tk edit 1 --name "Intercompany Matching and Reconciliation"
+tk merge 2 1 --dry-run
+tk merge 2 1
 tk delete 1
 ```
 
 Meaningへ別名を追加・削除し、正式名称や説明を更新する。不要になったMeaningは削除できる。
-対話形式の編集も利用できる。
+重複Meaningは統合元のTerm・Occurrence・解決済みInboxを統合先へ移動して整理する。
+`--dry-run`では移動件数を確認するだけでDBを変更しない。対話形式の編集も利用できる。
 
 ## 9. Inboxを破棄する
 

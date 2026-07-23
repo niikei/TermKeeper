@@ -68,6 +68,10 @@ def _add_meaning_commands(sub: _Subparsers) -> None:
     unalias.add_argument("keyword")
     delete = sub.add_parser("delete", help="Delete a meaning")
     delete.add_argument("meaning_id", type=int)
+    merge = sub.add_parser("merge", help="Merge one meaning into another")
+    merge.add_argument("source_id", type=int)
+    merge.add_argument("target_id", type=int)
+    merge.add_argument("--dry-run", action="store_true")
 
     edit = sub.add_parser("edit", help="Edit a meaning")
     edit.add_argument("meaning_id", type=int)

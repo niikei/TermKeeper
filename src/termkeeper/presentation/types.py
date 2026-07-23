@@ -4,11 +4,12 @@ import argparse
 from collections.abc import Callable, Mapping
 
 from termkeeper.application import TermKeeperService
-from termkeeper.domain import AddResult, InboxItem, Meaning, OccurrenceItem, SearchHit
+from termkeeper.domain import AddResult, InboxItem, Meaning, MergeResult, OccurrenceItem, SearchHit
 
 type CommandResult = (
     AddResult
     | Meaning
+    | MergeResult
     | list[InboxItem]
     | list[Meaning]
     | list[OccurrenceItem]

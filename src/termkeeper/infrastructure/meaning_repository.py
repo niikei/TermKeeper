@@ -79,6 +79,27 @@ def get_terms(session: Session, meaning_id: int) -> list[Term]:
     return list(session.exec(statement).all())
 
 
+def count_terms_to_move(session: Session, source_id: int, target_id: int) -> int:
+    target_keywords = {term.keyword_norm for term in get_terms(session, target_id)}
+    return sum(term.keyword_norm not in target_keywords for term in get_terms(session, source_id))
+
+
+def move_terms(session: Session, source_id: int, target_id: int) -> int:
+    target_keywords = {term.keyword_norm for term in get_terms(session, target_id)}
+    source_terms = get_terms(session, source_id)
+    for term in source_terms:
+        if term.keyword_norm in target_keywords:
+            session.delete(term)
+    session.flush()
+    moved = 0
+    for term in source_terms:
+        if term.keyword_norm not in target_keywords:
+            term.meaning_id = target_id
+            session.add(term)
+            moved += 1
+    return moved
+
+
 def find_registered(session: Session, keyword: str) -> Meaning | None:
     statement = (
         select(Meaning)
@@ -126,6 +147,12 @@ def update(
 ) -> None:
     record.full_name = full_name.strip()
     record.description = description or None
+    record.updated_at = utc_now()
+    record.updated_by_id = user_id
+    session.add(record)
+
+
+def touch(session: Session, record: Meaning, user_id: int | None) -> None:
     record.updated_at = utc_now()
     record.updated_by_id = user_id
     session.add(record)

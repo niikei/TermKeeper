@@ -39,7 +39,7 @@ src/termkeeper/
 ├── domain/                 # DTO、Enum
 ├── application/
 │   ├── service.py          # 公開ファサード
-│   ├── use_cases/          # inbox、meaning、occurrence、configのユースケース
+│   ├── use_cases/          # inbox、meaning、merge、occurrence、configのユースケース
 │   ├── mapping.py          # SQLModelレコードからDTOへの変換
 │   ├── support.py          # Application層の共有処理
 │   └── errors.py           # Application層の例外
@@ -120,6 +120,7 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 ## 実装方針
 
 - 1つの更新ユースケースを1つのUnit of Workで完結させる
+- Meaning統合はTerm行の監査情報を保持し、参照付け替えと削除を同一トランザクションで行う
 - Repository内では`commit()`しない
 - 遭遇は毎回Occurrenceとして保存し、memoやsourceを上書きしない
 - Occurrence一覧の入力は`OccurrenceQuery`、出力は`OccurrenceItem`で表現する

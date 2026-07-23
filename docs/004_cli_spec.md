@@ -26,6 +26,7 @@ tk [--json] <command> [options]
 | `alias` | Meaningへ別名を追加 | `meaning_id`, `keyword` |
 | `unalias` | Meaningから別名を削除 | `meaning_id`, `keyword` |
 | `delete` | Meaningを削除 | `meaning_id` |
+| `merge` | Meaningを別のMeaningへ統合 | `source_id`, `target_id`, `--dry-run` |
 | `edit` | Meaningを編集 | `meaning_id`, `--name`, `--description` |
 | `discard` | 未解決Inboxを破棄 | `inbox_id` |
 | `config` | ユーザー設定を取得・更新 | `[key]`, `[value]`, `--list`, `--unset` |
@@ -65,6 +66,20 @@ Occurrenceを`occurred_at`の新しい順で表示する。
 
 `--name` を省略すると対話形式になる。空入力は現在値を維持する。新しい正式名称は検索用
 Termにも追加する。
+
+### `tk merge`
+
+```bash
+tk merge SOURCE_ID TARGET_ID [--dry-run]
+```
+
+統合元MeaningのTerm、Occurrence、解決済みInboxを統合先Meaningへ移動する。同じ正規化Termが
+統合先に存在する場合は重複Termを削除し、それ以外のTerm行は作成日時・作成者を保持したまま
+移動する。統合先の更新日時と更新者を記録し、最後に統合元Meaningを削除する。
+
+すべての変更は1トランザクションで実行し、途中で失敗した場合はロールバックする。
+`--dry-run`は`terms_moved`、`occurrences_moved`、`inboxes_moved`を返すが変更を保存しない。
+統合元と統合先に同じIDは指定できない。
 
 ### `tk search`
 

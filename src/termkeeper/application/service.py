@@ -4,12 +4,19 @@ from termkeeper.application.use_cases import (
     ConfigUseCases,
     InboxUseCases,
     MeaningUseCases,
+    MergeUseCases,
     OccurrenceUseCases,
 )
 from termkeeper.infrastructure.schema import init_db
 
 
-class TermKeeperService(InboxUseCases, MeaningUseCases, OccurrenceUseCases, ConfigUseCases):
+class TermKeeperService(
+    InboxUseCases,
+    MeaningUseCases,
+    MergeUseCases,
+    OccurrenceUseCases,
+    ConfigUseCases,
+):
     """Stable entry point composed from feature-oriented use cases."""
 
     def initialize(self) -> None:

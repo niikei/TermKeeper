@@ -14,13 +14,14 @@ CRUD、検索、スキーマ作成はSQLModelを使用する。旧SQLiteスキ�
 Applicationの各更新ユースケースはUnit of Workを使用し、1つのSessionとトランザクションで
 完結する。Repositoryはcommitせず、トランザクション境界をApplicationへ集約する。
 `TermKeeperService` 自体は薄いファサードとし、実装は `use_cases/inbox.py`、
-`use_cases/meaning.py`、`use_cases/occurrence.py`、`use_cases/config.py` に分割する。
+`use_cases/meaning.py`、`use_cases/merge.py`、`use_cases/occurrence.py`、
+`use_cases/config.py` に分割する。
 共有するレコード取得とDTO変換だけを`support.py` と `mapping.py` に置き、機能間の
 直接呼び出しは避ける。
 
 APIやMCPを追加するときは `TermKeeperService` を再利用し、SQLやCLIの標準出力を直接
-呼ばない。MCPツールはまず `add`, `inbox`, `occurrences`, `resolve`, `search`, `show` を
-1対1で公開する。
+呼ばない。MCPツールはまず `add`, `inbox`, `occurrences`, `resolve`, `search`, `show`,
+`merge` を1対1で公開する。
 
 ## 時刻
 

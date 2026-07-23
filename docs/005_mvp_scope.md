@@ -10,6 +10,7 @@
 - Meaning・Inbox・keyword・source・期間によるOccurrence履歴の絞り込み
 - Meaningの作成、編集、一覧、詳細表示
 - Termと別名の管理
+- Meaning統合のDry Run、Term・Occurrence・Inbox移動
 - Term・正式名称・説明の複数語検索、対象指定、関連度順、一致理由
 - 対話／非対話での解決と編集
 - CSV Import／Export
@@ -32,7 +33,6 @@
 - URL、添付ファイル
 - お気に入り
 - 出現回数を利用した分析・ランキング・ダッシュボード
-- Meaningの統合・削除
 - 同期、複数ユーザー、認証・認可
 
 ## 拡張順序

@@ -96,10 +96,15 @@ tk meanings
 tk alias 1 ICMR
 tk unalias 1 ICMR
 tk edit 1 --name "Intercompany Matching and Reconciliation"
+tk merge 2 1 --dry-run
+tk merge 2 1
 tk delete 1
 tk discard 2
 tk history
 ```
+
+`merge SOURCE TARGET`は、統合元のTerm、Occurrence、解決済みInboxを統合先へ移動し、
+統合元Meaningを削除します。`--dry-run`では変更せず、移動件数だけを確認できます。
 
 ### CSV入出力
 

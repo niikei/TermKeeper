@@ -126,6 +126,25 @@ def test_empty_occurrence_history(capsys: pytest.CaptureFixture[str]) -> None:
     assert "No occurrences found." in capsys.readouterr().out
 
 
+def test_merge_dry_run_and_json_apply(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["add", "SRC"]) == 0
+    assert main(["resolve", "1", "--name", "Source Meaning"]) == 0
+    assert main(["add", "TGT"]) == 0
+    assert main(["resolve", "2", "--name", "Target Meaning"]) == 0
+    capsys.readouterr()
+
+    assert main(["merge", "1", "2", "--dry-run"]) == 0
+    assert "Would merge meaning #1 into #2" in capsys.readouterr().out
+    assert main(["show", "1"]) == 0
+    capsys.readouterr()
+
+    assert main(["--json", "merge", "1", "2"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["applied"] is True
+    assert result["source_meaning_id"] == 1
+    assert result["target_meaning_id"] == 2
+
+
 def test_config_unset_requires_key(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["config", "--unset"]) == 2
     assert "requires a key" in capsys.readouterr().err

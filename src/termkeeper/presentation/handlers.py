@@ -7,6 +7,7 @@ from termkeeper.domain import (
     AddResult,
     InboxItem,
     Meaning,
+    MergeResult,
     OccurrenceItem,
     OccurrenceQuery,
     SearchHit,
@@ -143,6 +144,18 @@ def handle_delete(args: argparse.Namespace, service: TermKeeperService) -> dict[
     return {"deleted": args.meaning_id}
 
 
+def handle_merge(args: argparse.Namespace, service: TermKeeperService) -> MergeResult:
+    result = service.merge_meanings(args.source_id, args.target_id, dry_run=args.dry_run)
+    if not args.json:
+        action = "Would merge" if args.dry_run else "Merged"
+        print(
+            f"{action} meaning #{args.source_id} into #{args.target_id}: "
+            f"{result.terms_moved} term(s), {result.occurrences_moved} occurrence(s), "
+            f"{result.inboxes_moved} inbox(es).",
+        )
+    return result
+
+
 def handle_edit(args: argparse.Namespace, service: TermKeeperService) -> Meaning:
     current = service.get_meaning(args.meaning_id)
     name = args.name
@@ -225,6 +238,7 @@ HANDLERS: dict[str, CommandHandler] = {
     "alias": handle_alias,
     "unalias": handle_unalias,
     "delete": handle_delete,
+    "merge": handle_merge,
     "edit": handle_edit,
     "meanings": handle_meanings,
     "config": handle_config,

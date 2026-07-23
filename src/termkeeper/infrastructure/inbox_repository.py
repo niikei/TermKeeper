@@ -136,3 +136,29 @@ def link_occurrences(session: Session, inbox_id: int, meaning_id: int) -> None:
     for occurrence in occurrences:
         occurrence.meaning_id = meaning_id
         session.add(occurrence)
+
+
+def count_meaning_references(session: Session, meaning_id: int) -> tuple[int, int]:
+    occurrences = session.exec(
+        select(Occurrence).where(Occurrence.meaning_id == meaning_id),
+    ).all()
+    inboxes = session.exec(
+        select(Inbox).where(Inbox.resolved_meaning_id == meaning_id),
+    ).all()
+    return len(occurrences), len(inboxes)
+
+
+def move_meaning_references(session: Session, source_id: int, target_id: int) -> tuple[int, int]:
+    occurrences = session.exec(
+        select(Occurrence).where(Occurrence.meaning_id == source_id),
+    ).all()
+    inboxes = session.exec(
+        select(Inbox).where(Inbox.resolved_meaning_id == source_id),
+    ).all()
+    for occurrence in occurrences:
+        occurrence.meaning_id = target_id
+        session.add(occurrence)
+    for inbox in inboxes:
+        inbox.resolved_meaning_id = target_id
+        session.add(inbox)
+    return len(occurrences), len(inboxes)
