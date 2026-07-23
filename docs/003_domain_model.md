@@ -2,12 +2,14 @@
 
 ## 概念
 
-TermKeeperは、遭遇をOccurrenceとして記録し、未整理のInboxをMeaningへ解決する。
+TermKeeperは遭遇をOccurrenceとして保存し、Meaningへの分類を別操作として扱う。
 
 ```text
-USERPROFILE ──> INBOX ──> OCCURRENCE
-                    └── resolves to ──> MEANING <── TERM
+Occurrence(Pending) ── explicit classification ──> Meaning <── Term
 ```
+
+文字列の一致は分類候補を生成するだけで、分類の根拠にはしない。Inboxは`Pending`の
+Occurrence一覧であり、DBテーブルではない。
 
 ## ER図
 
@@ -19,12 +21,10 @@ erDiagram
     MEANING ||--o{ MEANINGRELATION : "related as low id"
     MEANING ||--o{ MEANINGRELATION : "related as high id"
     MEANING ||--o{ MEANINGREFERENCE : "has sources"
+    MEANING o|--o{ OCCURRENCE : "classifies"
     TAG ||--o{ MEANINGTAG : "assigned through"
-    MEANING o|--o{ INBOX : "resolves captures"
-    INBOX o|--o{ OCCURRENCE : "records encounters"
-    MEANING o|--o{ OCCURRENCE : "classifies encounters"
-    USERPROFILE o|--o{ INBOX : "creates"
     USERPROFILE o|--o{ MEANING : "creates and updates"
+    USERPROFILE o|--o{ OCCURRENCE : "captures and classifies"
 
     USERPROFILE {
         integer user_id PK
@@ -38,6 +38,9 @@ erDiagram
         integer meaning_id PK
         uuid public_id UK
         text full_name
+        text full_name_norm
+        text scope
+        text scope_norm
         text description "nullable"
         boolean is_favorite
         datetime created_at "UTC"
@@ -56,6 +59,25 @@ erDiagram
         datetime created_at "UTC"
         datetime updated_at "UTC"
         integer created_by_id FK "nullable"
+    }
+
+    OCCURRENCE {
+        integer occurrence_id PK
+        uuid public_id UK
+        text keyword
+        text keyword_norm
+        text status "Pending Resolved Discarded"
+        integer meaning_id FK "nullable"
+        text memo "nullable"
+        text source "nullable"
+        datetime occurred_at "UTC"
+        datetime updated_at "UTC"
+        datetime resolved_at "nullable"
+        datetime discarded_at "nullable"
+        integer created_by_id FK "nullable"
+        integer updated_by_id FK "nullable"
+        integer resolved_by_id FK "nullable"
+        integer discarded_by_id FK "nullable"
     }
 
     TAG {
@@ -91,112 +113,65 @@ erDiagram
         integer created_by_id FK "nullable"
         integer updated_by_id FK "nullable"
     }
-
-    INBOX {
-        integer inbox_id PK
-        uuid public_id UK
-        text keyword
-        text keyword_norm
-        text status "New Closed Discarded"
-        integer resolved_meaning_id FK "nullable"
-        datetime created_at "UTC"
-        datetime updated_at "UTC"
-        datetime closed_at "nullable"
-        integer created_by_id FK "nullable"
-        integer updated_by_id FK "nullable"
-    }
-
-    OCCURRENCE {
-        integer occurrence_id PK
-        uuid public_id UK
-        text keyword
-        text keyword_norm
-        integer inbox_id FK "nullable"
-        integer meaning_id FK "nullable"
-        text memo "nullable"
-        text source "nullable"
-        datetime occurred_at "UTC"
-        datetime updated_at "UTC"
-        integer created_by_id FK "nullable"
-        integer updated_by_id FK "nullable"
-    }
 ```
-
-### リレーションと制約
-
-- 1つのMeaningは0個以上のTermを持つ。
-- Termは必ず1つのMeaningに属し、Meaning削除時に連動して削除される。
-- Inboxは未解決・破棄状態ではMeaningを持たず、解決後に1つのMeaningを参照する。
-- 用語への遭遇は毎回Occurrenceとして保存し、sourceやmemoを上書きしない。
-- Occurrenceの `keyword_norm` は履歴検索に使用する。
-- Inbox・Occurrence編集時は`updated_at`と`updated_by_id`を記録する。
-- Meaningは外部連携用の安定したUUID `public_id` を持つ。
-- Inboxは外部連携用の安定したUUID `public_id` を持つ。
-- Occurrenceは外部連携用の安定したUUID `public_id` を持つ。
-- MeaningReferenceは外部連携用の安定したUUID `public_id` を持つ。
-- Meaningの`is_favorite`は重要な用語の一覧・検索フィルターに使用する。
-- Meaning削除は`deleted_at`と`deleted_by_id`による論理削除とし、Term・Tag・履歴を保持する。
-- 開いているInboxの `keyword_norm` は部分一意制約で重複を防ぐ。
-- Termの `(keyword_norm, meaning_id)` は一意で、同じMeaningへの別表記の重複を防ぐ。
-- Tagの `name_norm` は一意で、MeaningTagによりMeaningと多対多で関連付ける。
-- MeaningRelationは小さいMeaning IDを`meaning_id_low`へ格納し、対称な関連を一意に保つ。
-- MeaningReferenceの`(meaning_id, url)`は一意で、Meaning削除時に連動して削除される。
-- `keyword_norm` はNFKC正規化と大文字・小文字の統一後の検索値を保持する。
-
-### インデックス
-
-| インデックス | 対象列 | 用途 |
-| --- | --- | --- |
-| `uq_inbox_open_keyword` | `inbox.keyword_norm WHERE status = NEW` | 未解決Inboxの重複防止 |
-| `idx_term_keyword` | `term.keyword_norm` | 用語検索 |
-| `idx_term_meaning` | `term.meaning_id` | Meaningから別名を取得 |
-| `ix_occurrence_keyword_norm` | `occurrence.keyword_norm` | 遭遇用語の検索 |
-| `ix_occurrence_occurred_at` | `occurrence.occurred_at` | 期間検索と新しい順の表示 |
-| `ix_tag_name_norm` | `tag.name_norm` | タグの正規化検索 |
-| `ix_meaning_deleted_at` | `meaning.deleted_at` | 通常データとTrashの分離 |
-| `ix_meaning_is_favorite` | `meaning.is_favorite` | お気に入りの絞り込み |
-| `ix_inbox_public_id` | `inbox.public_id` | 外部識別子からInboxを取得 |
-| `ix_occurrence_public_id` | `occurrence.public_id` | 外部識別子から遭遇履歴を取得 |
-| `ix_meaningreference_public_id` | `meaningreference.public_id` | 外部識別子から参考URLを取得 |
-
-## TERM
-
-検索に利用する単語。
-
-例:
-
-```text
-MDM
-Master Data Management
-マスタ管理
-```
-
-## MEANING
-
-利用者が理解したい対象。
-
-例:
-
-```text
-Master Data Management
-
-顧客・商品・取引先などの
-マスタデータを統合管理する仕組み
-```
-
-## INBOX
-
-未整理用語の保管場所。
-
-会議中はまずここへ登録する。
 
 ## 状態遷移
 
 ```mermaid
 stateDiagram-v2
 
-    [*] --> New
-
-    New --> Closed
-    New --> Discarded
+    [*] --> Pending
+    Pending --> Resolved : create or assign Meaning
+    Resolved --> Pending : unresolve
+    Resolved --> Resolved : reassign
+    Pending --> Discarded : discard
+    Discarded --> Pending : reopen
 ```
+
+DBのCHECK制約は次を保証する。
+
+- `Pending`: `meaning_id IS NULL`
+- `Resolved`: `meaning_id IS NOT NULL`
+- `Discarded`: `meaning_id IS NULL`
+
+## Meaningとscope
+
+Meaningは文字列ではなく概念を表す。`scope`はSAP、Oracle、Radio、Generalなど、概念が成立する
+製品・組織・業務領域を表す。
+
+```text
+ERP [SAP]   → Enterprise Resource Planning
+ERP [Radio] → Effective Radiated Power
+```
+
+有効Meaningの`(scope_norm, full_name_norm)`は一意。同じ正式名称でもscopeが異なれば別概念として
+登録できる。Termの`keyword_norm`はMeaningをまたいで一意にしないため、同じ略語を複数概念が
+持てる。
+
+## リレーションと制約
+
+- 遭遇は毎回独立したOccurrenceとして保存する。
+- Occurrenceのkeyword、memo、sourceは遭遇時点の履歴であり、Meaning編集で変更しない。
+- Term一致は候補検索にだけ使用し、Meaningへ自動分類しない。
+- Termの`(keyword_norm, meaning_id)`は一意。
+- Meaningの論理削除後もOccurrenceの分類参照は保持する。
+- 参照中Meaningの物理削除は`RESTRICT`し、分類履歴を暗黙に失わない。
+- MeaningRelationは小さいMeaning IDを先にした対称ペア。
+- MeaningReferenceの`(meaning_id, url)`は一意。
+- `keyword_norm`、`scope_norm`、`full_name_norm`はNFKCとcasefold相当の正規化検索値。
+- 外部境界ではMeaning、Occurrence、MeaningReferenceのUUID `public_id`を使用する。
+
+## インデックス
+
+| インデックス | 対象 | 用途 |
+| --- | --- | --- |
+| `uq_meaning_active_scope_name` | `scope_norm, full_name_norm WHERE deleted_at IS NULL` | scope内の重複Meaning防止 |
+| `idx_term_keyword` | `term.keyword_norm` | 候補・用語検索 |
+| `idx_term_meaning` | `term.meaning_id` | Meaningの別名取得 |
+| `ix_occurrence_keyword_norm` | `occurrence.keyword_norm` | 遭遇語検索 |
+| `ix_occurrence_status` | `occurrence.status` | Inboxと状態絞り込み |
+| `ix_occurrence_occurred_at` | `occurrence.occurred_at` | 期間・新しい順 |
+| `ix_meaning_deleted_at` | `meaning.deleted_at` | 通常一覧とTrashの分離 |
+| `ix_meaning_is_favorite` | `meaning.is_favorite` | お気に入り絞り込み |
+| `ix_occurrence_public_id` | `occurrence.public_id` | 外部UUID解決 |
+| `ix_meaningreference_public_id` | `meaningreference.public_id` | 外部UUID解決 |

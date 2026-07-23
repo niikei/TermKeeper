@@ -31,6 +31,12 @@ tk init
 TERMKEEPER_DB=~/Documents/terms.db tk inbox
 ```
 
+### 0.3へのDB移行
+
+`tk init`は旧InboxスキーマをOccurrence分類モデルへ移行します。旧版が文字列一致だけでMeaningへ
+直接紐付けたOccurrenceは、誤分類を引き継がないようPendingへ戻します。利用者がInboxを明示的に
+解決した履歴はResolvedとして保持します。移行前にDBファイルをバックアップしてください。
+
 ## 基本的な使い方
 
 インストールされているTermKeeperのバージョンを確認できます。
@@ -45,22 +51,24 @@ tk --version
 tk add ICMR --memo "月次決算会議" --source "Teams"
 ```
 
-同じ未解決語を再度登録した場合、Inboxの重複行は作成せず、新しい遭遇履歴を記録します。
-既にMeaningへ解決済みの場合は、登録済みのMeaningを表示します。
+`add`は毎回独立したOccurrenceを未分類状態で保存します。同じ表記のMeaningが存在しても
+自動では紐付けず、分類候補として表示するだけです。分類先が明らかな場合に限り
+`--meaning ID`で明示できます。
 
 ### 未処理項目の確認
 
 ```bash
 tk inbox
-tk inbox-edit 1 --keyword ERP
 ```
+
+Inboxは独立したテーブルではなく、未分類（Pending）のOccurrence一覧です。
 
 ### 遭遇履歴
 
 ```bash
 tk occurrences
 tk occurrences --meaning 1
-tk occurrences --inbox 2
+tk occurrences --status Pending
 tk occurrences --keyword MDM --source Slack
 tk occurrences --since 2026-07-01 --limit 20
 tk occurrence-edit 3 --memo "訂正後のメモ" --source Teams
@@ -68,8 +76,8 @@ tk occurrence-edit 3 --clear-memo
 tk stats --limit 10
 ```
 
-遭遇ごとの用語、memo、source、日時、Inbox／Meaningとの関連を確認できます。
-未解決Inboxのkeywordと、個別Occurrenceのkeyword・memo・sourceを修正できます。
+遭遇ごとの用語、memo、source、状態、日時、Meaningとの関連を確認できます。
+個別Occurrenceのkeyword・memo・sourceを修正できます。
 `stats`では総遭遇数、未解決数、Meaning数と、頻出語・出典を確認できます。
 
 ### 解決
@@ -85,7 +93,22 @@ tk resolve 1
 ```bash
 tk resolve 1 \
   --name "Intercompany Matching and Reconciliation" \
+  --scope "Finance" \
   --description "グループ間取引の照合"
+```
+
+既存Meaningへ分類する場合:
+
+```bash
+tk resolve 1 --meaning 12
+```
+
+分類は後から安全に修正できます。
+
+```bash
+tk unresolve 1
+tk discard 1
+tk reopen 1
 ```
 
 ### 検索と詳細表示
@@ -95,11 +118,13 @@ tk search ICMR
 tk search "enterprise planning" --all
 tk search "planning document" --any --in description --limit 10
 tk search ERP --tag SAP
+tk search ERP --scope SAP
 tk search ERPP --suggestions 3
 tk search ERPP --no-suggestions
 tk search ERP --favorite
 tk show 1
 tk meanings --tag SAP
+tk meanings --scope SAP
 tk meanings --favorite
 ```
 
@@ -107,6 +132,7 @@ tk meanings --favorite
 複数語は標準ですべての語に一致するMeaningを探します。`--any`でいずれかの語、
 `--in term|name|description|all`で検索対象、`--limit`で最大件数を指定できます。
 `--tag`を指定すると、そのタグを持つMeaningだけに絞り込みます。
+`--scope`を指定すると、SAP、Oracle、Generalなどの概念境界で絞り込みます。
 `--favorite`を指定すると、お気に入りのMeaningだけに絞り込みます。
 検索結果がない場合は、Term・正式名称などの類似度から候補を表示します。候補数は
 `--suggestions`、無効化は`--no-suggestions`で指定できます。
@@ -116,7 +142,7 @@ tk meanings --favorite
 ```bash
 tk alias 1 ICMR
 tk unalias 1 ICMR
-tk edit 1 --name "Intercompany Matching and Reconciliation"
+tk edit 1 --name "Intercompany Matching and Reconciliation" --scope Finance
 tk tag 1 SAP
 tk untag 1 SAP
 tk tags
@@ -139,7 +165,7 @@ tk discard 2
 tk history
 ```
 
-`merge SOURCE TARGET`は、統合元のTerm、Tag、Occurrence、解決済みInboxを統合先へ移動し、
+`merge SOURCE TARGET`は、統合元のTerm、Tag、Occurrenceを統合先へ移動し、
 統合元Meaningを削除します。`--dry-run`では変更せず、移動件数だけを確認できます。
 
 `relate A B`は2つのMeaningを双方向に関連付けます。`related ID`で関連Meaningを一覧表示し、
@@ -150,7 +176,8 @@ tk history
 消去できます。
 
 `delete`はMeaningをTrashへ移す論理削除です。通常の一覧・検索・Term照合・CSV Exportから
-除外されます。`restore`で復元し、`purge`でTrash内のMeaningを完全削除できます。
+除外されます。`restore`で復元できます。分類履歴を保護するため、Occurrenceから参照される
+Meaningは`purge`できません。先に該当Occurrenceを`unresolve`または再分類してください。
 
 ### CSV入出力
 
@@ -218,8 +245,8 @@ tk-mcp
 ```
 
 `TERMKEEPER_DB`でCLIと同じデータベースを指定できます。MCPクライアントには、サーバー起動
-コマンドとして`tk-mcp`を登録してください。Capture、Inbox、Resolve、Search、Occurrence、
-Stats、Tag、Favorite、Related Meaning、Referenceの20ツールを公開します。各ツールは具体的な
+コマンドとして`tk-mcp`を登録してください。Capture、分類・再分類、Inbox、Search、Occurrence、
+Stats、Tag、Favorite、Related Meaning、Referenceの24ツールを公開します。各ツールは具体的な
 Domain DTOに基づく構造化出力スキーマを持ちます。
 
 ### HTTP API
@@ -232,22 +259,23 @@ uv run tk-api
 標準では`http://127.0.0.1:8000`で待ち受けます。OpenAPI仕様は`/openapi.json`、
 対話的なAPIドキュメントは`/docs`で確認できます。現在はローカル利用向けで認証を持たないため、
 外部ネットワークへ直接公開しないでください。
-Inboxの捕捉・一覧・解決、Meaningの一覧・取得・更新・論理削除・Trash・復元、検索、統計を
-`/api/v1`以下から利用できます。Meaningを指定するパスでは、DB内部の連番ではなくレスポンスの
+Occurrenceの捕捉・未分類一覧・分類・再分類、Meaningの一覧・取得・更新・論理削除・Trash・復元、
+検索、統計を`/api/v1`以下から利用できます。Meaningを指定するパスでは、DB内部の連番ではなく
+レスポンスの
 `public_id`（UUID）を使用します。
-Inboxを解決するパスでも、捕捉レスポンスに含まれるInboxの`public_id`を使用します。
-Occurrence、Tag、Favorite、関連Meaning、Referenceの操作にも対応しています。外部レスポンスは
+分類パスでは、捕捉レスポンスに含まれるOccurrenceの`public_id`を使用します。
+Tag、Favorite、関連Meaning、Referenceの操作にも対応しています。外部レスポンスは
 DB連番を含まず、一覧は`items`、`offset`、`limit`、`has_more`のページ形式です。
 
 ## データモデル
 
 ```text
-INBOX ── resolves to ──> MEANING <── belongs to ── TERM
+OCCURRENCE ── explicitly classified as ──> MEANING <── TERM
 ```
 
-- Inbox: まだ整理していない用語と状態
-- Occurrence: 用語へ遭遇した時刻、出典、メモの履歴
-- Meaning: 利用者が理解したい意味
+- Inbox: Pending状態のOccurrenceを表示する作業ビュー
+- Occurrence: 用語へ遭遇した時刻、出典、メモ、分類状態の履歴
+- Meaning: 利用者が理解したい概念。SAPなどの`scope`を持つ
 - Term: 略語、正式名称、別名などMeaningを検索するための語
 
 詳細は [ドメインモデル](docs/003_domain_model.md) を参照してください。

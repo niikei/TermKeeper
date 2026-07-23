@@ -1,154 +1,146 @@
 # ユースケース
 
-## 1. 新しい用語を捕捉する
+## 1. 用語へ遭遇する
 
 ```bash
 tk add ICMR --memo "月次決算会議" --source Teams
 ```
 
-新しいInboxを `New` 状態で作成し、同時に遭遇時刻・memo・sourceをOccurrenceへ記録する。
+遭遇ごとに独立したOccurrenceを`Pending`状態で作成する。登録済みTermと一致してもMeaningへ
+自動分類しない。一致するすべてのMeaningをscope付き候補として返す。
 
-## 2. 未解決語に再遭遇する
+分類先が確定している場合だけ明示できる。
 
 ```bash
-tk add ICMR --source Slack
+tk add ERP --meaning 12
 ```
 
-正規化した検索語が同じ未解決Inboxを新規作成せず、新しいOccurrenceを追加する。
-
-過去のmemo・source・遭遇時刻は上書きしない。表示時の出現回数と最終確認日時は、
-Occurrence履歴から算出する。
-
-## 3. 未処理一覧を確認する
+## 2. 未分類Occurrenceを確認する
 
 ```bash
 tk inbox
-tk inbox-edit 1 --keyword ERP
 ```
 
-未解決のInboxを最終確認日時の新しい順で表示する。ID、用語、状態、出現回数、更新日時に
-加えて、登録されていればmemoとsourceも表示する。
-`inbox-edit`は未解決Inboxのkeywordだけを修正する。過去のOccurrence keywordは変更しない。
-正規化後に別の未解決Inboxと重複する変更は拒否する。
+Inboxは永続エンティティではなく、`Pending`状態のOccurrenceを新しい順で表示する作業ビュー。
+同じkeywordの遭遇もまとめず、個別に表示する。
 
-## 4. 遭遇履歴を確認する
+## 3. 遭遇履歴を確認・修正する
 
 ```bash
 tk occurrences
 tk occurrences --meaning 1
-tk occurrences --inbox 2
+tk occurrences --status Pending
 tk occurrences --keyword MDM --source Slack
 tk occurrences --since 2026-07-01 --limit 20
 tk occurrence-edit 3 --keyword ERP --memo "訂正" --source Teams
 tk occurrence-edit 3 --clear-memo --clear-source
 ```
 
-Occurrenceを新しい順に表示する。Meaning、Inbox、正規化キーワード、sourceの完全一致、
-ISO 8601形式の開始日時で絞り込める。標準50件、最大500件まで取得できる。
-`occurrence-edit`は個別履歴のkeyword・memo・sourceを修正する。memoとsourceは明示的な
-clearオプションで削除し、Inboxや他のOccurrenceには影響しない。
+Occurrenceのraw keyword、memo、source、日時、分類状態、Meaningを表示する。編集は対象Occurrence
+だけに作用し、他の遭遇やMeaningのTermは暗黙に変更しない。
 
-## 5. 用語を解決する
-
-対話形式:
+## 4. 新しいMeaningとして解決する
 
 ```bash
-tk resolve 1
+tk resolve 1 \
+  --name "Enterprise Resource Planning" \
+  --scope SAP \
+  --description "SAPにおける基幹業務統合の概念"
 ```
 
-非対話形式:
+Meaning、正式名称と遭遇語のTermを作成し、対象Occurrenceだけを`Resolved`へ遷移する。
+同じ正規化正式名称とscopeを持つ有効Meaningが存在する場合は拒否する。
+
+## 5. 既存Meaningへ分類・再分類する
 
 ```bash
-tk resolve 1 --name "Intercompany Matching and Reconciliation" \
-  --description "グループ間取引照合機能"
+tk resolve 1 --meaning 12
+tk unresolve 1
 ```
 
-Meaningを作成し、Inboxのkeywordと正式名称をTermとして関連付ける。Inboxは `Closed` に
-遷移し、解決先Meaningと終了日時を記録する。Meaning作成・Term追加・Inbox更新・Occurrence
-関連付けは1トランザクションで実行し、途中で失敗した場合はすべて取り消す。
+既存Meaningへの分類はIDを明示する。分類済みOccurrenceへ別Meaningを指定した場合は再分類する。
+`unresolve`はMeaning参照を外して`Pending`へ戻す。
 
-## 6. 登録済み用語に再遭遇する
+## 6. 不要な遭遇を破棄・再開する
 
 ```bash
-tk add ICMR
+tk discard 1
+tk reopen 1
 ```
 
-一致するTermが既に存在する場合はInboxを作成せず、登録済みMeaningを表示する。この遭遇も
-Meaningへ直接関連付けたOccurrenceとして保存する。
+`discard`はPendingからDiscarded、`reopen`はDiscardedからPendingへ遷移する。Discardedを直接
+Meaningへ分類することはできない。
 
-## 7. 用語を検索・参照する
+## 7. scopeで概念を区別する
+
+同じ表記でも、製品や業務領域が異なれば別Meaningとして管理する。
+
+```text
+ERP [SAP]   → Enterprise Resource Planning
+ERP [Radio] → Effective Radiated Power
+```
 
 ```bash
-tk search ICMR
+tk search ERP --scope SAP
+tk meanings --scope SAP
+```
+
+scopeはMeaningの識別境界であり、Tagとは異なる。同じ正式名称は別scopeなら許可し、同一scope
+内では重複を防ぐ。
+
+## 8. Meaningを検索・整理する
+
+```bash
 tk search "enterprise planning" --all
-tk search "planning document" --any --in description --limit 10
-tk search ERP --tag SAP
-tk search ERPP --suggestions 3
+tk search ERP --tag Core --scope SAP
 tk show 1
-tk meanings
+tk edit 1 --name "Enterprise Resource Planning" --scope "SAP S/4HANA"
+tk alias 1 ERP
+tk tag 1 Core
+tk favorite 1
 ```
 
-検索はTerm、正式名称、説明を対象に、完全一致、前方一致、部分一致の順で関連度を付ける。
-複数語は標準ですべての語に一致する結果を返し、`--any`でいずれかの語に切り替える。
-結果にはスコア、一致フィールド、一致文字列を含む。`--tag`でタグを持つMeaningだけに
-絞り込める。詳細表示では別名・タグと作成・更新日時も表示する。
-通常ヒットがない場合は、Term・正式名称・指定検索対象との類似度が60%以上のMeaningを候補として
-返す。削除済みMeaningとタグ条件外Meaningは候補から除外する。
+検索はTerm、正式名称、説明を関連度順に返す。Tag、scope、お気に入りで絞り込める。
 
-## 8. Meaningを整理する
+## 9. Meaningを統合する
 
 ```bash
-tk alias 1 ICMR
-tk unalias 1 ICMR
-tk edit 1 --name "Intercompany Matching and Reconciliation"
-tk tag 1 SAP
-tk untag 1 SAP
-tk tags
 tk merge 2 1 --dry-run
 tk merge 2 1
+```
+
+統合元のTerm、Tag、Occurrenceを統合先へ移し、統合元を削除する。Dry Runは移動件数だけを返す。
+
+## 10. Meaningを削除・復元する
+
+```bash
 tk delete 1
 tk trash
 tk restore 1
 tk purge 1
 ```
 
-Meaningへ別名を追加・削除し、正式名称や説明を更新する。不要になったMeaningは削除できる。
-Meaningへ複数のタグを付与し、一覧・検索を絞り込める。重複Meaningは統合元の
-Term・Tag・Occurrence・解決済みInboxを統合先へ移動して整理する。
-`--dry-run`では移動件数を確認するだけでDBを変更しない。対話形式の編集も利用できる。
-`delete`はTrashへの論理削除で、`restore`によりTerm・Tag・履歴を保持したまま復元できる。
-`purge`はTrash内のMeaningを完全削除する。
+通常削除は論理削除。Occurrenceの分類履歴は維持する。Occurrenceから参照されるMeaningの
+完全削除は拒否し、再分類または`unresolve`を先に要求する。復元時に同じTermのPending
+Occurrenceを自動分類しない。
 
-## 9. Inboxを破棄する
+## 11. CSVで一括入出力する
 
 ```bash
-tk discard 2
-```
-
-未解決Inboxを `Discarded` に遷移し、更新日時と終了日時を記録する。
-
-## 10. 外部ツールと連携する
-
-```bash
-tk --json search ICMR
 tk export terms.csv
 tk import terms.csv --dry-run
-tk import terms.csv
 tk import terms.csv --strict
 ```
 
-JSONはスクリプトや将来のアダプター、CSVはバックアップや一括編集に利用する。Importの
-Dry Runでは変更せず、行番号付き問題と予定件数を確認できる。strictモードは問題があれば
-全件拒否し、標準モードは問題行をスキップして有効行を1トランザクションで反映する。
-CSVではDB内部IDではなく、外部連携向けのUUID `public_id` を使用する。
+CSVは`scope`列を含む。同一scope内の重複正式名称、不正UUID、空の必須項目をissueとして扱う。
+Importは1つのUnit of Workで実行し、実行時エラーでは全件をロールバックする。
 
-## 11. 利用者情報を管理する
+## 12. 利用者情報を記録する
 
 ```bash
 tk config user.name "Taro Yamada"
 tk config user.email taro@example.com
-tk config --unset user.email
 ```
 
-利用者情報は型付きUserProfileへ保存し、Meaning・Inbox・Occurrenceの作成者や更新者として
-記録する。
+利用者情報はUserProfileへ保存し、Meaning・Occurrenceなどの作成者、更新者、分類者として
+監査列へ記録する。

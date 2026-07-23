@@ -31,8 +31,8 @@ export TERMKEEPER_DB="$PWD/data/development.db"
 uv run tk init
 ```
 
-現在のスキーマは旧DBとの互換性や自動マイグレーションを持ちません。スキーマ変更を試す際は、
-使い捨ての新規DBを使用してください。
+`tk init`はAlembicでDBを最新Revisionへ更新します。破壊的な意味変更を含むRevisionでは、
+実行前にDBをバックアップしてください。
 
 ## ディレクトリ構成
 
@@ -41,7 +41,7 @@ src/termkeeper/
 ├── domain/                 # DTO、Enum
 ├── application/
 │   ├── service.py          # 公開ファサード
-│   ├── use_cases/          # inbox、meaning、merge、occurrence、tag、configのユースケース
+│   ├── use_cases/          # capture、meaning、merge、occurrence、tag、configのユースケース
 │   ├── mapping.py          # SQLModelレコードからDTOへの変換
 │   ├── support.py          # Application層の共有処理
 │   └── errors.py           # Application層の例外
@@ -141,12 +141,15 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 - Tagは正規化名を一意にし、MeaningTagで多対多の関連を管理する
 - CSV ImportはApplication層で全行を検証し、1つのUnit of Workで一括反映する
 - Meaningの通常取得は論理削除済みを除外し、完全削除はTrash経由に限定する
-- Inbox・Occurrence更新では正規化列と更新者・更新日時を同じUnit of Workで更新する
+- Captureは分類を行わず、OccurrenceをPendingとして保存する
+- Meaningへの分類・再分類は利用者が明示し、候補検索には副作用を持たせない
+- Meaningは正規化した`scope`と正式名称の組を有効データ内で一意にする
+- Occurrence更新では正規化列と更新者・更新日時を同じUnit of Workで更新する
 - Repository内では`commit()`しない
 - 遭遇は毎回Occurrenceとして保存し、memoやsourceを上書きしない
 - Occurrence一覧の入力は`OccurrenceQuery`、出力は`OccurrenceItem`で表現する
 - DB内部IDを外部連携の識別子にせず、Meaningの`public_id`を使用する
-- Inbox、Occurrence、Referenceも外部境界では`public_id`を使用する
+- Occurrence、Referenceも外部境界では`public_id`を使用する
 - HTTP/MCPの一覧は共通ページ形式とし、DB連番や内部ユーザーIDを返さない
 - 検索条件と結果は`SearchQuery`／`SearchHit`で表現し、CLI固有の型を持ち込まない
 - 検索応答は`SearchResult`で通常ヒットと類似候補を分離し、候補は0件時だけ計算する

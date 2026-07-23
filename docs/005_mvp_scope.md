@@ -3,16 +3,16 @@
 ## 実装済み
 
 - SQLModelとSQLiteによるローカル永続化
-- Inboxの捕捉、一覧、履歴、破棄
+- Occurrenceの捕捉、Pending Inboxビュー、分類、再分類、破棄、再開
 - memoとsourceによる遭遇コンテキスト
-- 同一未解決語の出現回数と最終確認日時
 - 遭遇ごとのsource・memo・時刻を保持するOccurrence履歴
-- Meaning・Inbox・keyword・source・期間によるOccurrence履歴の絞り込み
-- 未解決Inboxと個別Occurrenceの編集、更新監査
+- Meaning・状態・keyword・source・期間によるOccurrence履歴の絞り込み
+- 個別Occurrenceの編集、分類監査
 - 総遭遇数と頻出語・出典の分析、ランキング
 - Meaningの作成、編集、一覧、詳細表示
 - Termと別名の管理
-- Meaning統合のDry Run、Term・Occurrence・Inbox移動
+- Meaning統合のDry Run、Term・Occurrence移動
+- Meaning scopeとscope内の重複防止・検索絞り込み
 - Meaningの論理削除、Trash一覧、復元、完全削除
 - Meaningへの複数Tag付与、一覧・検索のTag絞り込み
 - Meaningのお気に入り登録、一覧・検索の絞り込み
@@ -25,13 +25,13 @@
 - CSV ImportのDry Run、strict検証、行番号issue、全件トランザクション
 - JSON出力
 - `user.name` と `user.email` の設定管理
-- UTCの作成・更新・最終確認・終了日時
+- UTCの作成・更新・遭遇・分類・破棄日時
 - Meaning外部識別用UUIDとユーザー監査列
 - Unit of Workによるユースケース単位のトランザクション
 - Applicationサービスを介した外部アダプター向け境界
-- 公式Python SDKによる標準入出力MCPサーバー、20ツール
+- 公式Python SDKによる標準入出力MCPサーバー、24ツール
 - FastAPIによるローカルHTTP API、OpenAPI仕様、統一エラー応答
-- Meaning、Inbox、Occurrence、Referenceの外部UUID
+- Meaning、Occurrence、Referenceの外部UUID
 - HTTP／MCPの内部IDを含まない構造化応答と共通ページネーション
 - AlembicによるスキーマRevision管理
 
