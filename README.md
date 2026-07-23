@@ -215,6 +215,17 @@ tk-mcp
 コマンドとして`tk-mcp`を登録してください。Capture、Inbox、Resolve、Search、Occurrence、
 Stats、Tag、Favorite、Related Meaning、Referenceの17ツールを公開します。
 
+### HTTP API
+
+```bash
+uv sync --extra api
+uv run tk-api
+```
+
+標準では`http://127.0.0.1:8000`で待ち受けます。OpenAPI仕様は`/openapi.json`、
+対話的なAPIドキュメントは`/docs`で確認できます。現在はローカル利用向けで認証を持たないため、
+外部ネットワークへ直接公開しないでください。
+
 ## データモデル
 
 ```text

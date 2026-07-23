@@ -53,6 +53,10 @@ MCPアダプターは公式Python SDKのFastMCPを使用し、標準入出力tra
 業務ロジックは`TermKeeperService`へ委譲する。SDKは安定版v1系へ上限を設け、v2の破壊的変更を
 暗黙に取り込まない。
 
+HTTPアダプターはFastAPIで`/api/v1`以下へ公開し、PydanticはHTTPリクエストの構文検証だけを
+担当する。業務検証はApplicationへ委譲し、`ValidationError`を422、`NotFoundError`を404の
+一貫したJSONエラーへ変換する。認証・認可を導入するまではlocalhost専用とする。
+
 ## 時刻
 
 保存値は型付きUTC `datetime` とし、JSON／CSV境界でISO 8601へ変換する。表示側が必要に

@@ -30,11 +30,11 @@
 - Unit of Workによるユースケース単位のトランザクション
 - Applicationサービスを介した外部アダプター向け境界
 - 公式Python SDKによる標準入出力MCPサーバー、17ツール
+- FastAPIによるローカルHTTP API、OpenAPI仕様、統一エラー応答
 
 ## 未実装
 
 - AIによる意味候補生成
-- HTTP API / FastAPI
 - Web UI
 - Teams、Slack、メールなどからの自動捕捉
 - Power Automate、SharePoint、Dataverse連携
@@ -49,7 +49,7 @@
 Application Service
 ├── CLI（実装済み）
 ├── MCP adapter（実装済み）
-├── HTTP API
+├── HTTP API（実装済み）
 └── Web / collaboration adapters
 ```
 

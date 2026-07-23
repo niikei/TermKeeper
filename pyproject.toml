@@ -9,10 +9,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+api = [
+    "fastapi>=0.139,<0.140",
+    "uvicorn>=0.51,<1",
+]
 mcp = [
     "mcp>=1.27,<2",
 ]
 dev = [
+    "fastapi>=0.139,<0.140",
+    "httpx2>=2.7,<3",
     "mcp>=1.27,<2",
     "mypy>=1.14",
     "pyright>=1.1.390",
@@ -23,6 +29,7 @@ dev = [
 
 [project.scripts]
 tk = "termkeeper.presentation.main:main"
+tk-api = "termkeeper.adapters.http_api:main"
 tk-mcp = "termkeeper.adapters.mcp_server:main"
 
 [build-system]
