@@ -145,6 +145,7 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 - CSV ImportはApplication層で全行を検証し、1つのUnit of Workで一括反映する
 - Meaningの通常取得は論理削除済みを除外し、完全削除はTrash経由に限定する
 - Captureは分類を行わず、OccurrenceをPendingとして保存する
+- 単件・一括Captureは`CaptureUseCases.capture_many`を共有し、Adapterで`add`をループしない
 - Meaningへの分類・再分類は利用者が明示し、候補検索には副作用を持たせない
 - Scopeは独立エンティティとし、Meaningは`scope_id`で参照する
 - Meaningは`scope_id`と正規化正式名称の組を有効データ内で一意にする

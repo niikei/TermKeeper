@@ -94,6 +94,20 @@ PendingのままInboxへ残します。JSON、パイプ入力、`--no-prompt`で
 `--color=auto|always|never`で制御でき、`auto`がデフォルトです。常に無効にする場合は
 `NO_COLOR=1 tk add TERM`のようにも指定できます。JSONと非TTY出力は通常プレーンテキストです。
 
+複数の遭遇をまとめて捕捉するときは、位置引数を並べず`add-many`を使用します。
+
+```bash
+tk add-many
+tk add-many --term ERP --term CRM
+tk add-many --file terms.txt
+pbpaste | tk add-many --file - --yes
+```
+
+引数なしでは1行1用語の対話入力と登録前確認を行います。`--file`も1行1用語のUTF-8形式です。
+`--term`と`--file`は排他的で、`--memo`と`--source`は全件へ適用されます。空入力、空行、
+正規化後の重複、100件超を拒否し、1件でも不正なら何も登録しません。JSONモードは対話入力を
+行わないため、`--term`または`--file`が必要です。
+
 ### 登録済み用語の一覧
 
 ```bash
@@ -347,7 +361,8 @@ tk-mcp
 ```
 
 `TERMKEEPER_DATABASE_URL`でCLIと同じデータベースを指定できます。MCPクライアントには、
-サーバー起動コマンドとして`tk-mcp`を登録してください。Capture、分類・再分類、Meaning・
+サーバー起動コマンドとして`tk-mcp`を登録してください。単件`capture_term`と原子的な
+1〜100件の`capture_terms`、分類・再分類、Meaning・
 Occurrence・Inbox・Scope検索、Stats、Tag、Favorite、Related Meaning、Referenceなどの
 型付きツールを公開します。
 各ツールは具体的なDomain DTOに基づく構造化出力スキーマを持ちます。
@@ -366,7 +381,8 @@ uv run tk-api
 APIプロセスは起動時にMigrationを実行しません。デプロイ時は`tk init`を先に実行し、
 `/ready`が成功してからトラフィックを流してください。
 `/health`はプロセスの生存確認、`/ready`はDB接続とスキーマを含む受付可能性の確認に使用します。
-Occurrenceの捕捉・未分類一覧・分類・再分類、Meaningの一覧・取得・更新・論理削除・Trash・復元、
+`POST /api/v1/occurrences`の単件捕捉と`POST /api/v1/occurrences/batch`の原子的な一括捕捉、
+未分類一覧・分類・再分類、Meaningの一覧・取得・更新・論理削除・Trash・復元、
 Meaning・Occurrence・Inbox・Scope検索、統計を`/api/v1`以下から利用できます。Meaningを
 指定するパスでは、DB内部の連番ではなく
 レスポンスの

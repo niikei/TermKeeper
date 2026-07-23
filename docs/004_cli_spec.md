@@ -61,6 +61,7 @@ ANSI制御文字を含めない。`completion`と`--version`もプレーンテ�
 | --- | --- | --- |
 | `init` | DBを最新Alembic Revisionへ更新・再作成 | `--reset`, `--yes` |
 | `add` | 遭遇を捕捉 | `keyword`, `--memo`, `--source`, `--meaning`, `--no-prompt` |
+| `add-many` | 複数の遭遇を原子的に捕捉 | `--term`, `--file`, `--memo`, `--source`, `--yes` |
 | `inbox` | Pending Occurrence一覧 | `--offset`, `--limit` |
 | `list` | Active Meaningのコンパクト一覧 | `--tag`, `--scope`, `--favorite` |
 | `resolve` | 新規・既存Meaningへ分類 | `occurrence_id`, `--meaning`または`--name`, `--scope`, `--description` |
@@ -98,6 +99,17 @@ favoriteは名称の前に`★`を表示する。`--scope`、`--tag`、`--favori
 5. 対話端末で候補があればMeaningを選択できる。EnterはPendingを維持する。
 
 候補が1件でも自動分類しない。JSON、非TTY、`--no-prompt`では選択を求めない。
+
+## `tk add-many`
+
+位置引数は受け取らない。引数なしのTTYでは1行1用語を入力し、一覧をプレビューしてから確認する。
+少量の明示入力は反復可能な`--term`、ファイルまたは標準入力は`--file PATH|-`を使用する。
+`--term`と`--file`は排他的で、`--memo`と`--source`は全項目に共通適用する。
+
+空入力、ファイル内の空行、正規化後の重複、100件超を拒否する。Applicationの
+`capture_many`が全件を事前検証し、1つのUnit of Workで登録するため、途中失敗時も一部登録を
+残さない。複数登録中はMeaning選択を求めず、候補数を表示してPendingの整理を利用者に委ねる。
+JSONまたは非TTYで入力元がない場合は、標準入力を暗黙に読まず構造化エラーを返す。
 
 ## `tk resolve`
 

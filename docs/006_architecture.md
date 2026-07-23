@@ -71,6 +71,11 @@ Pending Occurrenceの読み取りビューであり永続テーブルを持た�
 解除・破棄・再開はApplicationの明示ユースケースとする。
 Capture時のkeyword、memo、sourceはApplication境界で前後空白を除去し、指定された空文字列を
 拒否する。
+単件`add`も一括捕捉も`CaptureUseCases.capture_many`を唯一の書き込み実装として共有する。
+一括捕捉は最大100件、正規化重複なしとし、全入力とMeaning参照を検証後に1つのUnit of Workで
+保存する。CLI、HTTP、MCPが`capture_many`を1回だけ呼ぶことをArchitecture Testで検証する。
+CLIは`add-many`で対話とファイル入力を扱い、HTTPは`POST /api/v1/occurrences/batch`、MCPは
+`capture_terms`として各境界に適した型付き契約を提供する。
 
 出現分析はOccurrence、Meaningに対する読み取り専用の集約として実装する。集計SQLは
 Repositoryへ閉じ込め、Applicationからは`StatsSummary`として返す。
