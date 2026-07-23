@@ -6,6 +6,8 @@ from termkeeper.domain import MergeResult
 from termkeeper.infrastructure.repositories import (
     meaning_repository,
     occurrence_repository,
+    reference_repository,
+    relation_repository,
     settings_repository,
     tag_repository,
 )
@@ -36,11 +38,28 @@ class MergeUseCases:
                 uow.session,
                 source_id,
             )
+            reference_plan = reference_repository.plan_merge(
+                uow.session,
+                source_id,
+                target_id,
+            )
+            relation_plan = relation_repository.plan_merge(
+                uow.session,
+                source_id,
+                target_id,
+            )
             if not dry_run:
+                actor_id = user_id(settings_repository.get_profile(uow.session))
                 meaning_repository.move_terms(uow.session, source_id, target_id)
                 tag_repository.move(uow.session, source_id, target_id)
                 occurrence_repository.move_meaning_references(uow.session, source_id, target_id)
-                actor_id = user_id(settings_repository.get_profile(uow.session))
+                reference_repository.move(
+                    uow.session,
+                    source_id,
+                    target_id,
+                    actor_id,
+                )
+                relation_repository.move(uow.session, source_id, target_id)
                 meaning_repository.touch(uow.session, target, actor_id)
                 meaning_repository.purge(uow.session, source)
                 uow.commit()
@@ -50,5 +69,10 @@ class MergeUseCases:
                 terms_moved=terms_moved,
                 tags_moved=tags_moved,
                 occurrences_moved=occurrences_moved,
+                references_moved=reference_plan.moved,
+                references_deduplicated=reference_plan.deduplicated,
+                relations_moved=relation_plan.moved,
+                relations_deduplicated=relation_plan.deduplicated,
+                relations_collapsed=relation_plan.collapsed,
                 applied=not dry_run,
             )

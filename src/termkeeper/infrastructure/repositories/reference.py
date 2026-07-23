@@ -1,10 +1,17 @@
 """Persistence operations for Meaning reference links."""
 
+from dataclasses import dataclass
 from uuid import UUID
 
 from sqlmodel import Session, col, select
 
 from termkeeper.infrastructure.tables import MeaningReference, utc_now
+
+
+@dataclass(frozen=True, slots=True)
+class MergePlan:
+    moved: int
+    deduplicated: int
 
 
 def create(
@@ -57,6 +64,33 @@ def list_for_meaning(session: Session, meaning_id: int) -> list[MeaningReference
     return list(session.exec(statement).all())
 
 
+def plan_merge(session: Session, source_id: int, target_id: int) -> MergePlan:
+    target_urls = {record.url for record in list_for_meaning(session, target_id)}
+    source_records = list_for_meaning(session, source_id)
+    deduplicated = sum(record.url in target_urls for record in source_records)
+    return MergePlan(
+        moved=len(source_records) - deduplicated,
+        deduplicated=deduplicated,
+    )
+
+
+def move(
+    session: Session,
+    source_id: int,
+    target_id: int,
+    user_id: int | None,
+) -> None:
+    target_by_url = {record.url: record for record in list_for_meaning(session, target_id)}
+    for source in list_for_meaning(session, source_id):
+        target = target_by_url.get(source.url)
+        if target is None:
+            source.meaning_id = target_id
+            session.add(source)
+            continue
+        _merge_duplicate(session, source, target, user_id)
+    session.flush()
+
+
 def update(
     session: Session,
     record: MeaningReference,
@@ -73,3 +107,17 @@ def update(
 
 def remove(session: Session, record: MeaningReference) -> None:
     session.delete(record)
+
+
+def _merge_duplicate(
+    session: Session,
+    source: MeaningReference,
+    target: MeaningReference,
+    user_id: int | None,
+) -> None:
+    if target.title is None and source.title is not None:
+        target.title = source.title
+        target.updated_at = utc_now()
+        target.updated_by_id = user_id
+        session.add(target)
+    session.delete(source)

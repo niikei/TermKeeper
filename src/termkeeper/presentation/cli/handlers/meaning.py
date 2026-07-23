@@ -91,7 +91,12 @@ def handle_merge(args: argparse.Namespace, service: TermKeeperService) -> MergeR
         print(
             f"{action} meaning #{args.source_id} into #{args.target_id}: "
             f"{result.terms_moved} term(s), {result.tags_moved} tag(s), "
-            f"{result.occurrences_moved} occurrence(s).",
+            f"{result.occurrences_moved} occurrence(s), "
+            f"{result.references_moved} reference(s), "
+            f"{result.relations_moved} relation(s); "
+            f"deduplicated {result.references_deduplicated} reference(s) and "
+            f"{result.relations_deduplicated} relation(s), "
+            f"collapsed {result.relations_collapsed} direct relation(s).",
         )
     return result
 

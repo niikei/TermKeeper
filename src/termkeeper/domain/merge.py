@@ -11,6 +11,11 @@ class MergeResult:
     terms_moved: int
     tags_moved: int
     occurrences_moved: int
+    references_moved: int
+    references_deduplicated: int
+    relations_moved: int
+    relations_deduplicated: int
+    relations_collapsed: int
     applied: bool
 
     def to_dict(self) -> dict[str, Any]:

@@ -109,7 +109,9 @@ tk merge 2 1 --dry-run
 tk merge 2 1
 ```
 
-統合元のTerm、Tag、Occurrenceを統合先へ移し、統合元を削除する。Dry Runは移動件数だけを返す。
+統合元のTerm、Tag、Occurrence、Reference、Relationを統合先へ移し、統合元を削除する。
+同一URLのReferenceと同一関連先のRelationは統合先を優先して重複排除する。統合元と統合先の
+直接Relationは自己Relationになるため畳み込む。Dry Runは移動・重複排除・畳み込み件数を返す。
 
 ## 10. Meaningを削除・復元する
 

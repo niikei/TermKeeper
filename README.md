@@ -165,8 +165,10 @@ tk discard 2
 tk history
 ```
 
-`merge SOURCE TARGET`は、統合元のTerm、Tag、Occurrenceを統合先へ移動し、
-統合元Meaningを削除します。`--dry-run`では変更せず、移動件数だけを確認できます。
+`merge SOURCE TARGET`は、統合元のTerm、Tag、Occurrence、Reference、Relationを統合先へ移動し、
+統合元Meaningを削除します。同一URLのReferenceと同一関連先のRelationは重複排除され、
+sourceとtargetの直接Relationは自己Relationになるため畳み込まれます。`--dry-run`では変更せず、
+移動・重複排除・畳み込み件数を確認できます。
 
 `relate A B`は2つのMeaningを双方向に関連付けます。`related ID`で関連Meaningを一覧表示し、
 `unrelate A B`で関連を解除できます。

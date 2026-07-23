@@ -93,7 +93,8 @@ JSONにはID、public_id、keyword、memo、source、status、meaning_id、各�
 ## Meaning lifecycle
 
 Meaningは`full_name`、`scope`、説明、Term、Tagを持つ。有効Meaningの正規化scope・正式名称の組は
-一意。`merge`はTerm、Tag、Occurrenceを移動する。
+一意。`merge`はTerm、Tag、Occurrence、Reference、Relationを移動する。同一URLと同一関連先は
+統合先を優先して重複排除し、統合元と統合先の直接Relationは畳み込む。
 
 `delete`は論理削除し、Occurrence参照を維持する。`restore`はPending Occurrenceを自動分類しない。
 `purge`は参照OccurrenceがないTrash内Meaningだけを完全削除できる。
