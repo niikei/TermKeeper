@@ -15,6 +15,8 @@
   - `mcp/`: FastMCPサーバー構築、入力モデル、機能別Tool
 
 各アダプターはレイヤーの公開モジュールを直接使用し、旧構成向けの互換モジュールは持たない。
+`adapters/`から`infrastructure/`への直接importは禁止し、依存ルールをArchitecture Testで
+検証する。診断やDBリセットのような運用機能もApplicationユースケースを経由する。
 CRUDと検索はSQLModelを使用し、スキーマ変更はAlembic Revisionで明示する。
 接続先はSQLAlchemy URLで選択し、RepositoryとApplicationへdialect固有処理を持ち込まない。
 SQLite固有のPRAGMA、日時変換、Migration batch modeはInfrastructure境界に閉じ込める。

@@ -11,6 +11,7 @@ from termkeeper.application.use_cases.reference import ReferenceUseCases
 from termkeeper.application.use_cases.relation import RelationUseCases
 from termkeeper.application.use_cases.scope import ScopeUseCases
 from termkeeper.application.use_cases.search import SearchUseCases
+from termkeeper.application.use_cases.system import SystemUseCases
 from termkeeper.application.use_cases.tag import TagUseCases
 
 __all__ = [
@@ -26,4 +27,5 @@ __all__ = [
     "ScopeUseCases",
     "SearchUseCases",
     "TagUseCases",
+    "SystemUseCases",
 ]

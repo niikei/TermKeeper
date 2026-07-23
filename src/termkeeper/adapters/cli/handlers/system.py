@@ -12,8 +12,6 @@ from termkeeper.adapters.cli.style import (
     warning,
 )
 from termkeeper.application import TermKeeperService
-from termkeeper.infrastructure.connection import get_engine
-from termkeeper.infrastructure.schema import schema_issues, schema_revisions
 
 _ROOT_COMMANDS = (
     "add inbox list resolve search show history stats occurrence meaning tag reference "
@@ -67,25 +65,25 @@ def handle_doctor(
     args: argparse.Namespace,
     service: TermKeeperService,
 ) -> dict[str, str]:
-    engine = get_engine()
-    current_revision, expected_revision = schema_revisions()
-    issues = schema_issues()
-    config = (
-        {}
-        if any("userprofile" in issue for issue in issues)
-        else service.list_config()
-    )
-    schema_ok = current_revision == expected_revision and not issues
+    diagnostics = service.diagnostics()
     result = {
-        "status": "ok" if schema_ok else "error",
+        "status": "ok" if diagnostics.schema_ok else "error",
         "version": __version__,
-        "database_backend": engine.dialect.name,
-        "database_target": engine.url.render_as_string(hide_password=True),
-        "schema_revision": current_revision or "missing",
-        "expected_schema_revision": expected_revision,
-        "schema_issues": "; ".join(issues) if issues else "none",
-        "user.name": "configured" if "user.name" in config else "missing",
-        "user.email": "configured" if "user.email" in config else "missing",
+        "database_backend": diagnostics.database_backend,
+        "database_target": diagnostics.database_target,
+        "schema_revision": diagnostics.schema_revision,
+        "expected_schema_revision": diagnostics.expected_schema_revision,
+        "schema_issues": (
+            "; ".join(diagnostics.schema_issues)
+            if diagnostics.schema_issues
+            else "none"
+        ),
+        "user.name": (
+            "configured" if "user.name" in diagnostics.configured_keys else "missing"
+        ),
+        "user.email": (
+            "configured" if "user.email" in diagnostics.configured_keys else "missing"
+        ),
     }
     if not args.json:
         print(heading(f"TermKeeper {__version__}"))
@@ -93,10 +91,10 @@ def handle_doctor(
             f"{success('[ok]')} Database: {result['database_backend']} "
             f"({result['database_target']})",
         )
-        styled_marker = success("[ok]") if schema_ok else danger("[error]")
+        styled_marker = success("[ok]") if diagnostics.schema_ok else danger("[error]")
         print(f"{styled_marker} Schema: {result['schema_revision']}")
-        if issues:
-            for issue in issues:
+        if diagnostics.schema_issues:
+            for issue in diagnostics.schema_issues:
                 print(danger(f"        {issue}"))
         _print_config_check("user.name", result["user.name"])
         _print_config_check("user.email", result["user.email"])

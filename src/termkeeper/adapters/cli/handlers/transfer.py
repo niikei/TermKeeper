@@ -7,7 +7,6 @@ from termkeeper.adapters.cli.handlers.common import confirm_destructive
 from termkeeper.adapters.cli.style import command, danger, success, warning
 from termkeeper.application import TermKeeperService
 from termkeeper.domain import ImportResult
-from termkeeper.infrastructure.schema import reset_sqlite_database
 
 
 def handle_init(args: argparse.Namespace, _service: TermKeeperService) -> dict[str, str]:
@@ -16,7 +15,7 @@ def handle_init(args: argparse.Namespace, _service: TermKeeperService) -> dict[s
             args,
             "Back up and recreate the configured SQLite database?",
         )
-        backup = reset_sqlite_database()
+        backup = _service.reset_database()
         backup_text = str(backup) if backup is not None else "none"
         if not args.json:
             print(success("Database recreated."))

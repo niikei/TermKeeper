@@ -16,6 +16,7 @@ from termkeeper.domain.search import (
     SearchSuggestion,
 )
 from termkeeper.domain.status import OccurrenceStatus
+from termkeeper.domain.system import SystemDiagnostics
 from termkeeper.domain.tag import TagSummary
 
 __all__ = [
@@ -42,5 +43,6 @@ __all__ = [
     "Scope",
     "ScopeSearchQuery",
     "StatsSummary",
+    "SystemDiagnostics",
     "TagSummary",
 ]
