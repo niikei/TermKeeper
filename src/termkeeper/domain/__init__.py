@@ -16,7 +16,7 @@ from termkeeper.domain.search import (
     SearchSuggestion,
 )
 from termkeeper.domain.status import OccurrenceStatus
-from termkeeper.domain.system import SystemDiagnostics
+from termkeeper.domain.system import Readiness, SystemDiagnostics
 from termkeeper.domain.tag import TagSummary
 
 __all__ = [
@@ -37,6 +37,7 @@ __all__ = [
     "PageQuery",
     "ReferenceLink",
     "ReferenceUpdate",
+    "Readiness",
     "SearchField",
     "SearchHit",
     "SearchQuery",

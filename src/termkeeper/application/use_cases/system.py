@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from termkeeper.application.errors import ValidationError
-from termkeeper.domain import SystemDiagnostics
+from termkeeper.domain import Readiness, SystemDiagnostics
 from termkeeper.infrastructure.connection import get_engine
 from termkeeper.infrastructure.repositories import settings_repository
 from termkeeper.infrastructure.schema import (
@@ -15,6 +15,15 @@ from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
 
 class SystemUseCases:
+    def readiness(self) -> Readiness:
+        try:
+            diagnostics = self.diagnostics()
+        except Exception:
+            return Readiness("unavailable", ("database connection failed",))
+        if diagnostics.schema_ok:
+            return Readiness("ready")
+        return Readiness("unavailable", diagnostics.schema_issues or ("schema revision mismatch",))
+
     def diagnostics(self) -> SystemDiagnostics:
         engine = get_engine()
         current_revision, expected_revision = schema_revisions()

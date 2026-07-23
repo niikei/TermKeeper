@@ -107,6 +107,8 @@ FastAPI/Pydanticの入力検証エラーも`ErrorResponse`へ変換し、`detail
 メッセージを格納する。Application由来のエラーでは`details`を省略する。
 RouteとMCP Toolは機能単位のモジュールへ分割し、アプリケーション／サーバーの構築モジュールは
 登録とプロセス起動だけを担当する。
+`/health`はDBに依存しないliveness、`/ready`はApplicationの診断ユースケースを通した
+readinessとし、DB接続失敗またはスキーマ不整合では503を返す。
 
 ## 時刻
 

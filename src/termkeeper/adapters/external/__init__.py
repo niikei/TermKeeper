@@ -9,7 +9,6 @@ from termkeeper.adapters.external.models import (
     ExternalReference,
     ExternalScope,
     ExternalSearchResult,
-    page,
 )
 from termkeeper.adapters.external.queries import (
     inbox_search_query,
@@ -30,6 +29,5 @@ __all__ = [
     "inbox_search_query",
     "meaning_search_query",
     "occurrence_search_query",
-    "page",
     "scope_search_query",
 ]

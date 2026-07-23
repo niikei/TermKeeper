@@ -27,16 +27,6 @@ class ExternalPage[T]:
     has_more: bool
 
 
-def page[T](items: list[T], offset: int, limit: int) -> ExternalPage[T]:
-    selected = items[offset : offset + limit + 1]
-    return ExternalPage(
-        items=tuple(selected[:limit]),
-        offset=offset,
-        limit=limit,
-        has_more=len(selected) > limit,
-    )
-
-
 @dataclass(frozen=True)
 class ExternalMeaning:
     public_id: UUID

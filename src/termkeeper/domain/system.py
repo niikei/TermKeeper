@@ -1,7 +1,7 @@
 """Operational diagnostics returned by the application boundary."""
 
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, Literal
 
 
 @dataclass(frozen=True)
@@ -19,3 +19,9 @@ class SystemDiagnostics:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class Readiness:
+    status: Literal["ready", "unavailable"]
+    issues: tuple[str, ...] = ()

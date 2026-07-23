@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from termkeeper import __version__
@@ -17,6 +18,7 @@ def test_http_api_workflow_and_openapi() -> None:
 
 def _exercise_core_workflow(client: TestClient) -> str:
     assert client.get("/health").json() == {"status": "ok"}
+    assert client.get("/ready").json() == {"status": "ready", "issues": []}
     sap_scope_id = client.post("/api/v1/scopes", json={"name": "SAP"}).json()["public_id"]
     s4_scope_id = client.post(
         "/api/v1/scopes",
@@ -349,3 +351,22 @@ def test_http_occurrence_pages_reach_beyond_500() -> None:
     assert len(tail["items"]) == 5
     assert tail["offset"] == 500
     assert tail["has_more"] is False
+
+
+def test_readiness_reports_dependency_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = TermKeeperService()
+
+    def fail_diagnostics() -> None:
+        message = "database unavailable"
+        raise RuntimeError(message)
+
+    monkeypatch.setattr(service, "diagnostics", fail_diagnostics)
+    response = TestClient(create_app(service)).get("/ready")
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "status": "unavailable",
+        "issues": ["database connection failed"],
+    }

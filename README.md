@@ -361,6 +361,7 @@ uv run tk-api
 標準では`http://127.0.0.1:8000`で待ち受けます。OpenAPI仕様は`/openapi.json`、
 対話的なAPIドキュメントは`/docs`で確認できます。現在はローカル利用向けで認証を持たないため、
 外部ネットワークへ直接公開しないでください。
+`/health`はプロセスの生存確認、`/ready`はDB接続とスキーマを含む受付可能性の確認に使用します。
 Occurrenceの捕捉・未分類一覧・分類・再分類、Meaningの一覧・取得・更新・論理削除・Trash・復元、
 Meaning・Occurrence・Inbox・Scope検索、統計を`/api/v1`以下から利用できます。Meaningを
 指定するパスでは、DB内部の連番ではなく
