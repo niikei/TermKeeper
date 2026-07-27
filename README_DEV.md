@@ -216,3 +216,4 @@ upgradeを検証してください。
 - [CLI仕様](docs/004_cli_spec.md)
 - [MVPスコープ](docs/005_mvp_scope.md)
 - [アーキテクチャと拡張方針](docs/006_architecture.md)
+- [Windowsへのオフライン配布](docs/007_windows_distribution.md)

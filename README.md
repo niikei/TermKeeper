@@ -25,6 +25,10 @@ pip install -e .
 tk init
 ```
 
+GitHubへ接続できないWindows環境へwheel、完全オフライン一式、またはソースZIPで
+配布する場合は、[Windowsへのオフライン配布](docs/007_windows_distribution.md)を
+参照してください。ソースディレクトリを直接`PATH`へ追加する運用は推奨しません。
+
 データベースはOS標準のユーザーデータ領域に保存されます。macOSでは通常
 `~/Library/Application Support/TermKeeper/termkeeper.db`です。保存先は環境変数で変更できます。
 旧既定値の`data/termkeeper.db`は自動移行しません。継続利用する場合は
