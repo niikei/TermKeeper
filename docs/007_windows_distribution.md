@@ -3,6 +3,16 @@
 GitHubへ接続できないWindows環境には、ソースディレクトリを`PATH`へ追加せず、
 TermKeeperのwheelを検証して`uv tool`の隔離環境へインストールする。
 
+## GitHub Releaseの位置づけ
+
+GitHub Releaseはインストール自体には必須ではないが、バージョン付きのwheel、sdist、
+Windows用オフラインbundle、SHA-256を同じtagから再現可能に生成するため、標準の配布経路とする。
+Release workflowは`v<version>` tagをpushしたときだけ実行され、tagと
+`src/termkeeper/_version.py`の値が一致しなければ失敗する。
+
+GitHubへ接続できる環境でRelease assetsを取得し、接続できない環境へ必要なファイルを配布する。
+Releaseを使わず手動でwheelを作る場合も、以下と同じ検証手順を使用する。
+
 ## 推奨する配布物
 
 信頼できる開発環境で、リリース対象のcommitからwheelを作成する。
@@ -75,13 +85,27 @@ PyPI、Python配布元、GitHubのすべてへ接続できない場合は、whee
 - Python 3.12と対象CPUに対応する全依存wheel
 - 各ファイルのハッシュまたは署名
 
+GitHub Releaseには、これらのPython依存をまとめた
+`termkeeper-<version>-windows-x64-offline.zip`を添付する。Pythonとuv自体は含まれないため、
+対象環境へPython 3.12とuvを事前に導入する。
+
+ZIPを展開し、PowerShellで同梱installerを実行する。
+
+```powershell
+Expand-Archive .\termkeeper-*-windows-x64-offline.zip .\termkeeper-offline
+Set-Location .\termkeeper-offline
+.\install.ps1
+```
+
+手動で同等のbundleを用意する場合は、以下の構造にする。
 依存wheelはWindowsの対象アーキテクチャ向けに準備し、`wheelhouse/`直下へ置く。
 macOSやLinux向けのwheelを流用しない。
 
 ```text
 termkeeper-offline/
-├── termkeeper-<version>-py3-none-any.whl
+├── install.ps1
 └── wheelhouse/
+    ├── termkeeper-<version>-py3-none-any.whl
     ├── alembic-....whl
     ├── sqlmodel-....whl
     ├── sqlalchemy-....whl
@@ -91,7 +115,7 @@ termkeeper-offline/
 インストール時はネットワークとパッケージIndexを明示的に無効化する。
 
 ```powershell
-$wheel = Get-Item .\termkeeper-*.whl
+$wheel = Get-Item .\wheelhouse\termkeeper-*.whl
 uv tool install `
   --python 3.12 `
   --offline `

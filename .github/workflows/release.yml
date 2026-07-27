@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: windows-latest
+    env:
+      UV_PYTHON: "3.12"
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --locked --extra dev
+      - name: Verify tag matches package version
+        shell: pwsh
+        run: |
+          $version = uv run python -c "from termkeeper import __version__; print(__version__)"
+          $expectedTag = "v$version"
+          if ($env:GITHUB_REF_NAME -ne $expectedTag) {
+            throw "Tag '$env:GITHUB_REF_NAME' must match package version '$expectedTag'."
+          }
+          "PACKAGE_VERSION=$version" >> $env:GITHUB_ENV
+      - name: Check formatting
+        run: uv run ruff format --check .
+      - name: Lint
+        run: uv run ruff check .
+      - name: Type-check with mypy
+        run: uv run mypy src tests
+      - name: Type-check with Pyright
+        run: uv run pyright
+      - name: Test
+        run: uv run pytest
+      - name: Build distributions
+        run: uv build
+      - name: Smoke-test built wheel
+        shell: pwsh
+        run: |
+          $wheel = Get-Item .\dist\termkeeper-*.whl
+          uv venv --python 3.12 .release-smoke
+          uv pip install --python .\.release-smoke\Scripts\python.exe $wheel.FullName
+          $actual = & .\.release-smoke\Scripts\tk.exe --version
+          if ($actual -ne "tk $env:PACKAGE_VERSION") {
+            throw "Built CLI reported unexpected version: $actual"
+          }
+      - name: Build offline Windows bundle
+        shell: pwsh
+        run: |
+          $bundleName = "termkeeper-$env:PACKAGE_VERSION-windows-x64-offline"
+          $bundleRoot = Join-Path .\release $bundleName
+          $wheelhouse = Join-Path $bundleRoot wheelhouse
+          New-Item -ItemType Directory -Path $wheelhouse -Force | Out-Null
+
+          $wheel = Get-Item .\dist\termkeeper-*.whl
+          uv run --no-project --python 3.12 --with pip python -m pip download `
+            --only-binary=:all: `
+            --dest $wheelhouse `
+            $wheel.FullName
+
+          Copy-Item .\packaging\windows\install.ps1 $bundleRoot
+          Copy-Item .\packaging\windows\README.md $bundleRoot
+
+          $archive = Join-Path .\release "$bundleName.zip"
+          Compress-Archive -Path "$bundleRoot\*" -DestinationPath $archive
+
+          $assets = @(
+            (Get-Item .\dist\termkeeper-*.whl),
+            (Get-Item .\dist\termkeeper-*.tar.gz),
+            (Get-Item $archive)
+          )
+          $checksums = foreach ($asset in $assets) {
+            $hash = (Get-FileHash $asset.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($asset.Name)"
+          }
+          $checksums | Set-Content .\release\SHA256SUMS.txt -Encoding ascii
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $assets = @(
+            (Get-Item .\dist\termkeeper-*.whl).FullName,
+            (Get-Item .\dist\termkeeper-*.tar.gz).FullName,
+            (Get-Item .\release\termkeeper-*-windows-x64-offline.zip).FullName,
+            (Get-Item .\release\SHA256SUMS.txt).FullName
+          )
+          gh release create $env:GITHUB_REF_NAME $assets `
+            --verify-tag `
+            --fail-on-no-commits `
+            --generate-notes `
+            --title "TermKeeper $env:PACKAGE_VERSION"

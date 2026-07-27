@@ -118,6 +118,31 @@ Hatch、CLIの`tk --version`、Python APIの`termkeeper.__version__`はすべて
 CLI起動時にパッケージメタデータを検索しないため、バージョン変更時はこのファイルだけを
 更新してください。
 
+### Release
+
+GitHub Releaseはインストールの必須条件ではありませんが、配布物の標準経路として使用します。
+Release対象では、`src/termkeeper/_version.py`を更新し、品質チェック後に`main`へmergeする。
+そのcommitへ同じバージョンのannotated tagを作成してpushします。
+
+```bash
+git switch main
+git pull --ff-only origin main
+git tag -a v0.3.0 -m "TermKeeper 0.3.0"
+git push origin v0.3.0
+```
+
+`.github/workflows/release.yml`がWindows上で品質チェックとwheelのsmoke testを実行し、次を
+GitHub Releaseへ添付します。
+
+- wheel
+- source distribution
+- Windows x64／Python 3.12用オフライン依存bundle
+- `SHA256SUMS.txt`
+
+tagのバージョンが`src/termkeeper/_version.py`と一致しない場合はReleaseを作成しません。
+一度公開したtagを別commitへ付け替えず、修正時はバージョンを上げて新しいtagを作成します。
+初回の`0.3.0` Releaseでは、上記例のtagを現在のリリースcommitへ付けます。
+
 ## 変更時の推奨チェック
 
 コミット前に次を実行します。
