@@ -9,6 +9,13 @@ GENERAL_SCOPE_PUBLIC_ID = UUID("00000000-0000-0000-0000-000000000001")
 
 
 @dataclass(frozen=True)
+class ScopeSearchQuery:
+    text: str
+    offset: int = 0
+    limit: int = 20
+
+
+@dataclass(frozen=True)
 class Scope:
     scope_id: int
     public_id: UUID

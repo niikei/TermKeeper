@@ -1,5 +1,7 @@
+import pytest
 from fastapi.testclient import TestClient
 
+from termkeeper import __version__
 from termkeeper.adapters.http import create_app
 from termkeeper.application import TermKeeperService
 from termkeeper.infrastructure.connection import get_session
@@ -16,6 +18,7 @@ def test_http_api_workflow_and_openapi() -> None:
 
 def _exercise_core_workflow(client: TestClient) -> str:
     assert client.get("/health").json() == {"status": "ok"}
+    assert client.get("/ready").json() == {"status": "ready", "issues": []}
     sap_scope_id = client.post("/api/v1/scopes", json={"name": "SAP"}).json()["public_id"]
     s4_scope_id = client.post(
         "/api/v1/scopes",
@@ -86,7 +89,6 @@ def _exercise_core_workflow(client: TestClient) -> str:
     )
     assert updated.json()["description"] == "Integrated business software"
     assert updated.json()["scope"] == "SAP S/4HANA"
-    assert client.get("/api/v1/search", params={"text": "ERP"}).json()["hits"]
     assert client.get("/api/v1/meanings/search", params={"text": "ERP"}).json()["hits"]
     assert client.get("/api/v1/stats").json()["total_occurrences"] == 1
 
@@ -199,7 +201,8 @@ def _exercise_lifecycle_workflow(client: TestClient, public_id: str) -> None:
 def _assert_openapi_contract(client: TestClient) -> None:
     schema = client.get("/openapi.json").json()
     assert schema["info"]["title"] == "TermKeeper API"
-    assert "/api/v1/search" in schema["paths"]
+    assert schema["info"]["version"] == __version__
+    assert "/api/v1/search" not in schema["paths"]
     assert "/api/v1/meanings/search" in schema["paths"]
     assert "/api/v1/occurrences/search" in schema["paths"]
     assert "/api/v1/inbox/search" in schema["paths"]
@@ -214,7 +217,15 @@ def _assert_openapi_contract(client: TestClient) -> None:
     ]["schema"] == {
         "$ref": "#/components/schemas/ExternalCaptureResult",
     }
-    assert schema["paths"]["/api/v1/search"]["get"]["responses"]["200"]["content"][
+    assert schema["paths"]["/api/v1/occurrences/batch"]["post"]["responses"]["201"]["content"][
+        "application/json"
+    ]["schema"] == {
+        "$ref": "#/components/schemas/ExternalCaptureBatchResult",
+    }
+    batch_items = schema["components"]["schemas"]["CaptureBatchRequest"]["properties"]["items"]
+    assert batch_items["minItems"] == 1
+    assert batch_items["maxItems"] == 100
+    assert schema["paths"]["/api/v1/meanings/search"]["get"]["responses"]["200"]["content"][
         "application/json"
     ]["schema"] == {
         "$ref": "#/components/schemas/ExternalSearchResult",
@@ -236,13 +247,21 @@ def _assert_openapi_contract(client: TestClient) -> None:
         "error",
         "message",
     ]
-    assert schema["paths"]["/api/v1/search"]["get"]["responses"]["422"]["content"][
+    assert schema["paths"]["/api/v1/meanings/search"]["get"]["responses"]["422"]["content"][
         "application/json"
     ]["schema"] == {
         "$ref": "#/components/schemas/ErrorResponse",
     }
     meaning_parameter = schema["paths"]["/api/v1/meanings/{meaning_id}"]["get"]["parameters"][0]
     assert meaning_parameter["schema"]["format"] == "uuid"
+    search_parameters = {
+        item["name"]: item
+        for item in schema["paths"]["/api/v1/meanings/search"]["get"]["parameters"]
+    }
+    assert search_parameters["fields"]["schema"]["minItems"] == 1
+    assert "combined with OR" in search_parameters["fields"]["description"]
+    assert "all or any words" in search_parameters["word_match"]["description"]
+    assert search_parameters["suggestion_limit"]["schema"]["maximum"] == 10
 
 
 def test_http_api_maps_application_and_request_errors() -> None:
@@ -279,7 +298,7 @@ def test_http_api_maps_application_and_request_errors() -> None:
 
     request_errors = (
         (
-            client.get("/api/v1/search", params={"text": "ERP", "limit": 0}),
+            client.get("/api/v1/meanings/search", params={"text": "ERP", "limit": 0}),
             ["query", "limit"],
             "greater_than_equal",
         ),
@@ -302,6 +321,113 @@ def test_http_api_maps_application_and_request_errors() -> None:
         assert body["details"][0]["location"] == location
         assert body["details"][0]["code"] == code
         assert body["details"][0]["message"]
+
+
+def test_http_batch_capture_is_atomic_and_uses_external_ids() -> None:
+    service = TermKeeperService()
+    client = TestClient(create_app(service))
+    meaning = service.create_meaning("Enterprise Resource Planning")
+
+    response = client.post(
+        "/api/v1/occurrences/batch",
+        json={
+            "items": [
+                {"keyword": "ERP", "meaning_id": str(meaning.public_id)},
+                {"keyword": "Business Unit", "source": "Teams"},
+            ],
+        },
+    )
+
+    assert response.status_code == 201
+    items = response.json()["items"]
+    assert [item["occurrence"]["keyword"] for item in items] == [
+        "ERP",
+        "Business Unit",
+    ]
+    assert items[0]["occurrence"]["meaning_id"] == str(meaning.public_id)
+    assert "occurrence_id" not in items[0]["occurrence"]
+
+    duplicate = client.post(
+        "/api/v1/occurrences/batch",
+        json={"items": [{"keyword": "CRM"}, {"keyword": "ＣＲＭ"}]},
+    )
+    assert duplicate.status_code == 422
+    assert len(service.history().items) == 2
+
+
+def test_http_meaning_list_exposes_structured_filters_and_sorting() -> None:
+    service = TermKeeperService()
+    client = TestClient(create_app(service))
+    alpha = service.create_meaning("Alpha", "First", terms=("A",))
+    beta = service.create_meaning("Beta")
+    service.add_tag(alpha.meaning_id, "Core")
+    service.add_tag(alpha.meaning_id, "SAP")
+    service.add_tag(beta.meaning_id, "Core")
+
+    response = client.get(
+        "/api/v1/meanings",
+        params=[
+            ("tag", "Core"),
+            ("tag", "SAP"),
+            ("tag_match", "all"),
+            ("has_description", "true"),
+            ("has_alias", "true"),
+            ("sort", "name"),
+            ("order", "asc"),
+        ],
+    )
+
+    assert response.status_code == 200
+    assert [item["full_name"] for item in response.json()["items"]] == ["Alpha"]
+
+
+def test_http_search_uses_shared_field_word_and_regex_contract() -> None:
+    service = TermKeeperService()
+    client = TestClient(create_app(service))
+    target = service.create_meaning(
+        "Enterprise Resource Planning",
+        "Customer operations",
+        terms=("ERP",),
+    )
+    service.create_meaning(
+        "Customer Relationship Management",
+        "Planning operations",
+        terms=("CRM",),
+    )
+
+    smart = client.get(
+        "/api/v1/meanings/search",
+        params=[
+            ("text", "ERP customer"),
+            ("fields", "term"),
+            ("fields", "description"),
+            ("word_match", "all"),
+        ],
+    )
+    assert smart.status_code == 200
+    assert [hit["meaning"]["public_id"] for hit in smart.json()["hits"]] == [
+        str(target.public_id),
+    ]
+
+    pattern = client.get(
+        "/api/v1/meanings/search",
+        params={
+            "text": "^Enterprise.*Planning$",
+            "mode": "regex",
+            "fields": "name",
+        },
+    )
+    assert pattern.status_code == 200
+    assert [hit["meaning"]["public_id"] for hit in pattern.json()["hits"]] == [
+        str(target.public_id),
+    ]
+
+    invalid = client.get(
+        "/api/v1/meanings/search",
+        params={"text": "[", "mode": "regex"},
+    )
+    assert invalid.status_code == 422
+    assert invalid.json()["error"] == "ValidationError"
 
 
 def test_http_scope_lifecycle_uses_stable_ids() -> None:
@@ -348,3 +474,34 @@ def test_http_occurrence_pages_reach_beyond_500() -> None:
     assert len(tail["items"]) == 5
     assert tail["offset"] == 500
     assert tail["has_more"] is False
+
+
+def test_readiness_reports_dependency_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = TermKeeperService()
+
+    def fail_diagnostics() -> None:
+        message = "database unavailable"
+        raise RuntimeError(message)
+
+    monkeypatch.setattr(service, "diagnostics", fail_diagnostics)
+    response = TestClient(create_app(service)).get("/ready")
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "status": "unavailable",
+        "issues": ["database connection failed"],
+    }
+
+
+def test_http_app_startup_does_not_require_database_initialization(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail_initialization(self: TermKeeperService) -> None:
+        message = "database unavailable"
+        raise RuntimeError(message)
+
+    monkeypatch.setattr(TermKeeperService, "initialize", fail_initialization)
+
+    assert TestClient(create_app()).get("/health").json() == {"status": "ok"}

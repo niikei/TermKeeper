@@ -3,7 +3,8 @@
 from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_meaning
 from termkeeper.application.support import get_meaning, user_id
-from termkeeper.domain import Meaning
+from termkeeper.application.validation import validate_page
+from termkeeper.domain import Meaning, Page, PageQuery
 from termkeeper.infrastructure.repositories import (
     meaning_repository,
     relation_repository,
@@ -13,6 +14,28 @@ from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
 
 class RelationUseCases:
+    def related_page(
+        self,
+        meaning_id: int,
+        query: PageQuery | None = None,
+    ) -> Page[Meaning]:
+        query = query or PageQuery()
+        validate_page(query.offset, query.limit, resource="Relation", max_limit=100)
+        with UnitOfWork() as uow:
+            get_meaning(uow, meaning_id)
+            records = relation_repository.list_related_page(
+                uow.session,
+                meaning_id,
+                offset=query.offset,
+                limit=query.limit,
+            )
+            return Page(
+                items=tuple(to_meaning(uow.session, record) for record in records[: query.limit]),
+                offset=query.offset,
+                limit=query.limit,
+                has_more=len(records) > query.limit,
+            )
+
     def related(self, meaning_id: int) -> list[Meaning]:
         with UnitOfWork() as uow:
             get_meaning(uow, meaning_id)

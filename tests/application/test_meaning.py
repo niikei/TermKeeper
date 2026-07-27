@@ -1,8 +1,15 @@
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
 
 from termkeeper.application import NotFoundError, TermKeeperService, ValidationError
+from termkeeper.domain import (
+    LogicalOperator,
+    MeaningListQuery,
+    MeaningSort,
+    SortOrder,
+)
 
 
 def test_validation_and_missing_records_are_explicit() -> None:
@@ -10,7 +17,7 @@ def test_validation_and_missing_records_are_explicit() -> None:
     with pytest.raises(ValidationError):
         service.add("  ")
     with pytest.raises(ValidationError):
-        service.search(" ")
+        service.search_meanings(" ")
     with pytest.raises(NotFoundError):
         service.get_meaning(999)
     with pytest.raises(NotFoundError):
@@ -27,6 +34,18 @@ def test_alias_is_idempotent() -> None:
     updated = service.add_alias(meaning.meaning_id, "master data management")
 
     assert len(updated.terms) == 2
+    with pytest.raises(ValidationError, match="canonical"):
+        service.remove_alias(meaning.meaning_id, "Master Data Management")
+
+
+def test_create_meaning_normalizes_description_and_rejects_blank_aliases() -> None:
+    service = TermKeeperService()
+
+    meaning = service.create_meaning("ERP", "  Planning system  ")
+
+    assert meaning.description == "Planning system"
+    with pytest.raises(ValidationError, match="aliases"):
+        service.create_meaning("CRM", terms=(" ",))
 
 
 def test_edit_lists_and_searches_meanings() -> None:
@@ -51,7 +70,74 @@ def test_edit_lists_and_searches_meanings() -> None:
     assert edited.scope == "SAP S/4HANA"
     assert "Enterprise Resource Planning System" in edited.terms
     assert service.meanings()[0].meaning_id == meaning.meaning_id
-    assert service.search("SUITE").hits[0].meaning.meaning_id == meaning.meaning_id
+    assert service.search_meanings("SUITE").hits[0].meaning.meaning_id == meaning.meaning_id
+
+
+def test_meaning_page_filters_and_pages_in_storage() -> None:
+    service = TermKeeperService()
+    first = service.create_meaning("Alpha")
+    service.create_meaning("Beta")
+    service.add_tag(first.meaning_id, "Core")
+    service.favorite_meaning(first.meaning_id)
+
+    page = service.meaning_page(MeaningListQuery(limit=1))
+    filtered = service.meaning_page(
+        MeaningListQuery(tags=("core",), favorite_only=True),
+    )
+
+    assert len(page.items) == 1
+    assert page.has_more is True
+    assert filtered.items == (service.get_meaning(first.meaning_id),)
+
+
+def test_meaning_page_combines_structured_filters_and_stable_sorting() -> None:
+    service = TermKeeperService()
+    alpha = service.create_meaning("Alpha", "First", terms=("A",))
+    beta = service.create_meaning("Beta")
+    gamma = service.create_meaning("Gamma")
+    service.add_tag(alpha.meaning_id, "Core")
+    service.add_tag(alpha.meaning_id, "SAP")
+    service.add_tag(beta.meaning_id, "Core")
+    service.add_tag(gamma.meaning_id, "SAP")
+
+    all_tags = service.meaning_page(
+        MeaningListQuery(tags=("core", "sap")),
+    )
+    any_tag = service.meaning_page(
+        MeaningListQuery(
+            tags=("core", "sap"),
+            tag_match=LogicalOperator.ANY,
+            sort=MeaningSort.NAME,
+            order=SortOrder.ASC,
+        ),
+    )
+    described_aliases = service.meaning_page(
+        MeaningListQuery(has_description=True, has_alias=True),
+    )
+    first_page = service.meaning_page(
+        MeaningListQuery(
+            sort=MeaningSort.NAME,
+            order=SortOrder.ASC,
+            limit=2,
+        ),
+    )
+    future = datetime.now(UTC) + timedelta(days=1)
+
+    assert [item.meaning_id for item in all_tags.items] == [alpha.meaning_id]
+    assert [item.full_name for item in any_tag.items] == ["Alpha", "Beta", "Gamma"]
+    assert [item.meaning_id for item in described_aliases.items] == [alpha.meaning_id]
+    assert [item.full_name for item in first_page.items] == ["Alpha", "Beta"]
+    assert first_page.has_more is True
+    assert service.meaning_page(MeaningListQuery(updated_since=future)).items == ()
+
+
+def test_meaning_page_rejects_duplicate_or_blank_tag_filters() -> None:
+    service = TermKeeperService()
+
+    with pytest.raises(ValidationError, match="must not contain duplicates"):
+        service.meaning_page(MeaningListQuery(tags=("Core", "Ｃｏｒｅ")))
+    with pytest.raises(ValidationError, match="Tag filter must not be empty"):
+        service.meaning_page(MeaningListQuery(tags=(" ",)))
 
 
 def test_user_profile_is_recorded_in_audit_columns() -> None:
@@ -101,7 +187,7 @@ def test_trash_restore_and_purge_protect_occurrence_history() -> None:
     service.delete_meaning(meaning.meaning_id)
 
     assert service.meanings() == []
-    assert service.search("ERP").hits == ()
+    assert service.search_meanings("ERP").hits == ()
     recaptured = service.add("ERP")
     assert recaptured.candidates == ()
     trashed = service.trash()[0]
@@ -112,7 +198,7 @@ def test_trash_restore_and_purge_protect_occurrence_history() -> None:
     restored = service.restore_meaning(meaning.meaning_id)
 
     assert restored.deleted_at is None
-    assert service.search("ERP").hits[0].meaning.meaning_id == meaning.meaning_id
+    assert service.search_meanings("ERP").hits[0].meaning.meaning_id == meaning.meaning_id
     assert service.get_occurrence(recaptured.occurrence.occurrence_id).meaning_id is None
     with pytest.raises(NotFoundError):
         service.restore_meaning(meaning.meaning_id)

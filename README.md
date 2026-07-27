@@ -94,17 +94,36 @@ PendingのままInboxへ残します。JSON、パイプ入力、`--no-prompt`で
 `--color=auto|always|never`で制御でき、`auto`がデフォルトです。常に無効にする場合は
 `NO_COLOR=1 tk add TERM`のようにも指定できます。JSONと非TTY出力は通常プレーンテキストです。
 
+複数の遭遇をまとめて捕捉するときは、位置引数を並べず`add-many`を使用します。
+
+```bash
+tk add-many
+tk add-many --term ERP --term CRM
+tk add-many --file terms.txt
+pbpaste | tk add-many --file - --yes
+```
+
+引数なしでは1行1用語の対話入力と登録前確認を行います。`--file`も1行1用語のUTF-8形式です。
+`--term`と`--file`は排他的で、`--memo`と`--source`は全件へ適用されます。空入力、空行、
+正規化後の重複、100件超を拒否し、1件でも不正なら何も登録しません。JSONモードは対話入力を
+行わないため、`--term`または`--file`が必要です。
+
 ### 登録済み用語の一覧
 
 ```bash
 tk list
 tk list --scope SAP
 tk list --tag Core
+tk list --tag Core --tag SAP --tag-match all
 tk list --favorite
+tk list --has-description --has-alias --sort name --order asc
+tk list --updated-since 2026-07-01T00:00:00Z
 ```
 
 `list`はActive Meaningを`ID / Meaning / Scope / Aliases`のコンパクトな表で表示する日常用ビュー
-です。作成日時や説明を含む詳細表示・管理操作には`tk meaning list`と`tk show ID`を使います。
+です。繰り返した`--tag`は`--tag-match all|any`で結合します。説明・Aliasの有無、作成・更新日時、
+並び順、ページ位置でも絞り込めます。`tk meaning list`は同じ絞り込みで詳細を表示し、
+`tk show ID`は1件を表示します。
 
 ### 未処理項目の確認
 
@@ -186,8 +205,11 @@ tk occurrence reopen 1
 ```bash
 tk search ICMR
 tk meaning search ICMR
-tk search "enterprise planning" --match-all
-tk search "planning document" --match-any --field description --limit 10
+tk search "enterprise planning"
+tk search "planning document" --word-match any --field description --limit 10
+tk search ERP --field term --field name
+tk search "ERP*" --mode glob --field term
+tk search '^ERP-[0-9]+$' --mode regex --field term
 tk search ERP --tag SAP
 tk search ERP --scope SAP
 tk search ERPP --suggestions 3
@@ -202,14 +224,19 @@ tk meaning list --scope SAP
 tk meaning list --favorite
 ```
 
-`tk search`は`tk meaning search`の短縮形です。Meaning検索は完全一致、前方一致、部分一致の
-順に関連度を付け、一致理由とともに表示します。
-複数語は標準ですべての語に一致するMeaningを探します。`--match-any`でいずれかの語、
-`--field term|name|description|all`で検索対象、`--limit`で最大件数を指定できます。
+`tk search`は`tk meaning search`の短縮形です。標準の`--mode smart`は完全一致、前方一致、
+部分一致の順に関連度を付け、一致理由とともに表示します。複数語は標準ですべての語を必要とし、
+`--word-match any`ならいずれかの語を探します。
+`--field term|name|description`は繰り返し指定でき、指定フィールド間はORです。たとえば
+`--field term --field description --word-match all`では、各検索語がTermまたは説明の
+どちらかにあれば一致します。
+`--mode exact|prefix|contains|glob|regex`では検索文字列を分割せず、各フィールド全体に対して
+指定方式で照合します。globや正規表現はシェル展開を避けるため引用符で囲んでください。
+`--limit`で最大件数を指定できます。
 `--tag`を指定すると、そのタグを持つMeaningだけに絞り込みます。
 `--scope`を指定すると、SAP、Oracle、Generalなどの概念境界で絞り込みます。
 `--favorite`を指定すると、お気に入りのMeaningだけに絞り込みます。
-検索結果がない場合は、Term・正式名称などの類似度から候補を表示します。候補数は
+smart検索で結果がない場合は、Term・正式名称などの類似度から候補を表示します。候補数は
 `--suggestions`、無効化は`--no-suggestions`で指定できます。
 Occurrence検索はkeyword、memo、sourceを横断し、status、source、since、Meaningで先に
 絞り込めます。`tk inbox search`は同じ検索をPendingだけに限定します。Scope検索は名前と説明を
@@ -302,6 +329,7 @@ tk completion fish | source
 
 `doctor`はバージョン、資格情報を隠したDB接続先、backend、Alembic Revision、
 `user.name`・`user.email`の設定有無を確認します。
+DB接続またはスキーマに問題がある場合は終了コード`1`を返すため、監視にも利用できます。
 
 ## JSON出力
 
@@ -346,7 +374,8 @@ tk-mcp
 ```
 
 `TERMKEEPER_DATABASE_URL`でCLIと同じデータベースを指定できます。MCPクライアントには、
-サーバー起動コマンドとして`tk-mcp`を登録してください。Capture、分類・再分類、Meaning・
+サーバー起動コマンドとして`tk-mcp`を登録してください。単件`capture_term`と原子的な
+1〜100件の`capture_terms`、分類・再分類、Meaning・
 Occurrence・Inbox・Scope検索、Stats、Tag、Favorite、Related Meaning、Referenceなどの
 型付きツールを公開します。
 各ツールは具体的なDomain DTOに基づく構造化出力スキーマを持ちます。
@@ -355,13 +384,18 @@ Occurrence・Inbox・Scope検索、Stats、Tag、Favorite、Related Meaning、Re
 
 ```bash
 uv sync --extra api
+uv run tk init
 uv run tk-api
 ```
 
 標準では`http://127.0.0.1:8000`で待ち受けます。OpenAPI仕様は`/openapi.json`、
 対話的なAPIドキュメントは`/docs`で確認できます。現在はローカル利用向けで認証を持たないため、
 外部ネットワークへ直接公開しないでください。
-Occurrenceの捕捉・未分類一覧・分類・再分類、Meaningの一覧・取得・更新・論理削除・Trash・復元、
+APIプロセスは起動時にMigrationを実行しません。デプロイ時は`tk init`を先に実行し、
+`/ready`が成功してからトラフィックを流してください。
+`/health`はプロセスの生存確認、`/ready`はDB接続とスキーマを含む受付可能性の確認に使用します。
+`POST /api/v1/occurrences`の単件捕捉と`POST /api/v1/occurrences/batch`の原子的な一括捕捉、
+未分類一覧・分類・再分類、Meaningの一覧・取得・更新・論理削除・Trash・復元、
 Meaning・Occurrence・Inbox・Scope検索、統計を`/api/v1`以下から利用できます。Meaningを
 指定するパスでは、DB内部の連番ではなく
 レスポンスの
@@ -371,10 +405,14 @@ Tag、Favorite、関連Meaning、Referenceの操作にも対応しています�
 DB連番を含まず、一覧は`items`、`offset`、`limit`、`has_more`のページ形式です。
 Scopeは`/api/v1/scopes`で管理し、HTTP/MCPからMeaningのScopeを指定するときはScopeの
 `public_id`（UUID）を使用します。
+MCPでは`list_meanings`で検索語なしのMeaning巡回、`search_meanings`で関連度付き検索を
+使い分けます。どちらも`has_more`が真なら、現在の`offset`に返却件数を足して次ページを
+取得します。
+Meaningの作成・編集・Alias追加削除・論理削除・Trash確認・復元も型付きMCPツールで行えます。
+不可逆なpurgeはAI向けツールとして公開せず、人間がCLIで明示確認して実行します。
 
 検索エンドポイントは`/api/v1/meanings/search`、`/api/v1/occurrences/search`、
-`/api/v1/inbox/search`、`/api/v1/scopes/search`です。`/api/v1/search`はMeaning検索の
-短縮エンドポイントとして維持します。
+`/api/v1/inbox/search`、`/api/v1/scopes/search`です。
 
 ## データモデル
 
@@ -403,12 +441,10 @@ TermKeeper/
 │   ├── infrastructure/  # SQLModel tables・Session
 │   │   └── repositories/ # 機能別Repository
 │   ├── adapters/
-│   │   ├── external/    # HTTP・MCP共通の外部DTO
+│   │   ├── cli/         # CLI構築・表示・CSV・機能別Handler
+│   │   ├── external/    # HTTP・MCP共通の外部DTOとQuery変換
 │   │   ├── http/        # FastAPI app・機能別Route
 │   │   └── mcp/         # MCP server・機能別Tool
-│   ├── presentation/
-│   │   ├── cli/         # CLI構築・表示・機能別Handler
-│   │   └── csv_io.py    # CSV境界
 │   └── config.py        # 実行時設定
 ├── tests/
 ├── data/

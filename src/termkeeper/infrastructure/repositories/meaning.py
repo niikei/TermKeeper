@@ -1,15 +1,23 @@
 """Persistence operations for meanings and aliases."""
 
 from dataclasses import dataclass
+from datetime import datetime
+from typing import cast
 from uuid import UUID
 
-from sqlalchemy import or_
+from sqlalchemy import exists, or_
 from sqlalchemy.sql.elements import ColumnElement
 from sqlmodel import Session, col, select
 
-from termkeeper.domain import SearchField
+from termkeeper.domain import (
+    LogicalOperator,
+    MeaningSort,
+    SearchField,
+    SearchMode,
+    SortOrder,
+)
 from termkeeper.infrastructure.normalization import normalize_keyword
-from termkeeper.infrastructure.tables import Meaning, Scope, Term, utc_now
+from termkeeper.infrastructure.tables import Meaning, MeaningTag, Scope, Tag, Term, utc_now
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,7 +38,7 @@ def create(
         full_name=values.full_name.strip(),
         full_name_norm=normalize_keyword(values.full_name),
         scope_id=values.scope_id,
-        description=values.description or None,
+        description=values.description.strip() or None if values.description else None,
         description_norm=normalize_keyword(values.description or ""),
         created_by_id=values.user_id,
         updated_by_id=values.user_id,
@@ -166,12 +174,14 @@ def find_duplicate(
 def search(
     session: Session,
     tokens: tuple[str, ...],
-    field: SearchField,
+    fields: tuple[SearchField, ...],
+    mode: SearchMode,
     *,
     scope_id: int | None = None,
     favorite_only: bool = False,
+    tag: str | None = None,
 ) -> list[Meaning]:
-    token_conditions = [_search_condition(token, field) for token in tokens]
+    token_conditions = [_search_condition(token, fields, mode) for token in tokens]
     statement = (
         select(Meaning)
         .outerjoin(Term)
@@ -183,18 +193,50 @@ def search(
         statement = statement.where(Meaning.is_favorite)
     if scope_id is not None:
         statement = statement.where(Meaning.scope_id == scope_id)
+    if tag is not None:
+        statement = statement.where(_tag_condition(tag))
     return list(session.exec(statement).all())
 
 
-def _search_condition(token: str, field: SearchField) -> ColumnElement[bool]:
+def _search_condition(
+    token: str,
+    fields: tuple[SearchField, ...],
+    mode: SearchMode,
+) -> ColumnElement[bool]:
     conditions: list[ColumnElement[bool]] = []
-    if field in {SearchField.ALL, SearchField.TERM}:
-        conditions.append(col(Term.keyword_norm).contains(token, autoescape=True))
-    if field in {SearchField.ALL, SearchField.NAME}:
-        conditions.append(col(Meaning.full_name_norm).contains(token, autoescape=True))
-    if field in {SearchField.ALL, SearchField.DESCRIPTION}:
-        conditions.append(col(Meaning.description_norm).contains(token, autoescape=True))
+    if SearchField.TERM in fields:
+        conditions.append(
+            _text_condition(cast("ColumnElement[str]", col(Term.keyword_norm)), token, mode),
+        )
+    if SearchField.NAME in fields:
+        conditions.append(
+            _text_condition(
+                cast("ColumnElement[str]", col(Meaning.full_name_norm)),
+                token,
+                mode,
+            ),
+        )
+    if SearchField.DESCRIPTION in fields:
+        conditions.append(
+            _text_condition(
+                cast("ColumnElement[str]", col(Meaning.description_norm)),
+                token,
+                mode,
+            ),
+        )
     return or_(*conditions)
+
+
+def _text_condition(
+    column: ColumnElement[str],
+    text: str,
+    mode: SearchMode,
+) -> ColumnElement[bool]:
+    if mode == SearchMode.EXACT:
+        return column == text
+    if mode == SearchMode.PREFIX:
+        return column.startswith(text, autoescape=True)
+    return column.contains(text, autoescape=True)
 
 
 def update(
@@ -205,7 +247,7 @@ def update(
     record.full_name = values.full_name.strip()
     record.full_name_norm = normalize_keyword(values.full_name)
     record.scope_id = values.scope_id
-    record.description = values.description or None
+    record.description = values.description.strip() or None if values.description else None
     record.description_norm = normalize_keyword(values.description or "")
     record.updated_at = utc_now()
     record.updated_by_id = values.user_id
@@ -234,6 +276,8 @@ def list_all(
     *,
     scope_id: int | None = None,
     favorite_only: bool = False,
+    tag: str | None = None,
+    limit: int | None = None,
 ) -> list[Meaning]:
     statement = (
         select(Meaning)
@@ -244,7 +288,77 @@ def list_all(
         statement = statement.where(Meaning.is_favorite)
     if scope_id is not None:
         statement = statement.where(Meaning.scope_id == scope_id)
+    if tag is not None:
+        statement = statement.where(_tag_condition(tag))
+    if limit is not None:
+        statement = statement.limit(limit)
     return list(session.exec(statement).all())
+
+
+def list_page(
+    session: Session,
+    *,
+    scope_id: int | None,
+    favorite_only: bool,
+    tags: tuple[str, ...],
+    tag_match: LogicalOperator,
+    created_since: datetime | None,
+    updated_since: datetime | None,
+    has_description: bool | None,
+    has_alias: bool | None,
+    sort: MeaningSort,
+    order: SortOrder,
+    offset: int,
+    limit: int,
+) -> list[Meaning]:
+    statement = select(Meaning).where(col(Meaning.deleted_at).is_(None))
+    if favorite_only:
+        statement = statement.where(Meaning.is_favorite)
+    if scope_id is not None:
+        statement = statement.where(Meaning.scope_id == scope_id)
+    tag_conditions = tuple(_tag_condition(tag) for tag in tags)
+    if tag_conditions:
+        statement = statement.where(
+            *tag_conditions if tag_match == LogicalOperator.ALL else (or_(*tag_conditions),)
+        )
+    if created_since is not None:
+        statement = statement.where(Meaning.created_at >= created_since)
+    if updated_since is not None:
+        statement = statement.where(Meaning.updated_at >= updated_since)
+    if has_description is not None:
+        description_exists = col(Meaning.description).is_not(None)
+        statement = statement.where(
+            description_exists if has_description else ~description_exists,
+        )
+    if has_alias is not None:
+        alias_exists = exists(
+            select(Term.term_id).where(
+                Term.meaning_id == Meaning.meaning_id,
+                Term.keyword_norm != Meaning.full_name_norm,
+            ),
+        )
+        statement = statement.where(alias_exists if has_alias else ~alias_exists)
+    sort_column = {
+        MeaningSort.NAME: col(Meaning.full_name_norm),
+        MeaningSort.CREATED: col(Meaning.created_at),
+        MeaningSort.UPDATED: col(Meaning.updated_at),
+    }[sort]
+    ordered = sort_column.asc() if order == SortOrder.ASC else sort_column.desc()
+    statement = (
+        statement.order_by(ordered, col(Meaning.meaning_id).desc()).offset(offset).limit(limit + 1)
+    )
+    return list(session.exec(statement).all())
+
+
+def _tag_condition(tag: str) -> ColumnElement[bool]:
+    return exists(
+        select(MeaningTag.meaning_id)
+        .join(Tag)
+        .where(
+            MeaningTag.meaning_id == Meaning.meaning_id,
+            Tag.name_norm == normalize_keyword(tag),
+        ),
+    )
 
 
 def list_deleted(session: Session) -> list[Meaning]:
@@ -252,6 +366,22 @@ def list_deleted(session: Session) -> list[Meaning]:
         select(Meaning)
         .where(col(Meaning.deleted_at).is_not(None))
         .order_by(col(Meaning.deleted_at).desc())
+    )
+    return list(session.exec(statement).all())
+
+
+def list_deleted_page(
+    session: Session,
+    *,
+    offset: int,
+    limit: int,
+) -> list[Meaning]:
+    statement = (
+        select(Meaning)
+        .where(col(Meaning.deleted_at).is_not(None))
+        .order_by(col(Meaning.deleted_at).desc(), col(Meaning.meaning_id).desc())
+        .offset(offset)
+        .limit(limit + 1)
     )
     return list(session.exec(statement).all())
 

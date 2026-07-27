@@ -5,10 +5,10 @@ from uuid import UUID
 
 from fastapi import FastAPI, Query
 
-from termkeeper.adapters.external import ExternalMapper, ExternalMeaning, ExternalPage, page
+from termkeeper.adapters.external import ExternalMapper, ExternalMeaning, ExternalPage
 from termkeeper.adapters.http.common import _local_meaning_id
 from termkeeper.application import TermKeeperService
-from termkeeper.domain import TagSummary
+from termkeeper.domain import PageQuery, TagSummary
 
 
 def _register_tag_routes(
@@ -21,7 +21,13 @@ def _register_tag_routes(
         offset: Annotated[int, Query(ge=0)] = 0,
         limit: Annotated[int, Query(ge=1, le=100)] = 20,
     ) -> ExternalPage[TagSummary]:
-        return page(service.tags(), offset, limit)
+        result = service.tag_page(PageQuery(offset, limit))
+        return ExternalPage(
+            items=result.items,
+            offset=result.offset,
+            limit=result.limit,
+            has_more=result.has_more,
+        )
 
     @app.put("/api/v1/meanings/{meaning_id}/tags/{name}")
     def add_tag(meaning_id: UUID, name: str) -> ExternalMeaning:

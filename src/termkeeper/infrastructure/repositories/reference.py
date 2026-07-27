@@ -64,6 +64,23 @@ def list_for_meaning(session: Session, meaning_id: int) -> list[MeaningReference
     return list(session.exec(statement).all())
 
 
+def list_page(
+    session: Session,
+    meaning_id: int,
+    *,
+    offset: int,
+    limit: int,
+) -> list[MeaningReference]:
+    statement = (
+        select(MeaningReference)
+        .where(MeaningReference.meaning_id == meaning_id)
+        .order_by(col(MeaningReference.created_at), col(MeaningReference.reference_id))
+        .offset(offset)
+        .limit(limit + 1)
+    )
+    return list(session.exec(statement).all())
+
+
 def plan_merge(session: Session, source_id: int, target_id: int) -> MergePlan:
     target_urls = {record.url for record in list_for_meaning(session, target_id)}
     source_records = list_for_meaning(session, source_id)

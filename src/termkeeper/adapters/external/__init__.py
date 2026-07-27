@@ -1,6 +1,7 @@
 """Shared external response contracts."""
 
 from termkeeper.adapters.external.models import (
+    ExternalCaptureBatchResult,
     ExternalCaptureResult,
     ExternalMapper,
     ExternalMeaning,
@@ -9,10 +10,16 @@ from termkeeper.adapters.external.models import (
     ExternalReference,
     ExternalScope,
     ExternalSearchResult,
-    page,
+)
+from termkeeper.adapters.external.queries import (
+    inbox_search_query,
+    meaning_search_query,
+    occurrence_search_query,
+    scope_search_query,
 )
 
 __all__ = [
+    "ExternalCaptureBatchResult",
     "ExternalCaptureResult",
     "ExternalMapper",
     "ExternalMeaning",
@@ -21,5 +28,8 @@ __all__ = [
     "ExternalReference",
     "ExternalSearchResult",
     "ExternalScope",
-    "page",
+    "inbox_search_query",
+    "meaning_search_query",
+    "occurrence_search_query",
+    "scope_search_query",
 ]

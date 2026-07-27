@@ -1,8 +1,15 @@
 import asyncio
 from datetime import UTC
 
+import pytest
+
 from termkeeper.adapters.mcp import (
+    CaptureBatchInput,
+    CaptureTermInput,
     InboxSearchFilters,
+    MeaningCreateInput,
+    MeaningEditInput,
+    MeaningFilters,
     OccurrenceFilters,
     OccurrenceSearchFilters,
     ScopeSearchFilters,
@@ -10,7 +17,7 @@ from termkeeper.adapters.mcp import (
     TermKeeperMcpTools,
     create_server,
 )
-from termkeeper.application import TermKeeperService
+from termkeeper.application import TermKeeperService, ValidationError
 from termkeeper.domain import OccurrenceUpdate, ReferenceUpdate
 from termkeeper.infrastructure.connection import get_session
 from termkeeper.infrastructure.tables import Occurrence
@@ -23,19 +30,26 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
 
     assert {tool.name for tool in tools} == {
         "add_reference",
+        "add_alias",
         "add_tag",
         "assign_occurrence",
         "capture_term",
+        "capture_terms",
         "create_scope",
+        "create_meaning",
+        "delete_meaning",
         "delete_scope",
         "discard_occurrence",
         "edit_occurrence",
+        "edit_meaning",
         "edit_reference",
         "edit_scope",
         "favorite_meaning",
         "get_meaning",
         "get_stats",
         "list_inbox",
+        "list_meanings",
+        "list_trash",
         "list_occurrences",
         "list_references",
         "list_related",
@@ -44,7 +58,9 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
         "relate_meanings",
         "remove_tag",
         "remove_reference",
+        "remove_alias",
         "reopen_occurrence",
+        "restore_meaning",
         "resolve_occurrence",
         "search_meanings",
         "search_inbox",
@@ -56,17 +72,20 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
     }
     schemas = {tool.name: tool.outputSchema for tool in tools}
     capture_schema = schemas["capture_term"]
+    capture_batch_schema = schemas["capture_terms"]
     meaning_schema = schemas["get_meaning"]
     search_schema = schemas["search_meanings"]
     stats_schema = schemas["get_stats"]
     inbox_schema = schemas["list_inbox"]
     assert capture_schema is not None
+    assert capture_batch_schema is not None
     assert meaning_schema is not None
     assert search_schema is not None
     assert stats_schema is not None
     assert inbox_schema is not None
     assert capture_schema["title"] == "ExternalCaptureResult"
     assert capture_schema["required"] == ["occurrence", "candidates"]
+    assert capture_batch_schema["title"] == "ExternalCaptureBatchResult"
     assert meaning_schema["title"] == "ExternalMeaning"
     assert search_schema["title"] == "ExternalSearchResult"
     assert stats_schema["title"] == "StatsSummary"
@@ -79,18 +98,115 @@ def test_mcp_server_registers_expected_typed_tools() -> None:
     occurrence_query = definitions["list_occurrences"]["$defs"]["OccurrenceFilters"]
     assert occurrence_query["properties"]["meaning_id"]["anyOf"][0]["format"] == "uuid"
     assert definitions["search_inbox"]["$defs"]["InboxSearchFilters"]["required"] == ["text"]
-    assert definitions["search_occurrences"]["$defs"]["OccurrenceSearchFilters"][
-        "required"
-    ] == ["text"]
+    assert definitions["search_occurrences"]["$defs"]["OccurrenceSearchFilters"]["required"] == [
+        "text"
+    ]
     assert definitions["search_scopes"]["$defs"]["ScopeSearchFilters"]["required"] == ["text"]
+    search_definitions = definitions["search_meanings"]["$defs"]
+    assert search_definitions["SearchText"]["minLength"] == 1
+    assert search_definitions["SearchText"]["maxLength"] == 256
+    assert search_definitions["SearchText"]["pattern"] == r".*\S.*"
+    assert "next page" in search_definitions["Offset"]["description"]
+    search_filter = search_definitions["SearchFilters"]
+    assert "combined with OR" in search_filter["properties"]["fields"]["description"]
+    assert "all or any words" in search_filter["properties"]["word_match"]["description"]
+    create_definitions = definitions["create_meaning"]["$defs"]
+    assert create_definitions["NonEmptyText"]["minLength"] == 1
+    assert create_definitions["NonEmptyText"]["pattern"] == r".*\S.*"
+    assert create_definitions["MeaningCreateInput"]["properties"]["full_name"] == {
+        "$ref": "#/$defs/NonEmptyText"
+    }
+    assert definitions["add_alias"]["properties"]["alias"] == {"$ref": "#/$defs/NonEmptyText"}
     assert definitions["resolve_occurrence"]["properties"]["occurrence_id"]["format"] == "uuid"
     assert definitions["edit_occurrence"]["properties"]["occurrence_id"]["format"] == "uuid"
+    capture_batch_definitions = definitions["capture_terms"]["$defs"]
+    assert capture_batch_definitions["CaptureItems"]["minItems"] == 1
+    assert capture_batch_definitions["CaptureItems"]["maxItems"] == 100
+    assert capture_batch_definitions["NonEmptyText"]["pattern"] == r".*\S.*"
+
+
+def test_mcp_meaning_lifecycle_is_safe_and_reversible() -> None:
+    tools = TermKeeperMcpTools(TermKeeperService())
+    scope = tools.create_scope("SAP")
+    created = tools.create_meaning(
+        MeaningCreateInput(
+            "Enterprise Resource Planning",
+            scope.public_id,
+            aliases=("ERP",),
+        ),
+    )
+
+    assert tools.add_alias(created.public_id, "ERP System").terms == (
+        "Enterprise Resource Planning",
+        "ERP",
+        "ERP System",
+    )
+    assert tools.remove_alias(created.public_id, "ERP System").public_id == created.public_id
+    edited = tools.edit_meaning(
+        created.public_id,
+        MeaningEditInput("Enterprise Resource Planning Suite", scope.public_id),
+    )
+    assert edited.full_name == "Enterprise Resource Planning Suite"
+
+    assert tools.delete_meaning(created.public_id) == {"meaning_id": created.public_id}
+    assert tools.list_trash().items[0].public_id == created.public_id
+    assert tools.restore_meaning(created.public_id).public_id == created.public_id
+
+
+def test_mcp_batch_capture_is_typed_atomic_and_ordered() -> None:
+    service = TermKeeperService()
+    tools = TermKeeperMcpTools(service)
+
+    result = tools.capture_terms(
+        CaptureBatchInput(
+            (
+                CaptureTermInput("ERP", source="Teams"),
+                CaptureTermInput("Business Unit", memo="SAP context"),
+            ),
+        ),
+    )
+
+    assert [item.occurrence.keyword for item in result.items] == [
+        "ERP",
+        "Business Unit",
+    ]
+    assert result.items[0].occurrence.source == "Teams"
+    assert result.items[1].occurrence.memo == "SAP context"
+
+    with pytest.raises(ValidationError, match="duplicates position"):
+        tools.capture_terms(
+            CaptureBatchInput(
+                (CaptureTermInput("CRM"), CaptureTermInput("ＣＲＭ")),
+            ),
+        )
+    assert len(service.history().items) == 2
+
+
+def test_mcp_meaning_list_exposes_structured_filters_and_sorting() -> None:
+    service = TermKeeperService()
+    tools = TermKeeperMcpTools(service)
+    alpha = service.create_meaning("Alpha", "First", terms=("A",))
+    service.create_meaning("Beta")
+    service.add_tag(alpha.meaning_id, "Core")
+
+    result = tools.list_meanings(
+        MeaningFilters(
+            tags=("Core",),
+            has_description=True,
+            has_alias=True,
+            sort="name",
+            order="asc",
+        ),
+    )
+
+    assert [item.full_name for item in result.items] == ["Alpha"]
 
 
 def test_mcp_tools_delegate_complete_workflow() -> None:
     service = TermKeeperService()
     tools = TermKeeperMcpTools(service)
     sap_scope = tools.create_scope("SAP")
+    assert tools.list_meanings(MeaningFilters()).items == ()
 
     captured = tools.capture_term("ERP", "planning", "Teams")
     occurrence_id = captured.occurrence.public_id
@@ -99,10 +215,7 @@ def test_mcp_tools_delegate_complete_workflow() -> None:
     assert captured.occurrence.updated_at.tzinfo is UTC
     assert tools.list_inbox().items[0].keyword == "ERP"
     assert tools.search_inbox(InboxSearchFilters(text="planning")).items[0].keyword == "ERP"
-    assert (
-        tools.search_occurrences(OccurrenceSearchFilters(text="Teams")).items[0].keyword
-        == "ERP"
-    )
+    assert tools.search_occurrences(OccurrenceSearchFilters(text="Teams")).items[0].keyword == "ERP"
     meaning = tools.resolve_occurrence(
         occurrence_id,
         "Enterprise Resource Planning",
@@ -179,6 +292,42 @@ def test_mcp_tools_delegate_complete_workflow() -> None:
     renamed_scope = tools.edit_scope(spare_scope.public_id, "Temporary 2")
     assert renamed_scope.name == "Temporary 2"
     assert tools.delete_scope(spare_scope.public_id) == {"scope_id": spare_scope.public_id}
+
+
+def test_mcp_search_uses_shared_field_word_and_regex_contract() -> None:
+    service = TermKeeperService()
+    tools = TermKeeperMcpTools(service)
+    target = service.create_meaning(
+        "Enterprise Resource Planning",
+        "Customer operations",
+        terms=("ERP",),
+    )
+    service.create_meaning(
+        "Customer Relationship Management",
+        "Planning operations",
+        terms=("CRM",),
+    )
+
+    smart = tools.search_meanings(
+        SearchFilters(
+            text="ERP customer",
+            fields=("term", "description"),
+            word_match="all",
+        ),
+    )
+    assert [hit.meaning.public_id for hit in smart.hits] == [target.public_id]
+
+    pattern = tools.search_meanings(
+        SearchFilters(
+            text="^Enterprise.*Planning$",
+            mode="regex",
+            fields=("name",),
+        ),
+    )
+    assert [hit.meaning.public_id for hit in pattern.hits] == [target.public_id]
+
+    with pytest.raises(ValidationError, match="Invalid regular expression"):
+        tools.search_meanings(SearchFilters(text="[", mode="regex"))
 
 
 def test_mcp_occurrence_pages_reach_beyond_500() -> None:

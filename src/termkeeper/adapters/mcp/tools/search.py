@@ -2,30 +2,59 @@
 
 from uuid import UUID
 
-from termkeeper.adapters.external import ExternalMeaning, ExternalSearchResult
-from termkeeper.adapters.mcp.inputs import SearchFilters
+from termkeeper.adapters.external import (
+    ExternalMeaning,
+    ExternalPage,
+    ExternalSearchResult,
+    meaning_search_query,
+)
+from termkeeper.adapters.mcp.inputs import MeaningFilters, SearchFilters
 from termkeeper.adapters.mcp.tools.context import ToolContext
-from termkeeper.domain import SearchField, SearchQuery, StatsSummary
+from termkeeper.domain import (
+    LogicalOperator,
+    MeaningListQuery,
+    MeaningSort,
+    SortOrder,
+    StatsSummary,
+)
 
 
 class SearchTools(ToolContext):
+    def list_meanings(
+        self,
+        query: MeaningFilters | None = None,
+    ) -> ExternalPage[ExternalMeaning]:
+        """List known meanings without search text; follow has_more for the next page."""
+        query = query or MeaningFilters()
+        scope = self._scope_name(query.scope_id) if query.scope_id is not None else None
+        return self._mapper.meaning_page(
+            self._service.meaning_page(
+                MeaningListQuery(
+                    tags=query.tags,
+                    tag_match=LogicalOperator(query.tag_match),
+                    scope=scope,
+                    favorite_only=query.favorite_only,
+                    created_since=query.created_since,
+                    updated_since=query.updated_since,
+                    has_description=query.has_description,
+                    has_alias=query.has_alias,
+                    sort=MeaningSort(query.sort),
+                    order=SortOrder(query.order),
+                    offset=query.offset,
+                    limit=query.limit,
+                ),
+            ),
+        )
+
     def search_meanings(
         self,
         query: SearchFilters,
     ) -> ExternalSearchResult:
-        """Search meanings and return ranked hits or similar suggestions."""
-        domain_query = SearchQuery(
-            text=query.text,
-            field=SearchField(query.field),
-            limit=query.offset + query.limit + 1,
-            tag=query.tag,
-            scope=self._scope_name(query.scope_id) if query.scope_id is not None else None,
-            favorite_only=query.favorite_only,
-        )
+        """Search meanings with explicit mode, field-OR, word matching, and paging."""
         return self._mapper.search_result(
-            self._service.search(domain_query),
-            offset=query.offset,
-            limit=query.limit,
+            self._service.search_meanings(
+                meaning_search_query(self._service, query),
+            ),
         )
 
     def get_meaning(self, meaning_id: UUID) -> ExternalMeaning:

@@ -16,6 +16,10 @@ class CaptureRequest(BaseModel):
     meaning_id: UUID | None = None
 
 
+class CaptureBatchRequest(BaseModel):
+    items: tuple[CaptureRequest, ...] = Field(min_length=1, max_length=100)
+
+
 class ResolveRequest(BaseModel):
     full_name: str
     scope_id: UUID = GENERAL_SCOPE_PUBLIC_ID
@@ -57,13 +61,35 @@ class InboxSearchFilters(BaseModel):
 
 
 class SearchFilters(BaseModel):
-    text: str = Field(min_length=1)
-    field: Literal["all", "term", "name", "description"] = "all"
+    text: str = Field(
+        min_length=1,
+        max_length=256,
+        description="Search text or pattern; surrounding whitespace is ignored",
+    )
+    mode: Literal["smart", "exact", "prefix", "contains", "glob", "regex"] = Field(
+        default="smart",
+        description="Matching algorithm; smart is ranked word search",
+    )
+    fields: tuple[Literal["term", "name", "description"], ...] = Field(
+        default=("term", "name", "description"),
+        min_length=1,
+        description="Fields are combined with OR; repeat the fields query parameter",
+    )
+    word_match: Literal["all", "any"] = Field(
+        default="all",
+        description="In smart mode, require all or any words across selected fields",
+    )
     tag: str | None = None
     scope_id: UUID | None = None
     favorite_only: bool = False
-    offset: int = Field(default=0, ge=0, le=399)
+    offset: int = Field(default=0, ge=0)
     limit: int = Field(default=20, ge=1, le=100)
+    suggestion_limit: int = Field(
+        default=3,
+        ge=0,
+        le=10,
+        description="Smart-mode suggestions returned when the first page has no hits",
+    )
 
 
 class ScopeSearchFilters(BaseModel):

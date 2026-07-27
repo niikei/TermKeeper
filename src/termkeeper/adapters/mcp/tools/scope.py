@@ -2,9 +2,14 @@
 
 from uuid import UUID
 
-from termkeeper.adapters.external import ExternalPage, ExternalScope, page
+from termkeeper.adapters.external import (
+    ExternalPage,
+    ExternalScope,
+    scope_search_query,
+)
 from termkeeper.adapters.mcp.inputs import Limit, Offset, ScopeSearchFilters
 from termkeeper.adapters.mcp.tools.context import ToolContext
+from termkeeper.domain import PageQuery
 
 
 class ScopeTools(ToolContext):
@@ -12,13 +17,9 @@ class ScopeTools(ToolContext):
         self,
         query: ScopeSearchFilters,
     ) -> ExternalPage[ExternalScope]:
-        """Search scope names and descriptions."""
+        """Search scope names and descriptions before creating or resolving a meaning."""
         return self._mapper.scope_page(
-            self._service.search_scopes(
-                query.text,
-                offset=query.offset,
-                limit=query.limit,
-            ),
+            self._service.search_scopes(scope_search_query(query)),
         )
 
     def create_scope(self, name: str, description: str | None = None) -> ExternalScope:
@@ -31,7 +32,9 @@ class ScopeTools(ToolContext):
         limit: Limit = 20,
     ) -> ExternalPage[ExternalScope]:
         """List configured meaning scopes."""
-        return page([self._mapper.scope(item) for item in self._service.scopes()], offset, limit)
+        return self._mapper.scope_page(
+            self._service.scope_page(PageQuery(offset, limit)),
+        )
 
     def edit_scope(
         self,

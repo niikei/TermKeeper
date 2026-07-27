@@ -61,6 +61,7 @@ ANSI制御文字を含めない。`completion`と`--version`もプレーンテ�
 | --- | --- | --- |
 | `init` | DBを最新Alembic Revisionへ更新・再作成 | `--reset`, `--yes` |
 | `add` | 遭遇を捕捉 | `keyword`, `--memo`, `--source`, `--meaning`, `--no-prompt` |
+| `add-many` | 複数の遭遇を原子的に捕捉 | `--term`, `--file`, `--memo`, `--source`, `--yes` |
 | `inbox` | Pending Occurrence一覧 | `--offset`, `--limit` |
 | `list` | Active Meaningのコンパクト一覧 | `--tag`, `--scope`, `--favorite` |
 | `resolve` | 新規・既存Meaningへ分類 | `occurrence_id`, `--meaning`または`--name`, `--scope`, `--description` |
@@ -84,8 +85,12 @@ ANSI制御文字を含めない。`completion`と`--version`もプレーンテ�
 ## `tk list`
 
 Active Meaningを更新日時の新しい順に、`ID / Meaning / Scope / Aliases`の表で表示する。
-favoriteは名称の前に`★`を表示する。`--scope`、`--tag`、`--favorite`は組み合わせ可能。
-人間向けの空一覧は`No meanings found.`を表示し、JSONではMeaningオブジェクトの配列を返す。
+favoriteは名称の前に`★`を表示する。`--scope`、繰り返し可能な`--tag`、
+`--tag-match all|any`、`--favorite`、`--created-since`、`--updated-since`、
+`--has-description|--without-description`、`--has-alias|--without-alias`、
+`--sort name|created|updated`、`--order asc|desc`、ページングを組み合わせられる。
+人間向けの空一覧は`No meanings found.`を表示し、JSONでは`items`、`offset`、`limit`、
+`has_more`を持つページを返す。
 
 `tk meaning list`は説明、Tag、作成・更新日時を含む詳細・管理用表示として維持する。
 
@@ -98,6 +103,17 @@ favoriteは名称の前に`★`を表示する。`--scope`、`--tag`、`--favori
 5. 対話端末で候補があればMeaningを選択できる。EnterはPendingを維持する。
 
 候補が1件でも自動分類しない。JSON、非TTY、`--no-prompt`では選択を求めない。
+
+## `tk add-many`
+
+位置引数は受け取らない。引数なしのTTYでは1行1用語を入力し、一覧をプレビューしてから確認する。
+少量の明示入力は反復可能な`--term`、ファイルまたは標準入力は`--file PATH|-`を使用する。
+`--term`と`--file`は排他的で、`--memo`と`--source`は全項目に共通適用する。
+
+空入力、ファイル内の空行、正規化後の重複、100件超を拒否する。Applicationの
+`capture_many`が全件を事前検証し、1つのUnit of Workで登録するため、途中失敗時も一部登録を
+残さない。複数登録中はMeaning選択を求めず、候補数を表示してPendingの整理を利用者に委ねる。
+JSONまたは非TTYで入力元がない場合は、標準入力を暗黙に読まず構造化エラーを返す。
 
 ## `tk resolve`
 
@@ -166,9 +182,16 @@ tk scope search TEXT
 
 `tk search`と`tk meaning search`は同じMeaning検索ユースケースを呼ぶ。
 
-完全一致、前方一致、部分一致の順で採点する。複数語は標準でAND、`--match-any`でOR。
-`--field term|name|description|all`、`--tag`、`--scope`、`--favorite`で絞り込む。
-通常ヒットがない場合だけ類似候補を返す。
+`--mode smart`は完全一致、前方一致、部分一致の順で採点する。複数語は標準でALL、
+`--word-match any`でANYとなる。`--field term|name|description`は繰り返し可能で、
+フィールド間は常にOR。語のALL/ANYとは独立している。
+
+`--mode exact|prefix|contains|glob|regex`は入力を分割せず、選択した各フィールドへ単一の
+文字列またはパターンとして適用する。globはシェル形式の`*`、`?`、`[]`、regexは正規表現を
+使用する。シェル展開を避けるため、パターンは引用符で囲む。類似候補はsmart modeの先頭ページが
+0件の場合だけ返す。
+
+`--tag`、`--scope`、`--favorite`で構造化絞り込みを行う。
 Term、正式名称、説明はNFKC＋casefoldで比較し、全角／半角や`Straße`／`STRASSE`の差を
 吸収する。レスポンスの一致文字列は正規化前の原文を返す。人間向け出力はID、正式名称、
 Scope、一致箇所、スコアに絞り、詳細は`tk show`で確認する。
@@ -197,6 +220,7 @@ Meaningは`full_name`、Scope参照、説明、Term、Tagを持つ。有効Meani
 `tk doctor`はTermKeeperのバージョン、資格情報を伏せたDB接続先、DB backend、現在と期待する
 Alembic Revision、利用者設定の有無を表示する。DB初期化自体に失敗した場合は通常の初期化エラーと
 `tk --debug doctor`による技術情報を返す。
+DB接続またはスキーマ診断が異常なら終了コード`1`、正常なら`0`を返す。
 
 `tk completion bash|zsh|fish`は標準出力へ補完スクリプトを生成する。JSONモードではshell名と
 スクリプトをJSONオブジェクトとして返す。

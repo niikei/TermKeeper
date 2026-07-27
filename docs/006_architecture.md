@@ -1,22 +1,22 @@
 # アーキテクチャと拡張方針
 
-依存方向は `Presentation / future API / future MCP → Application → Infrastructure`
+依存方向は `CLI / HTTP / MCP → Application → Infrastructure`
 とする。Domainは他レイヤーへ依存しない。
 
 - `domain/`: 外部境界でも使えるシリアライズ可能なDTO
 - `application/`: 公開Serviceファサード、機能別ユースケース、DTO変換、アプリケーション例外
 - `infrastructure/`: SQLModelテーブル、Engine／Session、スキーマ作成
   - `repositories/`: Analytics、Occurrence、Meaningなど機能単位の永続化処理
-- `presentation/`: 利用者との入出力境界
-  - `cli/`: CLI引数、表示、CLI固有型
+- `adapters/`: CLI・外部プロトコルからApplication Serviceへの変換
+  - `cli/`: 人間向けのCLI引数、対話、表示、CSV入出力
   - `cli/handlers/`: Capture、Meaning、Metadata、Config、Transfer単位のコマンド処理
-  - `csv_io.py`: CSV入出力
-- `adapters/`: 外部プロトコルからApplication Serviceへの変換
   - `external/`: HTTP・MCPで共有する外部DTO、ページング、Domain DTOからの変換
   - `http/`: FastAPIアプリケーション構築、リクエストモデル、機能別Route
   - `mcp/`: FastMCPサーバー構築、入力モデル、機能別Tool
 
 各アダプターはレイヤーの公開モジュールを直接使用し、旧構成向けの互換モジュールは持たない。
+`adapters/`から`infrastructure/`への直接importは禁止し、依存ルールをArchitecture Testで
+検証する。診断やDBリセットのような運用機能もApplicationユースケースを経由する。
 CRUDと検索はSQLModelを使用し、スキーマ変更はAlembic Revisionで明示する。
 接続先はSQLAlchemy URLで選択し、RepositoryとApplicationへdialect固有処理を持ち込まない。
 SQLite固有のPRAGMA、日時変換、Migration batch modeはInfrastructure境界に閉じ込める。
@@ -24,15 +24,16 @@ Applicationの各更新ユースケースはUnit of Workを使用し、1つのSe
 完結する。Repositoryはcommitせず、トランザクション境界をApplicationへ集約する。
 Repositoryは`infrastructure/repositories/`へ集約し、テーブル・接続・Unit of Workとは
 ディレクトリ上でも責務を分ける。
-`TermKeeperService` 自体は薄いファサードとし、実装は `use_cases/capture.py`、
-`use_cases/meaning.py`、`use_cases/merge.py`、`use_cases/occurrence.py`、
-`use_cases/analytics.py`、`use_cases/relation.py`、`use_cases/reference.py`、`use_cases/tag.py`、
-`use_cases/config.py` に分割する。
+`TermKeeperService` 自体は薄いファサードとする。Meaningは照会、更新、Trash lifecycle、
+Occurrence intakeはCaptureと明示的な分類状態遷移へ分け、それぞれ
+`meaning_query.py`、`meaning_command.py`、`meaning_lifecycle.py`、`capture.py`、
+`classification.py`へ配置する。検索、統合、Occurrence照会・編集、分析、Relation、
+Reference、Tag、Configも`use_cases/`内の機能別モジュールへ分割する。
 共有するレコード取得とDTO変換だけを`support.py` と `mapping.py` に置き、機能間の
 直接呼び出しは避ける。
 
 CLIの`main.py`はパース、Service初期化、エラー処理、JSON出力だけを担当する。
-各コマンドの入出力変換は`presentation/cli/handlers/`へユースケース単位で配置し、
+各コマンドの入出力変換は`adapters/cli/handlers/`へユースケース単位で配置し、
 `registry.py`だけがコマンド名とHandlerの対応を管理する。
 JSONモードは自動化向けの非対話境界とし、標準入力を読まず、標準出力には単一のJSON値だけを
 書き出す。不足入力も構造化エラーへ変換する。
@@ -54,9 +55,18 @@ Meaningは`scope_id`と`full_name_norm`の組を有効行内で一意にし、�
 Meaning間の関連は小さいIDを先にした対称ペアとして正規化し、同一ペアを一意に保つ。
 参考URLはMeaning配下の独立エンティティとし、同一Meaning内でURLを一意に保つ。
 
-検索はRepositoryで部分一致候補を取得し、Applicationで関連度を計算する。通常ヒットが0件の
-場合だけ有効Meaningを読み込み、`SearchSuggestion`を生成する。Presentationは候補ロジックを
-持たず、`SearchResult`を表示・JSON化する。
+検索は`SearchUseCases`をCLI・HTTP・MCP共通の唯一のApplication境界とする。
+Repositoryで部分一致候補を取得し、Applicationで関連度、ページング、`has_more`を計算する。
+通常ヒットが0件の場合だけ有効Meaningを読み込み、`SearchSuggestion`を生成する。
+Meaning検索のフィールドはORで結合し、smart modeの複数語は独立したALL/ANY条件で評価する。
+exact、prefix、contains、glob、regex modeは入力全体を1つのパターンとして扱う。
+globとregexはDB dialect固有演算子を使わずApplicationで同じ照合器を実行する。正規表現には
+文字数、候補Meaning件数、1照合あたりの時間制限を設け、ReDoSと無制限な全件走査を防ぐ。
+各アダプターは入力契約とID表現の変換、出力表現だけを担当し、検索・候補・ページ判定の
+ロジックを持たない。
+HTTPとMCPのUUIDからDomain検索Queryへの変換は`adapters/external/queries.py`で共有し、
+各Route／Toolで個別に再実装しない。CLIはローカル整数IDとscope名を使うため入力変換だけを
+分けるが、同じ`SearchUseCases`を呼び出す。
 Occurrence検索はkeyword、memo、sourceをRepositoryで横断し、status、source、since、Meaningの
 構造化条件を同じqueryへ適用する。Inbox検索はこのユースケースをPendingへ固定して再利用する。
 Scope検索はnameとdescriptionを対象にし、Applicationから`Page[Scope]`として返す。
@@ -66,6 +76,11 @@ Pending Occurrenceの読み取りビューであり永続テーブルを持た�
 解除・破棄・再開はApplicationの明示ユースケースとする。
 Capture時のkeyword、memo、sourceはApplication境界で前後空白を除去し、指定された空文字列を
 拒否する。
+単件`add`も一括捕捉も`CaptureUseCases.capture_many`を唯一の書き込み実装として共有する。
+一括捕捉は最大100件、正規化重複なしとし、全入力とMeaning参照を検証後に1つのUnit of Workで
+保存する。CLI、HTTP、MCPが`capture_many`を1回だけ呼ぶことをArchitecture Testで検証する。
+CLIは`add-many`で対話とファイル入力を扱い、HTTPは`POST /api/v1/occurrences/batch`、MCPは
+`capture_terms`として各境界に適した型付き契約を提供する。
 
 出現分析はOccurrence、Meaningに対する読み取り専用の集約として実装する。集計SQLは
 Repositoryへ閉じ込め、Applicationからは`StatsSummary`として返す。
@@ -79,6 +94,8 @@ MCPアダプターは公式Python SDKのFastMCPを使用し、標準入出力tra
 `TermKeeperMcpTools`は具体的なDomain DTOを返し、FastMCPが型注釈から構造化出力スキーマを
 生成・検証する。検証・トランザクション・検索などの業務ロジックは`TermKeeperService`へ
 委譲する。SDKは安定版v1系へ上限を設け、v2の破壊的変更を暗黙に取り込まない。
+AI向けMeaning管理は作成、編集、Alias、論理削除、復元までを公開する。不可逆なpurgeはMCPへ
+公開せず、CLIの確認付き操作に限定する。
 HTTP APIとMCPがMeaningを入力として受け取る場合は`public_id`（UUID）だけを使用する。
 分類・Occurrence編集にはOccurrence自身の`public_id`を使用する。整数IDはローカルDBと
 CLIだけで使用する。
@@ -89,8 +106,9 @@ OccurrenceやReferenceの一覧変換では、関連Meaningの内部IDから`pub
 
 外部の一覧応答は`items`、`offset`、`limit`、`has_more`を持つ共通ページ形式とする。
 検索応答も同じページ情報を持ち、HTTPとMCPで境界の意味を統一する。
-OccurrenceとInboxはApplication層のPageを共有し、Repositoryで`offset`と`limit + 1`を
-適用する。全件取得後のsliceは行わない。
+Meaning、Trash、Scope、Tag、Reference、Relation、Occurrence、InboxはApplication層のPageを
+共有し、Repositoryで`offset`と`limit + 1`を適用する。外部アダプターで全件取得後のsliceは
+行わない。CSV全件exportと人間向けの明示的な非ページ一覧だけを例外とする。
 
 HTTPアダプターはFastAPIで`/api/v1`以下へ公開し、PydanticはHTTPリクエストの構文検証だけを
 担当する。業務検証はApplicationへ委譲し、`ValidationError`を422、`NotFoundError`を404の
@@ -99,6 +117,10 @@ FastAPI/Pydanticの入力検証エラーも`ErrorResponse`へ変換し、`detail
 メッセージを格納する。Application由来のエラーでは`details`を省略する。
 RouteとMCP Toolは機能単位のモジュールへ分割し、アプリケーション／サーバーの構築モジュールは
 登録とプロセス起動だけを担当する。
+`/health`はDBに依存しないliveness、`/ready`はApplicationの診断ユースケースを通した
+readinessとし、DB接続失敗またはスキーマ不整合では503を返す。
+APIプロセス起動時にはMigrationを実行せず、デプロイ処理で`tk init`を先行させる。
+これによりDB障害中もプロセスのlivenessとreadinessを区別できる。
 
 ## 時刻
 

@@ -5,15 +5,21 @@ from typing import Annotated
 from fastapi import FastAPI, Query, status
 
 from termkeeper.adapters.external import (
+    ExternalCaptureBatchResult,
     ExternalCaptureResult,
     ExternalMapper,
     ExternalOccurrence,
     ExternalPage,
+    inbox_search_query,
 )
 from termkeeper.adapters.http.common import _local_meaning_id
-from termkeeper.adapters.http.requests import CaptureRequest, InboxSearchFilters
+from termkeeper.adapters.http.requests import (
+    CaptureBatchRequest,
+    CaptureRequest,
+    InboxSearchFilters,
+)
 from termkeeper.application import TermKeeperService
-from termkeeper.domain import OccurrenceQuery
+from termkeeper.domain import CaptureInput
 
 
 def _register_capture_routes(
@@ -39,6 +45,26 @@ def _register_capture_routes(
             ),
         )
 
+    @app.post("/api/v1/occurrences/batch", status_code=status.HTTP_201_CREATED)
+    def capture_batch(request: CaptureBatchRequest) -> ExternalCaptureBatchResult:
+        return mapper.capture_batch(
+            service.capture_many(
+                tuple(
+                    CaptureInput(
+                        item.keyword,
+                        item.memo,
+                        item.source,
+                        (
+                            _local_meaning_id(service, item.meaning_id)
+                            if item.meaning_id is not None
+                            else None
+                        ),
+                    )
+                    for item in request.items
+                ),
+            ),
+        )
+
     @app.get("/api/v1/inbox")
     def inbox(
         offset: Annotated[int, Query(ge=0)] = 0,
@@ -51,13 +77,5 @@ def _register_capture_routes(
         filters: Annotated[InboxSearchFilters, Query()],
     ) -> ExternalPage[ExternalOccurrence]:
         return mapper.occurrence_page(
-            service.search_inbox(
-                OccurrenceQuery(
-                    text=filters.text,
-                    source=filters.source,
-                    since=filters.since,
-                    offset=filters.offset,
-                    limit=filters.limit,
-                ),
-            ),
+            service.search_inbox(inbox_search_query(filters)),
         )

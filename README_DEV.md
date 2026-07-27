@@ -43,19 +43,17 @@ src/termkeeper/
 ├── domain/                 # DTO、Enum
 ├── application/
 │   ├── service.py          # 公開ファサード
-│   ├── use_cases/          # capture、meaning、merge、occurrence、tag、configのユースケース
+│   ├── use_cases/          # 照会・更新・状態遷移など責務別のユースケース
 │   ├── mapping.py          # SQLModelレコードからDTOへの変換
 │   ├── support.py          # Application層の共有処理
 │   └── errors.py           # Application層の例外
 ├── infrastructure/
 │   ├── repositories/       # 機能別Repository
 │   └── ...                 # SQLModelテーブル、接続、Unit of Work
-├── presentation/
-│   ├── cli/
-│   │   └── handlers/       # 機能別CLI Handler
-│   └── csv_io.py           # CSV境界
 ├── adapters/
-│   ├── external/           # HTTP・MCP共通の外部DTOと変換
+│   ├── cli/
+│   │   └── handlers/       # 人間向けの機能別CLI Handler
+│   ├── external/           # HTTP・MCP共通の外部DTOとQuery変換
 │   ├── http/
 │   │   └── routes/         # FastAPIの機能別Route
 │   └── mcp/
@@ -86,7 +84,7 @@ pytestはカバレッジも計測します。全体カバレッジが90%未満�
 
 ```bash
 uv run pytest tests/application/test_search.py
-uv run pytest tests/presentation/test_cli.py::test_json_workflow
+uv run pytest tests/adapters/cli/test_cli.py::test_json_workflow
 ```
 
 ### フォーマットとLint
@@ -133,6 +131,9 @@ uv build
 git diff --check
 ```
 
+GitHub Actionsでも同じ品質検査をPython 3.12で実行し、pytestはPython 3.13・3.14でも
+実行します。`develop`・`main`へのpushとPull Requestが対象です。
+
 Ruffの警告は原則としてコード側で解消します。ルール除外は、フレームワークの制約やテストで
 一般的な記法など、理由を説明できる場合に限定します。
 
@@ -144,6 +145,7 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 - CSV ImportはApplication層で全行を検証し、1つのUnit of Workで一括反映する
 - Meaningの通常取得は論理削除済みを除外し、完全削除はTrash経由に限定する
 - Captureは分類を行わず、OccurrenceをPendingとして保存する
+- 単件・一括Captureは`CaptureUseCases.capture_many`を共有し、Adapterで`add`をループしない
 - Meaningへの分類・再分類は利用者が明示し、候補検索には副作用を持たせない
 - Scopeは独立エンティティとし、Meaningは`scope_id`で参照する
 - Meaningは`scope_id`と正規化正式名称の組を有効データ内で一意にする
@@ -157,10 +159,14 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 - HTTP/MCPの一覧はDB連番や内部ユーザーIDを返さない
 - Meaning検索条件と結果は`SearchQuery`／`SearchHit`、Occurrence検索条件は
   `OccurrenceQuery`で表現し、CLI固有の型を持ち込まない
+- Meaning検索のフィールドOR、smart modeの語ALL/ANY、exact／prefix／contains／glob／regexは
+  `SearchUseCases`で一度だけ実装し、CLI・HTTP・MCPで同じ意味にする
+- 正規表現検索はDB方言へ委譲せず、文字数・候補件数・照合時間に上限を設ける
 - 検索応答は`SearchResult`で通常ヒットと類似候補を分離し、候補は0件時だけ計算する
 - CLI固有の処理をApplication層へ持ち込まない
 - APIやMCPを追加するときも既存のApplicationユースケースを再利用する
 - `service.py`を肥大化させず、機能別の`use_cases/`へ実装する
+- Meaningの照会・更新・Trash lifecycle、OccurrenceのCapture・分類状態遷移を混在させない
 - 互換レイヤーは追加せず、必要になった時点で明示的なマイグレーションを設計する
 - スキーマ変更はAlembic Revisionとして追加し、`tk init`で最新状態へupgradeする
 - 適用済みRevisionは書き換えず、次のRevisionにforward migrationを追加する

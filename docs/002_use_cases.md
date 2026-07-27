@@ -102,9 +102,12 @@ scopeはMeaningの識別境界であり、Tagとは異なる。同じ正式名�
 
 ```bash
 tk list
+tk list --offset 50 --limit 50
 tk list --scope SAP --tag Core
 tk list --favorite
-tk search "enterprise planning" --match-all
+tk search "enterprise planning"
+tk search "planning document" --word-match any
+tk search '^ERP-[0-9]+$' --mode regex --field term
 tk meaning search ERP --scope SAP
 tk search ERP --tag Core --scope SAP
 tk occurrence search planning --status Pending --source Teams
@@ -117,10 +120,15 @@ tk tag add 1 Core
 tk meaning favorite 1
 ```
 
-`tk list`はActive Meaningをコンパクトに見渡す日常用ビュー。`tk search`は
+`tk list`はActive Meaningをコンパクトに見渡すページ形式の日常用ビュー。`tk search`は
 `tk meaning search`の短縮形で、Term、正式名称、説明を関連度順に返す。どちらもTag、scope、
 お気に入りで絞り込める。Occurrenceはkeyword・memo・source、Scopeは名前・説明を検索する。
 Inbox検索はOccurrence検索をPendingに限定する。
+
+Meaning検索では繰り返した`--field`をOR、smart modeの複数語を`--word-match all|any`で
+評価する。フィールドの選択と語の論理条件を別々に指定するため、複数フィールドを横断して
+全検索語を満たす検索も曖昧にならない。exact、prefix、contains、glob、regex modeは入力を
+単一パターンとして扱う。
 
 ## 9. Meaningを統合する
 

@@ -10,6 +10,7 @@ from termkeeper.adapters.external import (
     ExternalMeaning,
     ExternalOccurrence,
     ExternalPage,
+    occurrence_search_query,
 )
 from termkeeper.adapters.http.common import (
     _local_meaning_id,
@@ -58,22 +59,9 @@ def _register_occurrence_routes(
     def search_occurrences(
         filters: Annotated[OccurrenceSearchFilters, Query()],
     ) -> ExternalPage[ExternalOccurrence]:
-        meaning_id = (
-            _local_meaning_id(service, filters.meaning_id, include_deleted=True)
-            if filters.meaning_id is not None
-            else None
-        )
         return mapper.occurrence_page(
             service.search_occurrences(
-                OccurrenceQuery(
-                    meaning_id=meaning_id,
-                    status=OccurrenceStatus(filters.status) if filters.status else None,
-                    text=filters.text,
-                    source=filters.source,
-                    since=filters.since,
-                    offset=filters.offset,
-                    limit=filters.limit,
-                ),
+                occurrence_search_query(service, filters),
             ),
         )
 

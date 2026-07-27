@@ -7,6 +7,7 @@ from uuid import UUID
 
 from termkeeper.application import TermKeeperService
 from termkeeper.domain import (
+    CaptureBatchResult,
     CaptureResult,
     Meaning,
     OccurrenceItem,
@@ -25,16 +26,6 @@ class ExternalPage[T]:
     offset: int
     limit: int
     has_more: bool
-
-
-def page[T](items: list[T], offset: int, limit: int) -> ExternalPage[T]:
-    selected = items[offset : offset + limit + 1]
-    return ExternalPage(
-        items=tuple(selected[:limit]),
-        offset=offset,
-        limit=limit,
-        has_more=len(selected) > limit,
-    )
 
 
 @dataclass(frozen=True)
@@ -89,6 +80,11 @@ class ExternalScope:
 class ExternalCaptureResult:
     occurrence: ExternalOccurrence
     candidates: tuple[ExternalMeaning, ...]
+
+
+@dataclass(frozen=True)
+class ExternalCaptureBatchResult:
+    items: tuple[ExternalCaptureResult, ...]
 
 
 @dataclass(frozen=True)
@@ -214,19 +210,51 @@ class ExternalMapper:
 
     def capture_result(self, result: CaptureResult) -> ExternalCaptureResult:
         public_ids = self._meaning_public_ids((result.occurrence.meaning_id,))
+        return self._capture_result(result, public_ids)
+
+    def capture_batch(
+        self,
+        result: CaptureBatchResult,
+    ) -> ExternalCaptureBatchResult:
+        public_ids = self._meaning_public_ids(item.occurrence.meaning_id for item in result.items)
+        return ExternalCaptureBatchResult(
+            items=tuple(self._capture_result(item, public_ids) for item in result.items),
+        )
+
+    def _capture_result(
+        self,
+        result: CaptureResult,
+        public_ids: Mapping[int, UUID],
+    ) -> ExternalCaptureResult:
         return ExternalCaptureResult(
             occurrence=self._occurrence(result.occurrence, public_ids),
             candidates=tuple(self.meaning(item) for item in result.candidates),
         )
 
+    def meaning_page(self, result: Page[Meaning]) -> ExternalPage[ExternalMeaning]:
+        return ExternalPage(
+            items=tuple(self.meaning(item) for item in result.items),
+            offset=result.offset,
+            limit=result.limit,
+            has_more=result.has_more,
+        )
+
+    def reference_page(
+        self,
+        result: Page[ReferenceLink],
+    ) -> ExternalPage[ExternalReference]:
+        public_ids = self._meaning_public_ids(reference.meaning_id for reference in result.items)
+        return ExternalPage(
+            items=tuple(self._reference(reference, public_ids) for reference in result.items),
+            offset=result.offset,
+            limit=result.limit,
+            has_more=result.has_more,
+        )
+
     def search_result(
         self,
         result: SearchResult,
-        *,
-        offset: int = 0,
-        limit: int = 20,
     ) -> ExternalSearchResult:
-        hits = result.hits[offset : offset + limit + 1]
         return ExternalSearchResult(
             hits=tuple(
                 ExternalSearchHit(
@@ -235,7 +263,7 @@ class ExternalMapper:
                     matched_field=hit.matched_field,
                     matched_text=hit.matched_text,
                 )
-                for hit in hits[:limit]
+                for hit in result.hits
             ),
             suggestions=tuple(
                 ExternalSearchSuggestion(
@@ -246,9 +274,9 @@ class ExternalMapper:
                 )
                 for item in result.suggestions
             ),
-            offset=offset,
-            limit=limit,
-            has_more=len(hits) > limit,
+            offset=result.offset,
+            limit=result.limit,
+            has_more=result.has_more,
         )
 
     def _meaning_public_ids(self, local_ids: Iterable[int | None]) -> dict[int, UUID]:

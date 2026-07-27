@@ -1,5 +1,6 @@
 """Meaning lifecycle HTTP routes."""
 
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -10,12 +11,18 @@ from termkeeper.adapters.external import (
     ExternalMeaning,
     ExternalPage,
     ExternalSearchResult,
-    page,
+    meaning_search_query,
 )
 from termkeeper.adapters.http.common import _local_meaning_id, _scope_name
 from termkeeper.adapters.http.requests import MeaningUpdateRequest, SearchFilters
-from termkeeper.adapters.http.routes.query import meaning_search_result
 from termkeeper.application import TermKeeperService
+from termkeeper.domain import (
+    LogicalOperator,
+    MeaningListQuery,
+    MeaningSort,
+    PageQuery,
+    SortOrder,
+)
 
 
 def _register_meaning_routes(
@@ -29,7 +36,9 @@ def _register_meaning_routes(
     def search_meanings(
         filters: Annotated[SearchFilters, Query()],
     ) -> ExternalSearchResult:
-        return meaning_search_result(filters, service, mapper)
+        return mapper.search_result(
+            service.search_meanings(meaning_search_query(service, filters)),
+        )
 
     @app.get("/api/v1/meanings/{meaning_id}")
     def get_meaning(meaning_id: UUID) -> ExternalMeaning:
@@ -37,24 +46,37 @@ def _register_meaning_routes(
 
     @app.get("/api/v1/meanings")
     def list_meanings(
-        tag: str | None = None,
+        tag: Annotated[list[str] | None, Query()] = None,
         *,
+        tag_match: LogicalOperator = LogicalOperator.ALL,
         scope_id: UUID | None = None,
         favorite_only: bool = False,
+        created_since: datetime | None = None,
+        updated_since: datetime | None = None,
+        has_description: bool | None = None,
+        has_alias: bool | None = None,
+        sort: MeaningSort = MeaningSort.UPDATED,
+        order: SortOrder = SortOrder.DESC,
         offset: Annotated[int, Query(ge=0)] = 0,
         limit: Annotated[int, Query(ge=1, le=100)] = 20,
     ) -> ExternalPage[ExternalMeaning]:
-        return page(
-            [
-                mapper.meaning(item)
-                for item in service.meanings(
-                    tag,
-                    scope=_scope_name(service, scope_id) if scope_id is not None else None,
+        return mapper.meaning_page(
+            service.meaning_page(
+                MeaningListQuery(
+                    tags=tuple(tag or ()),
+                    tag_match=tag_match,
+                    scope=(_scope_name(service, scope_id) if scope_id is not None else None),
                     favorite_only=favorite_only,
-                )
-            ],
-            offset,
-            limit,
+                    created_since=created_since,
+                    updated_since=updated_since,
+                    has_description=has_description,
+                    has_alias=has_alias,
+                    sort=sort,
+                    order=order,
+                    offset=offset,
+                    limit=limit,
+                ),
+            ),
         )
 
     @app.put("/api/v1/meanings/{meaning_id}")
@@ -84,7 +106,7 @@ def _register_meaning_routes(
         offset: Annotated[int, Query(ge=0)] = 0,
         limit: Annotated[int, Query(ge=1, le=100)] = 20,
     ) -> ExternalPage[ExternalMeaning]:
-        return page([mapper.meaning(item) for item in service.trash()], offset, limit)
+        return mapper.meaning_page(service.trash_page(PageQuery(offset, limit)))
 
     @app.post("/api/v1/trash/{meaning_id}/restore")
     def restore_meaning(meaning_id: UUID) -> ExternalMeaning:

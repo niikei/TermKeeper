@@ -5,7 +5,8 @@ from uuid import UUID
 from termkeeper.application.errors import NotFoundError, ValidationError
 from termkeeper.application.mapping import to_scope
 from termkeeper.application.support import get_scope, user_id
-from termkeeper.domain import Page, Scope
+from termkeeper.application.validation import validate_page
+from termkeeper.domain import Page, PageQuery, Scope
 from termkeeper.infrastructure.repositories import scope_repository, settings_repository
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
@@ -13,6 +14,27 @@ GENERAL_SCOPE_ID = 1
 
 
 class ScopeUseCases:
+    def scope_page(self, query: PageQuery | None = None) -> Page[Scope]:
+        query = query or PageQuery()
+        validate_page(
+            query.offset,
+            query.limit,
+            resource="Scope",
+            max_limit=100,
+        )
+        with UnitOfWork() as uow:
+            records = scope_repository.list_page(
+                uow.session,
+                offset=query.offset,
+                limit=query.limit,
+            )
+            return Page(
+                items=tuple(to_scope(record) for record in records[: query.limit]),
+                offset=query.offset,
+                limit=query.limit,
+                has_more=len(records) > query.limit,
+            )
+
     def create_scope(self, name: str, description: str | None = None) -> Scope:
         _validate_name(name)
         with UnitOfWork() as uow:
@@ -33,36 +55,6 @@ class ScopeUseCases:
     def scopes(self) -> list[Scope]:
         with UnitOfWork() as uow:
             return [to_scope(record) for record in scope_repository.list_all(uow.session)]
-
-    def search_scopes(
-        self,
-        text: str,
-        *,
-        offset: int = 0,
-        limit: int = 20,
-    ) -> Page[Scope]:
-        if not text.strip():
-            message = "Scope search text must not be empty."
-            raise ValidationError(message)
-        if offset < 0:
-            message = "Scope offset must not be negative."
-            raise ValidationError(message)
-        if not 1 <= limit <= 100:
-            message = "Scope limit must be between 1 and 100."
-            raise ValidationError(message)
-        with UnitOfWork() as uow:
-            records = scope_repository.search(
-                uow.session,
-                text.strip(),
-                offset=offset,
-                limit=limit,
-            )
-            return Page(
-                items=tuple(to_scope(record) for record in records[:limit]),
-                offset=offset,
-                limit=limit,
-                has_more=len(records) > limit,
-            )
 
     def get_scope_by_public_id(self, public_id: UUID) -> Scope:
         with UnitOfWork() as uow:

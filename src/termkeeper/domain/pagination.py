@@ -5,6 +5,12 @@ from typing import Any
 
 
 @dataclass(frozen=True)
+class PageQuery:
+    offset: int = 0
+    limit: int = 50
+
+
+@dataclass(frozen=True)
 class Page[T]:
     items: tuple[T, ...]
     offset: int
