@@ -86,7 +86,13 @@ jobs:
             $hash = (Get-FileHash $asset.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
             "$hash  $($asset.Name)"
           }
-          $checksums | Set-Content .\release\SHA256SUMS.txt -Encoding ascii
+          $checksumText = ($checksums -join "`n") + "`n"
+          $checksumPath = Join-Path (Resolve-Path .\release) "SHA256SUMS.txt"
+          [System.IO.File]::WriteAllText(
+            $checksumPath,
+            $checksumText,
+            [System.Text.UTF8Encoding]::new($false)
+          )
       - name: Publish GitHub Release
         shell: pwsh
         env:
