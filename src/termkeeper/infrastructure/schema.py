@@ -2,16 +2,20 @@
 
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from alembic import command
-from alembic.config import Config
-from alembic.migration import MigrationContext
-from alembic.script import ScriptDirectory
-from sqlalchemy import inspect
+from sqlalchemy import String, column, inspect, select
+from sqlalchemy import table as sql_table
+from sqlalchemy.sql.elements import ColumnClause
 from sqlmodel import SQLModel
 
 from termkeeper.infrastructure import tables as _tables  # noqa: F401
 from termkeeper.infrastructure.connection import configure_database, get_engine
+
+if TYPE_CHECKING:
+    from alembic.config import Config
+
+EXPECTED_SCHEMA_REVISION = "0001_initial"
 
 
 class SchemaMismatchError(RuntimeError):
@@ -20,12 +24,17 @@ class SchemaMismatchError(RuntimeError):
 
 def init_db() -> None:
     """Upgrade the configured database to the latest schema revision."""
-    command.upgrade(migration_config(), "head")
+    if _current_revision() != EXPECTED_SCHEMA_REVISION:
+        from alembic import command
+
+        command.upgrade(migration_config(), "head")
     validate_schema()
 
 
-def migration_config() -> Config:
+def migration_config() -> "Config":
     """Build an Alembic configuration for the packaged migrations."""
+    from alembic.config import Config
+
     config = Config()
     config.set_main_option(
         "script_location",
@@ -37,14 +46,18 @@ def migration_config() -> Config:
 
 def schema_revisions() -> tuple[str | None, str]:
     """Return the database and packaged Alembic revisions."""
-    config = migration_config()
-    expected = ScriptDirectory.from_config(config).get_current_head()
-    if expected is None:  # pragma: no cover - the package always has a baseline migration
-        message = "TermKeeper has no packaged schema revision."
-        raise RuntimeError(message)
-    with get_engine().connect() as connection:
-        current = MigrationContext.configure(connection).get_current_revision()
-    return current, expected
+    return _current_revision(), EXPECTED_SCHEMA_REVISION
+
+
+def _current_revision() -> str | None:
+    engine = get_engine()
+    if not inspect(engine).has_table("alembic_version"):
+        return None
+    version: ColumnClause[str] = column("version_num", String)
+    statement = select(version).select_from(sql_table("alembic_version", version))
+    with engine.connect() as connection:
+        revision = connection.execute(statement).scalar_one_or_none()
+    return str(revision) if revision is not None else None
 
 
 def schema_issues() -> tuple[str, ...]:

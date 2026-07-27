@@ -1,6 +1,6 @@
 [project]
 name = "termkeeper"
-version = "0.3.0"
+dynamic = ["version"]
 description = "Don't lose unknown terms."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -42,6 +42,9 @@ tk-mcp = "termkeeper.adapters.mcp.server:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/termkeeper/_version.py"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

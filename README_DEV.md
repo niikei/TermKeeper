@@ -113,9 +113,10 @@ uv run mypy src
 uv build
 ```
 
-プロジェクトのバージョンは`pyproject.toml`の`project.version`で一元管理します。
-CLIの`tk --version`とPython APIの`termkeeper.__version__`は、インストール済みの
-パッケージメタデータからこの値を取得します。
+プロジェクトのバージョンは`src/termkeeper/_version.py`で一元管理します。
+Hatch、CLIの`tk --version`、Python APIの`termkeeper.__version__`はすべてこの値を参照します。
+CLI起動時にパッケージメタデータを検索しないため、バージョン変更時はこのファイルだけを
+更新してください。
 
 ## 変更時の推奨チェック
 

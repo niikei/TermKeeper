@@ -1,8 +1,11 @@
 """Executable dependency rules for the inbound adapters."""
 
 import ast
+import inspect
+from importlib import import_module
 from pathlib import Path
 
+from termkeeper.application.service import _USE_CASES
 from termkeeper.application.use_cases.capture import CaptureUseCases
 from termkeeper.application.use_cases.classification import ClassificationUseCases
 from termkeeper.application.use_cases.meaning_command import MeaningCommandUseCases
@@ -21,7 +24,7 @@ def test_inbound_adapters_do_not_import_infrastructure() -> None:
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom) and (node.module or "").startswith(
-                "termkeeper.infrastructure"
+                "termkeeper.infrastructure",
             ):
                 violations.append(f"{path}:{node.lineno}")
             if isinstance(node, ast.Import):
@@ -68,6 +71,18 @@ def test_meaning_responsibilities_have_distinct_application_owners() -> None:
     )
     for method in ("meaning_page", "create_meaning", "delete_meaning"):
         assert sum(method in owner.__dict__ for owner in owners) == 1
+
+
+def test_lazy_service_registry_covers_every_use_case_method_once() -> None:
+    registered: list[str] = []
+    for module_name, class_name, method_names in _USE_CASES:
+        module = import_module(f"termkeeper.application.use_cases.{module_name}")
+        use_case = getattr(module, class_name)
+        actual = {name for name, value in vars(use_case).items() if inspect.isfunction(value)}
+        assert set(method_names) == actual, f"{class_name} registry is stale"
+        registered.extend(method_names)
+
+    assert len(registered) == len(set(registered))
 
 
 def test_batch_capture_adapters_delegate_once_to_shared_use_case() -> None:

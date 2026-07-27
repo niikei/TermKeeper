@@ -1382,7 +1382,6 @@ wheels = [
 
 [[package]]
 name = "termkeeper"
-version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },
@@ -1434,7 +1433,7 @@ requires-dist = [
     { name = "types-regex", marker = "extra == 'dev'", specifier = ">=2025.7" },
     { name = "uvicorn", marker = "extra == 'api'", specifier = ">=0.51,<1" },
 ]
-provides-extras = ["api", "mcp", "postgres", "dev"]
+provides-extras = ["api", "dev", "mcp", "postgres"]
 
 [[package]]
 name = "truststore"

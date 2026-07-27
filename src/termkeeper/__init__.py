@@ -1,13 +1,13 @@
 """TermKeeper public package API."""
 
-from importlib.metadata import version
 from typing import TYPE_CHECKING
+
+from termkeeper._version import __version__
 
 if TYPE_CHECKING:
     from termkeeper.application import TermKeeperService
 
 __all__ = ["TermKeeperService", "__version__"]
-__version__ = version("termkeeper")
 
 
 def __getattr__(name: str) -> object:

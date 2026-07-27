@@ -1,8 +1,10 @@
 """CLI startup dependency boundaries."""
 
+import os
 import subprocess
 import sys
 import textwrap
+from pathlib import Path
 
 import pytest
 
@@ -46,3 +48,48 @@ def test_database_free_commands_do_not_load_heavy_stacks(
     )
 
     subprocess.run([sys.executable, "-c", script], check=True)
+
+
+def test_application_facade_import_does_not_load_database_stack() -> None:
+    script = textwrap.dedent(
+        """
+        import sys
+
+        from termkeeper.application import TermKeeperService
+
+        assert TermKeeperService
+        loaded = [
+            name
+            for name in ("alembic", "sqlalchemy", "sqlmodel")
+            if name in sys.modules
+        ]
+        assert not loaded, loaded
+        """,
+    )
+
+    subprocess.run([sys.executable, "-c", script], check=True)
+
+
+def test_current_database_initialization_does_not_load_alembic(tmp_path: Path) -> None:
+    environment = os.environ.copy()
+    environment["TERMKEEPER_DATABASE_URL"] = f"sqlite:///{tmp_path / 'startup.db'}"
+    initialize = (
+        "from termkeeper.application import TermKeeperService; TermKeeperService().initialize()"
+    )
+    subprocess.run([sys.executable, "-c", initialize], env=environment, check=True)
+
+    verify_fast_path = textwrap.dedent(
+        """
+        import sys
+
+        from termkeeper.application import TermKeeperService
+
+        TermKeeperService().initialize()
+        assert "alembic" not in sys.modules
+        """,
+    )
+    subprocess.run(
+        [sys.executable, "-c", verify_fast_path],
+        env=environment,
+        check=True,
+    )

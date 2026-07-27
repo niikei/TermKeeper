@@ -30,7 +30,9 @@ Occurrence intakeはCaptureと明示的な分類状態遷移へ分け、それ�
 `classification.py`へ配置する。検索、統合、Occurrence照会・編集、分析、Relation、
 Reference、Tag、Configも`use_cases/`内の機能別モジュールへ分割する。
 共有するレコード取得とDTO変換だけを`support.py` と `mapping.py` に置き、機能間の
-直接呼び出しは避ける。
+直接呼び出しは避ける。Serviceは型検査時には全UseCaseを明示した単一のファサードとして扱い、
+実行時には最初に呼ばれたUseCaseだけを遅延importしてメソッドを束縛する。公開メソッドと
+遅延ロードRegistryの対応はArchitecture Testで完全一致を検査する。
 
 CLIの`main.py`はパース、Service初期化、エラー処理、JSON出力だけを担当する。
 各コマンドの入出力変換は`adapters/cli/handlers/`へユースケース単位で配置し、
@@ -141,13 +143,15 @@ APIプロセス起動時にはMigrationを実行せず、デプロイ処理で`t
 既定DBはOS標準のユーザーデータ領域へ保存し、カレントディレクトリには依存させない。
 開発・テスト・外部アダプターでは`TERMKEEPER_DATABASE_URL`による接続URLを優先する。
 SQLiteを既定とし、PostgreSQL用driverは`postgres`任意依存として分離する。
-`tk init` および各CLI起動時にAlembicを実行し、最新Revisionまでupgradeする。
+`tk init` および各CLI起動時にRevisionを確認し、必要な場合だけAlembicを読み込んで
+最新Revisionまでupgradeする。最新Revisionの場合もSQLModel metadataが要求するテーブルと
+列の検査は省略せず、stamp済みだが破損したDBを見逃さない。
 現行モデルを`0001_initial`の初期ベースラインとする。各Revisionは固定DDLとして保持し、
 スキーマ変更時は適用済みRevisionを書き換えず、新しいRevisionを追加して順番に適用する。
 初期ベースラインは正式リリース前かつ既存DBを引き継がない期間に限りリベースできる。
 SQLModel metadataと最新Revisionの差分をテストし、モデルだけを変更してMigrationを追加し忘れる
-schema driftを防ぐ。既存データを移行するRevisionは、実際の旧スキーマとデータを模したfixtureで
-upgradeを検証する。
+schema driftを防ぐ。fast pathが参照するRevision定数とAlembicの最新headもテストで一致を保証する。
+既存データを移行するRevisionは、実際の旧スキーマとデータを模したfixtureでupgradeを検証する。
 
 Service初期化時のDBエラーは`InitializationError`へ変換する。CLIは通常、パスと復旧導線だけを
 表示して終了コード`1`を返し、内部トレースバックは`--debug`指定時だけ表示する。

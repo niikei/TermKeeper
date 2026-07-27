@@ -30,9 +30,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     service = TermKeeperService()
     try:
-        skip_initialization = args.command == "doctor" or (
-            args.command == "init" and args.reset
-        )
+        skip_initialization = args.command == "doctor" or (args.command == "init" and args.reset)
         if not skip_initialization:
             service.initialize()
         result = get_handler(args.command)(args, service)
