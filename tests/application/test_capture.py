@@ -189,20 +189,16 @@ def test_capture_many_rejects_invalid_or_duplicate_batches_before_writing() -> N
 
 def test_capture_many_rolls_back_repository_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     service = TermKeeperService()
-    original_create = occurrence_repository.create
-    calls = 0
+    original_create_many = occurrence_repository.create_many
 
-    def fail_second_create(
+    def fail_after_create(
         session: Session,
-        new: occurrence_repository.NewOccurrence,
-    ) -> OccurrenceRecord:
-        nonlocal calls
-        calls += 1
-        if calls == 2:
-            raise RuntimeError("simulated failure")
-        return original_create(session, new)
+        items: tuple[occurrence_repository.NewOccurrence, ...],
+    ) -> tuple[OccurrenceRecord, ...]:
+        original_create_many(session, items)
+        raise RuntimeError("simulated failure")
 
-    monkeypatch.setattr(occurrence_repository, "create", fail_second_create)
+    monkeypatch.setattr(occurrence_repository, "create_many", fail_after_create)
     with pytest.raises(RuntimeError, match="simulated failure"):
         service.capture_many((CaptureInput("ERP"), CaptureInput("CRM")))
 

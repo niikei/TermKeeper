@@ -1,5 +1,6 @@
 """Persistence operations for occurrence capture and classification."""
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -24,8 +25,25 @@ def create(
     session: Session,
     new: NewOccurrence,
 ) -> Occurrence:
+    occurrence = _new_occurrence(new)
+    session.add(occurrence)
+    session.flush()
+    return occurrence
+
+
+def create_many(
+    session: Session,
+    items: Sequence[NewOccurrence],
+) -> tuple[Occurrence, ...]:
+    occurrences = tuple(_new_occurrence(item) for item in items)
+    session.add_all(occurrences)
+    session.flush()
+    return occurrences
+
+
+def _new_occurrence(new: NewOccurrence) -> Occurrence:
     status = OccurrenceStatus.RESOLVED if new.meaning_id is not None else OccurrenceStatus.PENDING
-    occurrence = Occurrence(
+    return Occurrence(
         keyword=new.keyword,
         keyword_norm=normalize_keyword(new.keyword),
         status=status,
@@ -36,9 +54,6 @@ def create(
         resolved_at=utc_now() if new.meaning_id is not None else None,
         resolved_by_id=new.user_id if new.meaning_id is not None else None,
     )
-    session.add(occurrence)
-    session.flush()
-    return occurrence
 
 
 def get(session: Session, occurrence_id: int) -> Occurrence | None:

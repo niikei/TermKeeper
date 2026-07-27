@@ -3,7 +3,7 @@
 from uuid import UUID
 
 from termkeeper.application.errors import NotFoundError, ValidationError
-from termkeeper.application.mapping import to_meaning, to_occurrence
+from termkeeper.application.mapping import to_meaning, to_meanings, to_occurrence
 from termkeeper.application.support import (
     get_meaning,
     get_occurrence,
@@ -34,12 +34,12 @@ class ClassificationUseCases:
         with UnitOfWork() as uow:
             occurrence = get_occurrence(uow, occurrence_id)
             _require_status(occurrence.status, OccurrenceStatus.PENDING)
-            candidates = tuple(
-                to_meaning(uow.session, record)
-                for record in meaning_repository.find_candidates(
+            candidates = to_meanings(
+                uow.session,
+                meaning_repository.find_candidates(
                     uow.session,
                     occurrence.keyword,
-                )
+                ),
             )
             return CaptureResult(to_occurrence(occurrence), candidates)
 

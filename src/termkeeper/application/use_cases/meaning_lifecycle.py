@@ -1,7 +1,7 @@
 """Meaning trash, restore, and purge use cases."""
 
 from termkeeper.application.errors import NotFoundError, ValidationError
-from termkeeper.application.mapping import to_meaning
+from termkeeper.application.mapping import to_meaning, to_meanings
 from termkeeper.application.support import get_meaning, get_scope, user_id
 from termkeeper.application.use_cases.meaning_support import ensure_unique_meaning
 from termkeeper.application.validation import validate_page
@@ -27,9 +27,12 @@ class MeaningLifecycleUseCases:
 
     def trash(self) -> list[Meaning]:
         with UnitOfWork() as uow:
-            return [
-                to_meaning(uow.session, row) for row in meaning_repository.list_deleted(uow.session)
-            ]
+            return list(
+                to_meanings(
+                    uow.session,
+                    meaning_repository.list_deleted(uow.session),
+                ),
+            )
 
     def trash_page(self, query: PageQuery | None = None) -> Page[Meaning]:
         query = query or PageQuery()
@@ -41,7 +44,7 @@ class MeaningLifecycleUseCases:
                 limit=query.limit,
             )
             return Page(
-                items=tuple(to_meaning(uow.session, record) for record in records[: query.limit]),
+                items=to_meanings(uow.session, records[: query.limit]),
                 offset=query.offset,
                 limit=query.limit,
                 has_more=len(records) > query.limit,

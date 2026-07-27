@@ -1,7 +1,7 @@
 """Meaning relationship use cases."""
 
 from termkeeper.application.errors import NotFoundError, ValidationError
-from termkeeper.application.mapping import to_meaning
+from termkeeper.application.mapping import to_meanings
 from termkeeper.application.support import get_meaning, user_id
 from termkeeper.application.validation import validate_page
 from termkeeper.domain import Meaning, Page, PageQuery
@@ -30,7 +30,7 @@ class RelationUseCases:
                 limit=query.limit,
             )
             return Page(
-                items=tuple(to_meaning(uow.session, record) for record in records[: query.limit]),
+                items=to_meanings(uow.session, records[: query.limit]),
                 offset=query.offset,
                 limit=query.limit,
                 has_more=len(records) > query.limit,
@@ -39,10 +39,12 @@ class RelationUseCases:
     def related(self, meaning_id: int) -> list[Meaning]:
         with UnitOfWork() as uow:
             get_meaning(uow, meaning_id)
-            return [
-                to_meaning(uow.session, record)
-                for record in relation_repository.list_related(uow.session, meaning_id)
-            ]
+            return list(
+                to_meanings(
+                    uow.session,
+                    relation_repository.list_related(uow.session, meaning_id),
+                ),
+            )
 
     def relate(self, meaning_id: int, related_id: int) -> list[Meaning]:
         _validate_pair(meaning_id, related_id)
@@ -53,10 +55,12 @@ class RelationUseCases:
             if relation_repository.add(uow.session, meaning_id, related_id, actor_id):
                 meaning_repository.touch(uow.session, meaning, actor_id)
                 meaning_repository.touch(uow.session, related, actor_id)
-            result = [
-                to_meaning(uow.session, record)
-                for record in relation_repository.list_related(uow.session, meaning_id)
-            ]
+            result = list(
+                to_meanings(
+                    uow.session,
+                    relation_repository.list_related(uow.session, meaning_id),
+                ),
+            )
             uow.commit()
             return result
 
@@ -72,10 +76,12 @@ class RelationUseCases:
             meaning_repository.touch(uow.session, meaning, actor_id)
             meaning_repository.touch(uow.session, related, actor_id)
             uow.session.flush()
-            result = [
-                to_meaning(uow.session, record)
-                for record in relation_repository.list_related(uow.session, meaning_id)
-            ]
+            result = list(
+                to_meanings(
+                    uow.session,
+                    relation_repository.list_related(uow.session, meaning_id),
+                ),
+            )
             uow.commit()
             return result
 

@@ -62,6 +62,8 @@ Meaning検索のフィールドはORで結合し、smart modeの複数語は独�
 exact、prefix、contains、glob、regex modeは入力全体を1つのパターンとして扱う。
 globとregexはDB dialect固有演算子を使わずApplicationで同じ照合器を実行する。正規表現には
 文字数、候補Meaning件数、1照合あたりの時間制限を設け、ReDoSと無制限な全件走査を防ぐ。
+検索候補は名称・説明・Termだけを持つ軽量Documentで採点し、並び替えとページングの後に
+返却対象だけを完全なMeaning DTOへ変換する。候補全件のScope・Tagを先読みしない。
 各アダプターは入力契約とID表現の変換、出力表現だけを担当し、検索・候補・ページ判定の
 ロジックを持たない。
 HTTPとMCPのUUIDからDomain検索Queryへの変換は`adapters/external/queries.py`で共有し、
@@ -109,6 +111,8 @@ OccurrenceやReferenceの一覧変換では、関連Meaningの内部IDから`pub
 Meaning、Trash、Scope、Tag、Reference、Relation、Occurrence、InboxはApplication層のPageを
 共有し、Repositoryで`offset`と`limit + 1`を適用する。外部アダプターで全件取得後のsliceは
 行わない。CSV全件exportと人間向けの明示的な非ページ一覧だけを例外とする。
+複数MeaningをDTOへ変換するときはScope・Term・Tagを集合単位で取得し、1件ずつRepositoryを
+呼ぶN+1を禁止する。一覧件数が増えても、Meaning本体を除くhydrateクエリ数は一定に保つ。
 
 HTTPアダプターはFastAPIで`/api/v1`以下へ公開し、PydanticはHTTPリクエストの構文検証だけを
 担当する。業務検証はApplicationへ委譲し、`ValidationError`を422、`NotFoundError`を404の

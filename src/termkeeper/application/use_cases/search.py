@@ -1,10 +1,18 @@
 """Shared search use cases used by every inbound adapter."""
 
 import regex
+from sqlmodel import Session
 
 from termkeeper.application.errors import ValidationError
-from termkeeper.application.mapping import to_meaning, to_occurrence, to_scope
-from termkeeper.application.search import rank_search, rank_suggestions, search_tokens
+from termkeeper.application.mapping import to_meanings, to_occurrence, to_scope
+from termkeeper.application.search import (
+    RankedSearchHit,
+    RankedSearchSuggestion,
+    SearchDocument,
+    rank_search,
+    rank_suggestions,
+    search_tokens,
+)
 from termkeeper.application.support import get_scope_by_name, required_id
 from termkeeper.application.validation import optional_filter, to_utc, validate_page
 from termkeeper.domain import (
@@ -15,10 +23,12 @@ from termkeeper.domain import (
     Page,
     Scope,
     ScopeSearchQuery,
+    SearchField,
     SearchHit,
     SearchMode,
     SearchQuery,
     SearchResult,
+    SearchSuggestion,
 )
 from termkeeper.infrastructure.normalization import normalize_keyword
 from termkeeper.infrastructure.repositories import (
@@ -26,6 +36,7 @@ from termkeeper.infrastructure.repositories import (
     occurrence_repository,
     scope_repository,
 )
+from termkeeper.infrastructure.tables import Meaning as MeaningRecord
 from termkeeper.infrastructure.unit_of_work import UnitOfWork
 
 MAX_SEARCH_LIMIT = 100
@@ -112,9 +123,13 @@ class SearchUseCases:
                     favorite_only=query.favorite_only,
                     tag=query.tag,
                 )
-            meanings = [to_meaning(uow.session, row) for row in records]
+            documents, term_names = _search_documents(
+                uow.session,
+                records,
+                query,
+            )
             try:
-                ranked = rank_search(meanings, query)
+                ranked = rank_search(documents, query)
             except regex.error as exc:
                 message = f"Invalid regular expression: {exc}."
                 raise ValidationError(message) from exc
@@ -122,24 +137,33 @@ class SearchUseCases:
                 message = "Regular expression evaluation timed out."
                 raise ValidationError(message) from exc
             if ranked:
-                return _search_page(ranked, query)
-            if query.mode != SearchMode.SMART or query.suggestion_limit == 0 or query.offset > 0:
-                return _search_page([], query)
-            all_meanings = [
-                to_meaning(uow.session, row)
-                for row in meaning_repository.list_all(
+                return _search_page(
                     uow.session,
-                    scope_id=scope_id,
-                    favorite_only=query.favorite_only,
-                    tag=query.tag,
-                    limit=MAX_PATTERN_SCAN,
+                    records,
+                    ranked,
+                    query,
+                    term_names,
                 )
-            ]
-            return SearchResult(
-                (),
-                tuple(rank_suggestions(all_meanings, query)),
-                offset=query.offset,
-                limit=query.limit,
+            if query.mode != SearchMode.SMART or query.suggestion_limit == 0 or query.offset > 0:
+                return SearchResult((), offset=query.offset, limit=query.limit)
+            suggestion_records = meaning_repository.list_all(
+                uow.session,
+                scope_id=scope_id,
+                favorite_only=query.favorite_only,
+                tag=query.tag,
+                limit=MAX_PATTERN_SCAN,
+            )
+            suggestion_documents, suggestion_terms = _search_documents(
+                uow.session,
+                suggestion_records,
+                query,
+            )
+            return _suggestion_result(
+                uow.session,
+                suggestion_records,
+                rank_suggestions(suggestion_documents, query),
+                query,
+                suggestion_terms,
             )
 
     def search_occurrences(self, query: OccurrenceQuery) -> Page[OccurrenceItem]:
@@ -224,11 +248,86 @@ def _occurrence_page(
         )
 
 
-def _search_page(hits: list[SearchHit], query: SearchQuery) -> SearchResult:
+def _search_documents(
+    session: Session,
+    records: list[MeaningRecord],
+    query: SearchQuery,
+) -> tuple[list[SearchDocument], dict[int, tuple[str, ...]]]:
+    meaning_ids = {required_id(record.meaning_id) for record in records}
+    term_names = (
+        meaning_repository.get_term_names(session, meaning_ids)
+        if SearchField.TERM in query.fields
+        else {}
+    )
+    return (
+        [
+            SearchDocument(
+                meaning_id=required_id(record.meaning_id),
+                full_name=record.full_name,
+                description=record.description,
+                terms=term_names.get(required_id(record.meaning_id), ()),
+            )
+            for record in records
+        ],
+        term_names,
+    )
+
+
+def _search_page(
+    session: Session,
+    records: list[MeaningRecord],
+    hits: list[RankedSearchHit],
+    query: SearchQuery,
+    term_names: dict[int, tuple[str, ...]],
+) -> SearchResult:
     page = hits[query.offset : query.offset + query.limit + 1]
+    visible = page[: query.limit]
+    records_by_id = {required_id(record.meaning_id): record for record in records}
+    meanings = to_meanings(
+        session,
+        [records_by_id[hit.meaning_id] for hit in visible],
+        term_names=(term_names if SearchField.TERM in query.fields else None),
+    )
     return SearchResult(
-        hits=tuple(page[: query.limit]),
+        hits=tuple(
+            SearchHit(
+                meaning=meaning,
+                score=hit.score,
+                matched_field=hit.matched_field,
+                matched_text=hit.matched_text,
+            )
+            for hit, meaning in zip(visible, meanings, strict=True)
+        ),
         offset=query.offset,
         limit=query.limit,
         has_more=len(page) > query.limit,
+    )
+
+
+def _suggestion_result(
+    session: Session,
+    records: list[MeaningRecord],
+    suggestions: list[RankedSearchSuggestion],
+    query: SearchQuery,
+    term_names: dict[int, tuple[str, ...]],
+) -> SearchResult:
+    records_by_id = {required_id(record.meaning_id): record for record in records}
+    meanings = to_meanings(
+        session,
+        [records_by_id[item.meaning_id] for item in suggestions],
+        term_names=(term_names if SearchField.TERM in query.fields else None),
+    )
+    return SearchResult(
+        (),
+        tuple(
+            SearchSuggestion(
+                meaning=meaning,
+                similarity=suggestion.similarity,
+                matched_field=suggestion.matched_field,
+                matched_text=suggestion.matched_text,
+            )
+            for suggestion, meaning in zip(suggestions, meanings, strict=True)
+        ),
+        offset=query.offset,
+        limit=query.limit,
     )

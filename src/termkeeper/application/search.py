@@ -1,6 +1,7 @@
 """Relevance scoring for Meaning search results."""
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from difflib import SequenceMatcher
 from fnmatch import fnmatchcase
 from time import monotonic
@@ -11,12 +12,9 @@ import regex
 
 from termkeeper.domain import (
     LogicalOperator,
-    Meaning,
     SearchField,
-    SearchHit,
     SearchMode,
     SearchQuery,
-    SearchSuggestion,
 )
 from termkeeper.infrastructure.normalization import normalize_keyword
 
@@ -26,31 +24,62 @@ _REGEX_TOTAL_TIMEOUT_SECONDS = 1.0
 type _Match = tuple[int, SearchField, str]
 
 
-def rank_search(meanings: list[Meaning], query: SearchQuery) -> list[SearchHit]:
+@dataclass(frozen=True, slots=True)
+class SearchDocument:
+    meaning_id: int
+    full_name: str
+    description: str | None
+    terms: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class RankedSearchHit:
+    meaning_id: int
+    score: int
+    matched_field: SearchField
+    matched_text: str
+
+
+@dataclass(frozen=True, slots=True)
+class RankedSearchSuggestion:
+    meaning_id: int
+    similarity: int
+    matched_field: SearchField
+    matched_text: str
+
+
+def rank_search(
+    documents: list[SearchDocument],
+    query: SearchQuery,
+) -> list[RankedSearchHit]:
     if query.mode == SearchMode.SMART:
-        hits = _rank_smart(meanings, query)
+        hits = _rank_smart(documents, query)
     else:
-        hits = _rank_pattern(meanings, query)
+        hits = _rank_pattern(documents, query)
+    names = {document.meaning_id: document.full_name for document in documents}
     hits.sort(
         key=lambda hit: (
             -hit.score,
-            normalize_keyword(hit.meaning.full_name),
-            hit.meaning.meaning_id,
+            normalize_keyword(names[hit.meaning_id]),
+            hit.meaning_id,
         ),
     )
     return hits
 
 
-def _rank_smart(meanings: list[Meaning], query: SearchQuery) -> list[SearchHit]:
+def _rank_smart(
+    documents: list[SearchDocument],
+    query: SearchQuery,
+) -> list[RankedSearchHit]:
     tokens = _tokens(query.text)
     match_all = query.word_match == LogicalOperator.ALL
     fields = frozenset(query.fields)
     return [
         hit
-        for meaning in meanings
+        for document in documents
         if (
             hit := _score_meaning(
-                meaning,
+                document,
                 tokens,
                 fields,
                 match_all=match_all,
@@ -60,12 +89,23 @@ def _rank_smart(meanings: list[Meaning], query: SearchQuery) -> list[SearchHit]:
     ]
 
 
-def _rank_pattern(meanings: list[Meaning], query: SearchQuery) -> list[SearchHit]:
+def _rank_pattern(
+    documents: list[SearchDocument],
+    query: SearchQuery,
+) -> list[RankedSearchHit]:
     matches = _pattern_matcher(query)
     hits = [
         hit
-        for meaning in meanings
-        if (hit := _pattern_hit(meaning, frozenset(query.fields), matches, query.mode)) is not None
+        for document in documents
+        if (
+            hit := _pattern_hit(
+                document,
+                frozenset(query.fields),
+                matches,
+                query.mode,
+            )
+        )
+        is not None
     ]
     return hits
 
@@ -74,31 +114,42 @@ def search_tokens(text: str) -> tuple[str, ...]:
     return _tokens(text)
 
 
-def rank_suggestions(meanings: list[Meaning], query: SearchQuery) -> list[SearchSuggestion]:
+def rank_suggestions(
+    documents: list[SearchDocument],
+    query: SearchQuery,
+) -> list[RankedSearchSuggestion]:
     query_text = normalize_keyword(query.text)
     suggestions = [
         suggestion
-        for meaning in meanings
-        if (suggestion := _suggestion(meaning, query_text, frozenset(query.fields))) is not None
+        for document in documents
+        if (
+            suggestion := _suggestion(
+                document,
+                query_text,
+                frozenset(query.fields),
+            )
+        )
+        is not None
     ]
+    names = {document.meaning_id: document.full_name for document in documents}
     suggestions.sort(
         key=lambda item: (
             -item.similarity,
-            normalize_keyword(item.meaning.full_name),
-            item.meaning.meaning_id,
+            normalize_keyword(names[item.meaning_id]),
+            item.meaning_id,
         ),
     )
     return suggestions[: query.suggestion_limit]
 
 
 def _score_meaning(
-    meaning: Meaning,
+    document: SearchDocument,
     tokens: tuple[str, ...],
     fields: frozenset[SearchField],
     *,
     match_all: bool,
-) -> SearchHit | None:
-    token_matches = [_best_match(meaning, token, fields) for token in tokens]
+) -> RankedSearchHit | None:
+    token_matches = [_best_match(document, token, fields) for token in tokens]
     matched: list[_Match] = [
         cast("_Match", candidate) for candidate in token_matches if candidate is not None
     ]
@@ -106,8 +157,8 @@ def _score_meaning(
         return None
     best = max(matched, key=_match_score)
     _, matched_field, matched_text = best
-    return SearchHit(
-        meaning=meaning,
+    return RankedSearchHit(
+        meaning_id=document.meaning_id,
         score=sum(score for score, _, _ in matched),
         matched_field=matched_field,
         matched_text=matched_text,
@@ -120,22 +171,27 @@ def _match_score(candidate: _Match) -> int:
 
 
 def _best_match(
-    meaning: Meaning,
+    document: SearchDocument,
     token: str,
     fields: frozenset[SearchField],
 ) -> _Match | None:
     candidates: list[_Match] = []
     if SearchField.TERM in fields:
         candidates.extend(
-            _match_text(term, token, SearchField.TERM, (100, 80, 60)) for term in meaning.terms
+            _match_text(term, token, SearchField.TERM, (100, 80, 60)) for term in document.terms
         )
     if SearchField.NAME in fields:
         candidates.append(
-            _match_text(meaning.full_name, token, SearchField.NAME, (90, 70, 50)),
+            _match_text(document.full_name, token, SearchField.NAME, (90, 70, 50)),
         )
-    if SearchField.DESCRIPTION in fields and meaning.description:
+    if SearchField.DESCRIPTION in fields and document.description:
         candidates.append(
-            _match_text(meaning.description, token, SearchField.DESCRIPTION, (40, 30, 20)),
+            _match_text(
+                document.description,
+                token,
+                SearchField.DESCRIPTION,
+                (40, 30, 20),
+            ),
         )
     matches = [candidate for candidate in candidates if _match_score(candidate) > 0]
     if not matches:
@@ -163,13 +219,13 @@ def _match_text(
 
 
 def _pattern_hit(
-    meaning: Meaning,
+    document: SearchDocument,
     fields: frozenset[SearchField],
     matches: Callable[[str], bool],
     mode: SearchMode,
-) -> SearchHit | None:
+) -> RankedSearchHit | None:
     candidates = [
-        (field, text) for field, text in _searchable_texts(meaning, fields) if matches(text)
+        (field, text) for field, text in _searchable_texts(document, fields) if matches(text)
     ]
     if not candidates:
         return None
@@ -184,8 +240,8 @@ def _pattern_hit(
         SearchMode.GLOB: 5,
         SearchMode.REGEX: 5,
     }[mode]
-    return SearchHit(
-        meaning=meaning,
+    return RankedSearchHit(
+        meaning_id=document.meaning_id,
         score=_field_weight(matched_field) + mode_bonus,
         matched_field=matched_field,
         matched_text=matched_text,
@@ -193,16 +249,16 @@ def _pattern_hit(
 
 
 def _searchable_texts(
-    meaning: Meaning,
+    document: SearchDocument,
     fields: frozenset[SearchField],
 ) -> list[tuple[SearchField, str]]:
     values: list[tuple[SearchField, str]] = []
     if SearchField.TERM in fields:
-        values.extend((SearchField.TERM, term) for term in meaning.terms)
+        values.extend((SearchField.TERM, term) for term in document.terms)
     if SearchField.NAME in fields:
-        values.append((SearchField.NAME, meaning.full_name))
-    if SearchField.DESCRIPTION in fields and meaning.description:
-        values.append((SearchField.DESCRIPTION, meaning.description))
+        values.append((SearchField.NAME, document.full_name))
+    if SearchField.DESCRIPTION in fields and document.description:
+        values.append((SearchField.DESCRIPTION, document.description))
     return values
 
 
@@ -251,10 +307,10 @@ def _pattern_matcher(query: SearchQuery) -> Callable[[str], bool]:
 
 
 def _suggestion(
-    meaning: Meaning,
+    document: SearchDocument,
     query_text: str,
     fields: frozenset[SearchField],
-) -> SearchSuggestion | None:
+) -> RankedSearchSuggestion | None:
     candidates: list[tuple[float, SearchField, str]] = []
     if SearchField.TERM in fields:
         candidates.extend(
@@ -263,7 +319,7 @@ def _suggestion(
                 SearchField.TERM,
                 term,
             )
-            for term in meaning.terms
+            for term in document.terms
         )
     if SearchField.NAME in fields:
         candidates.append(
@@ -271,22 +327,22 @@ def _suggestion(
                 SequenceMatcher(
                     None,
                     query_text,
-                    normalize_keyword(meaning.full_name),
+                    normalize_keyword(document.full_name),
                 ).ratio(),
                 SearchField.NAME,
-                meaning.full_name,
+                document.full_name,
             ),
         )
-    if SearchField.DESCRIPTION in fields and meaning.description:
+    if SearchField.DESCRIPTION in fields and document.description:
         candidates.append(
             (
                 SequenceMatcher(
                     None,
                     query_text,
-                    normalize_keyword(meaning.description),
+                    normalize_keyword(document.description),
                 ).ratio(),
                 SearchField.DESCRIPTION,
-                meaning.description,
+                document.description,
             ),
         )
     if not candidates:
@@ -294,8 +350,8 @@ def _suggestion(
     ratio, matched_field, matched_text = max(candidates, key=lambda candidate: candidate[0])
     if ratio < _MIN_SUGGESTION_RATIO:
         return None
-    return SearchSuggestion(
-        meaning=meaning,
+    return RankedSearchSuggestion(
+        meaning_id=document.meaning_id,
         similarity=round(ratio * 100),
         matched_field=matched_field,
         matched_text=matched_text,

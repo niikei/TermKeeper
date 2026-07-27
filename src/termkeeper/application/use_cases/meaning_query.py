@@ -3,7 +3,7 @@
 from uuid import UUID
 
 from termkeeper.application.errors import NotFoundError, ValidationError
-from termkeeper.application.mapping import to_meaning
+from termkeeper.application.mapping import to_meaning, to_meanings
 from termkeeper.application.support import get_meaning, get_scope_by_name, required_id
 from termkeeper.application.validation import (
     optional_filter,
@@ -51,7 +51,7 @@ class MeaningQueryUseCases:
                 limit=query.limit,
             )
             return Page(
-                items=tuple(to_meaning(uow.session, record) for record in records[: query.limit]),
+                items=to_meanings(uow.session, records[: query.limit]),
                 offset=query.offset,
                 limit=query.limit,
                 has_more=len(records) > query.limit,
@@ -91,16 +91,20 @@ class MeaningQueryUseCases:
     ) -> list[Meaning]:
         with UnitOfWork() as uow:
             selected_scope = get_scope_by_name(uow, scope) if scope else None
-            meanings = [
-                to_meaning(uow.session, row)
-                for row in meaning_repository.list_all(
+            meanings = list(
+                to_meanings(
                     uow.session,
-                    scope_id=(
-                        required_id(selected_scope.scope_id) if selected_scope is not None else None
+                    meaning_repository.list_all(
+                        uow.session,
+                        scope_id=(
+                            required_id(selected_scope.scope_id)
+                            if selected_scope is not None
+                            else None
+                        ),
+                        favorite_only=favorite_only,
                     ),
-                    favorite_only=favorite_only,
-                )
-            ]
+                ),
+            )
             return _filter_tag(meanings, tag)
 
 

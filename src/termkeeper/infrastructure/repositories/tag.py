@@ -45,6 +45,24 @@ def get_names(session: Session, meaning_id: int) -> list[str]:
     return list(session.exec(statement).all())
 
 
+def get_names_for_meanings(
+    session: Session,
+    meaning_ids: set[int],
+) -> dict[int, tuple[str, ...]]:
+    if not meaning_ids:
+        return {}
+    rows = session.exec(
+        select(MeaningTag.meaning_id, Tag.name)
+        .join(Tag, col(Tag.tag_id) == col(MeaningTag.tag_id))
+        .where(col(MeaningTag.meaning_id).in_(meaning_ids))
+        .order_by(col(MeaningTag.meaning_id), col(Tag.name_norm)),
+    ).all()
+    grouped: dict[int, list[str]] = {meaning_id: [] for meaning_id in meaning_ids}
+    for meaning_id, name in rows:
+        grouped[meaning_id].append(name)
+    return {meaning_id: tuple(names) for meaning_id, names in grouped.items()}
+
+
 def list_summaries(
     session: Session,
     *,

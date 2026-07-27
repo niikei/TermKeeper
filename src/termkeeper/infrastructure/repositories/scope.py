@@ -34,6 +34,15 @@ def get(session: Session, scope_id: int) -> Scope | None:
     return session.get(Scope, scope_id)
 
 
+def get_many(session: Session, scope_ids: set[int]) -> dict[int, Scope]:
+    if not scope_ids:
+        return {}
+    records = session.exec(
+        select(Scope).where(col(Scope.scope_id).in_(scope_ids)),
+    ).all()
+    return {scope.scope_id: scope for scope in records if scope.scope_id is not None}
+
+
 def get_by_name(session: Session, name: str) -> Scope | None:
     return session.exec(
         select(Scope).where(Scope.name_norm == normalize_keyword(name)),

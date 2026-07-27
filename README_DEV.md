@@ -162,6 +162,10 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 - Meaning検索のフィールドOR、smart modeの語ALL/ANY、exact／prefix／contains／glob／regexは
   `SearchUseCases`で一度だけ実装し、CLI・HTTP・MCPで同じ意味にする
 - 正規表現検索はDB方言へ委譲せず、文字数・候補件数・照合時間に上限を設ける
+- Meaningの一覧変換は`to_meanings`でScope・Term・Tagを一括取得し、ループ内で
+  `to_meaning`を呼ばない
+- 検索は軽量Documentを採点してから返却ページだけを完全DTOへhydrateする
+- 一括CaptureはOccurrence単件処理をループせず、Meaning参照・候補検索・候補hydrateを一括する
 - 検索応答は`SearchResult`で通常ヒットと類似候補を分離し、候補は0件時だけ計算する
 - CLI固有の処理をApplication層へ持ち込まない
 - APIやMCPを追加するときも既存のApplicationユースケースを再利用する
@@ -179,6 +183,7 @@ Ruffの警告は原則としてコード側で解消します。ルール除外�
 - Application: ユースケース、入力検証、トランザクションのロールバック
 - Infrastructure: DB制約、Repository固有の契約
 - Presentation: CLI終了コード、通常表示、JSON、CSV
+- Performance: SQLクエリ数が入力件数に比例しないことをQuery Counterで検証
 
 CSVの構文解析はPresentation、行検証・Dry Run・一括更新はApplicationの責務とする。
 `terms`／`tags`セルはJSON文字列配列とし、Presentationで構文エラーを行issueへ変換する。

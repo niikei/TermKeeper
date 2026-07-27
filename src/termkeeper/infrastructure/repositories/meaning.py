@@ -91,6 +91,21 @@ def get(session: Session, meaning_id: int, *, include_deleted: bool = False) -> 
     return session.exec(statement).first()
 
 
+def get_many(
+    session: Session,
+    meaning_ids: set[int],
+    *,
+    include_deleted: bool = False,
+) -> dict[int, Meaning]:
+    if not meaning_ids:
+        return {}
+    statement = select(Meaning).where(col(Meaning.meaning_id).in_(meaning_ids))
+    if not include_deleted:
+        statement = statement.where(col(Meaning.deleted_at).is_(None))
+    records = session.exec(statement).all()
+    return {meaning.meaning_id: meaning for meaning in records if meaning.meaning_id is not None}
+
+
 def get_by_public_id(
     session: Session,
     public_id: UUID,
@@ -117,6 +132,23 @@ def get_public_ids(session: Session, meaning_ids: set[int]) -> dict[int, UUID]:
 def get_terms(session: Session, meaning_id: int) -> list[Term]:
     statement = select(Term).where(Term.meaning_id == meaning_id).order_by(Term.keyword_norm)
     return list(session.exec(statement).all())
+
+
+def get_term_names(
+    session: Session,
+    meaning_ids: set[int],
+) -> dict[int, tuple[str, ...]]:
+    if not meaning_ids:
+        return {}
+    rows = session.exec(
+        select(Term.meaning_id, Term.keyword)
+        .where(col(Term.meaning_id).in_(meaning_ids))
+        .order_by(col(Term.meaning_id), col(Term.keyword_norm)),
+    ).all()
+    grouped: dict[int, list[str]] = {meaning_id: [] for meaning_id in meaning_ids}
+    for meaning_id, keyword in rows:
+        grouped[meaning_id].append(keyword)
+    return {meaning_id: tuple(keywords) for meaning_id, keywords in grouped.items()}
 
 
 def count_terms_to_move(session: Session, source_id: int, target_id: int) -> int:
@@ -152,6 +184,34 @@ def find_candidates(session: Session, keyword: str) -> list[Meaning]:
         .order_by(Scope.name_norm, Meaning.full_name_norm, col(Meaning.meaning_id))
     )
     return list(session.exec(statement).all())
+
+
+def find_candidates_for_keywords(
+    session: Session,
+    keywords: set[str],
+) -> dict[str, tuple[Meaning, ...]]:
+    normalized = {normalize_keyword(keyword) for keyword in keywords}
+    if not normalized:
+        return {}
+    rows = session.exec(
+        select(Term.keyword_norm, Meaning)
+        .join(Meaning)
+        .join(Scope, col(Scope.scope_id) == col(Meaning.scope_id))
+        .where(
+            col(Term.keyword_norm).in_(normalized),
+            col(Meaning.deleted_at).is_(None),
+        )
+        .order_by(
+            col(Term.keyword_norm),
+            col(Scope.name_norm),
+            col(Meaning.full_name_norm),
+            col(Meaning.meaning_id),
+        ),
+    ).all()
+    grouped: dict[str, list[Meaning]] = {keyword: [] for keyword in normalized}
+    for keyword, meaning in rows:
+        grouped[keyword].append(meaning)
+    return {keyword: tuple(meanings) for keyword, meanings in grouped.items()}
 
 
 def find_duplicate(
