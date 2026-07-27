@@ -8,6 +8,22 @@
 
 完璧な用語集を作ることではなく、知らない言葉を取りこぼさないことを重視します。
 
+## ダウンロード
+
+[Latest Release](https://github.com/niikei/TermKeeper/releases/latest)から、用途に合うファイルを
+ダウンロードできます。
+
+- Windowsでオフライン導入する場合:
+  `termkeeper-<version>-windows-x64-offline.zip`
+- Python環境へインストールする場合:
+  `termkeeper-<version>-py3-none-any.whl`
+- ダウンロードしたファイルを検証する場合:
+  `SHA256SUMS.txt`
+
+GitHubが自動表示する`Source code (zip)`は開発用ソースです。通常利用では、Release assetsの
+Windows用ZIPまたはwheelを使用してください。最初のReleaseが公開されるまでは
+`Latest Release`リンクに配布物は表示されません。
+
 開発環境の構築や品質チェックについては
 [開発者ガイド](README_DEV.md)を参照してください。
 

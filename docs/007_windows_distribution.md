@@ -13,6 +13,10 @@ Release workflowは`v<version>` tagをpushしたときだけ実行され、tag�
 GitHubへ接続できる環境でRelease assetsを取得し、接続できない環境へ必要なファイルを配布する。
 Releaseを使わず手動でwheelを作る場合も、以下と同じ検証手順を使用する。
 
+[TermKeeper Latest Release](https://github.com/niikei/TermKeeper/releases/latest)では、
+Windows用オフラインZIP、wheel、source distribution、`SHA256SUMS.txt`を配布する。
+GitHubが自動生成する`Source code (zip)`ではなく、用途に合うRelease assetを選択する。
+
 ## 推奨する配布物
 
 信頼できる開発環境で、リリース対象のcommitからwheelを作成する。
