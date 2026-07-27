@@ -34,7 +34,11 @@ Reference、Tag、Configも`use_cases/`内の機能別モジュールへ分割�
 
 CLIの`main.py`はパース、Service初期化、エラー処理、JSON出力だけを担当する。
 各コマンドの入出力変換は`adapters/cli/handlers/`へユースケース単位で配置し、
-`registry.py`だけがコマンド名とHandlerの対応を管理する。
+`registry.py`だけがコマンド名とHandlerの対応を管理する。RegistryはHandlerを遅延importし、
+選択されていないコマンドのPresentation依存を起動時に読み込まない。
+`--help`、`--version`、`completion`はDBを必要としない軽量経路とし、Application Service、
+SQLModel、SQLAlchemy、Alembic、FastAPI、MCPをimportしない。この依存境界はsubprocess testで
+保証し、CPUやディスク性能に左右される絶対時間はテスト条件にしない。
 JSONモードは自動化向けの非対話境界とし、標準入力を読まず、標準出力には単一のJSON値だけを
 書き出す。不足入力も構造化エラーへ変換する。
 

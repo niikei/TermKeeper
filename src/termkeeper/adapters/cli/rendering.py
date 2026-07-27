@@ -1,7 +1,10 @@
 """Human-readable and JSON output rendering."""
 
+from __future__ import annotations
+
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from termkeeper.adapters.cli.style import (
     BOLD,
@@ -17,47 +20,39 @@ from termkeeper.adapters.cli.style import (
     styled,
     warning,
 )
-from termkeeper.adapters.cli.types import CommandResult
-from termkeeper.domain import (
-    CaptureBatchResult,
-    CaptureResult,
-    ImportResult,
-    Meaning,
-    MergeResult,
-    OccurrenceItem,
-    Page,
-    ReferenceLink,
-    Scope,
-    SearchHit,
-    SearchResult,
-    SearchSuggestion,
-    StatsSummary,
-)
+
+if TYPE_CHECKING:
+    from termkeeper.adapters.cli.types import CommandResult
+    from termkeeper.domain import (
+        Meaning,
+        OccurrenceItem,
+        Page,
+        ReferenceLink,
+        Scope,
+        SearchHit,
+        SearchResult,
+        SearchSuggestion,
+        StatsSummary,
+    )
+
+
+@runtime_checkable
+class _JsonSerializable(Protocol):
+    def to_dict(self) -> object: ...
 
 
 def print_json(value: CommandResult) -> None:
-    if isinstance(
-        value,
-        (
-            CaptureBatchResult,
-            CaptureResult,
-            ImportResult,
-            Meaning,
-            MergeResult,
-            OccurrenceItem,
-            Page,
-            ReferenceLink,
-            SearchResult,
-            Scope,
-            StatsSummary,
-        ),
-    ):
-        _print_json_value(value.to_dict())
-        return
+    _print_json_value(_json_value(value))
+
+
+def _json_value(value: object) -> object:
+    if isinstance(value, _JsonSerializable):
+        return value.to_dict()
     if isinstance(value, list):
-        _print_json_value([item.to_dict() for item in value])
-        return
-    _print_json_value(dict(value))
+        return [_json_value(item) for item in value]
+    if isinstance(value, Mapping):
+        return dict(value)
+    return value
 
 
 def print_meaning_candidates(

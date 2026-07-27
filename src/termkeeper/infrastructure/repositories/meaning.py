@@ -379,7 +379,7 @@ def list_page(
     tag_conditions = tuple(_tag_condition(tag) for tag in tags)
     if tag_conditions:
         statement = statement.where(
-            *tag_conditions if tag_match == LogicalOperator.ALL else (or_(*tag_conditions),)
+            *tag_conditions if tag_match == LogicalOperator.ALL else (or_(*tag_conditions),),
         )
     if created_since is not None:
         statement = statement.where(Meaning.created_at >= created_since)

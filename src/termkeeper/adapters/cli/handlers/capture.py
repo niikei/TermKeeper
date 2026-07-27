@@ -46,7 +46,8 @@ def handle_add(args: argparse.Namespace, service: TermKeeperService) -> CaptureR
                     result = CaptureResult(assigned, result.candidates)
                     meaning_id = identifier(f"#{selected_id}")
                     print(
-                        f"{success('Assigned')} occurrence {occurrence_id} to meaning {meaning_id}."
+                        f"{success('Assigned')} occurrence {occurrence_id} "
+                        f"to meaning {meaning_id}.",
                     )
     return result
 

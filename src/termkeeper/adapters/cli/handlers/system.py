@@ -1,6 +1,9 @@
 """Dashboard, diagnostics, and shell integration handlers."""
 
+from __future__ import annotations
+
 import argparse
+from typing import TYPE_CHECKING
 
 from termkeeper import __version__
 from termkeeper.adapters.cli.style import (
@@ -11,7 +14,9 @@ from termkeeper.adapters.cli.style import (
     success,
     warning,
 )
-from termkeeper.application import TermKeeperService
+
+if TYPE_CHECKING:
+    from termkeeper.application import TermKeeperService
 
 _ROOT_COMMANDS = (
     "add inbox list resolve search show history stats occurrence meaning tag reference "
@@ -100,7 +105,7 @@ def _print_config_check(key: str, state: str) -> None:
 
 def handle_completion(
     args: argparse.Namespace,
-    _service: TermKeeperService,
+    _service: object,
 ) -> dict[str, str]:
     script = _completion_script(args.shell)
     if not args.json:
